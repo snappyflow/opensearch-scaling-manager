@@ -110,8 +110,8 @@ func IndexNodeStats(esClient *elasticsearch.Client, ctx context.Context) {
 	nodeMetrics.NodeName = nodeStatsInterface["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["name"].(string)
 	nodeMetrics.Timestamp = int64(nodeStatsInterface["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["timestamp"].(float64))
 	nodeMetrics.HostIp = nodeStatsInterface["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["host"].(string)
-	nodeMetrics.IsMaster = utils.CheckIfMaster(esClient,ctx) // need to update checkIfMaster and checkIfData with the 
-	nodeMetrics.IsData = utils.CheckIfData(esClient,ctx) // opensearch client version
+	nodeMetrics.IsMaster = utils.CheckIfMaster(esClient,ctx) 
+	nodeMetrics.IsData = utils.CheckIfData(esClient,ctx) 
 	nodeMetrics.CpuUtil = getCpuUtil()
 	nodeMetrics.RamUtil = getRamUtil()
 	nodeMetrics.HeapUtil = float32(nodeStatsInterface["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["jvm"].(map[string]interface{})["mem"].(map[string]interface{})["heap_used_percent"].(float64))
@@ -125,6 +125,6 @@ func IndexNodeStats(esClient *elasticsearch.Client, ctx context.Context) {
 		log.Fatal("Error converting struct to Json: ", err)
 	}
 
-	utils.CheckIfIndexExists(esClient,ctx) //Need to update checkIfIndexExists and IndexNodeMetrics with
-	utils.IndexMetrics(ctx,esClient,nodeMetricsJson)//opensearch client
+	utils.CheckIfIndexExists(esClient,ctx) 
+	utils.IndexMetrics(ctx,esClient,nodeMetricsJson)
 }

@@ -35,12 +35,12 @@ func FetchMetrics() {
 	fmt.Println("Response: ", res)
 
 	//check if current node is the master node and update the cluster stats if it is master 
-	if utils.CheckIfMaster(esClient, ctx) {  //need to update check if master with opensearch-go package
+	if utils.CheckIfMaster(esClient, ctx) {  
 		fmt.Println("It's the master node")
 		IndexClusterHealth(esClient, ctx)
 	}
 	//Index the the node stats
 	IndexNodeStats(esClient, ctx)
 	//Purge documents from elasticsearch index that are older than 72 hours
-	DeleteOldDocs(esClient,ctx) //need to update purge old documents with opensearch-go package
+	DeleteOldDocs(esClient,ctx) 
 }

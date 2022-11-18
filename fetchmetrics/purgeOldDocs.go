@@ -9,7 +9,8 @@ import (
 	esapi "github.com/opensearch-project/opensearch-go/opensearchapi"
 	utils "fetchMetrics/utils"
 )
-
+//Input: opensearch client and context
+//Description: Deletes documents that older than 72 hours 
 func DeleteOldDocs(esClient *elasticsearch.Client, ctx context.Context) {
 	var jsonQuery = []byte(`{
 		"query": {

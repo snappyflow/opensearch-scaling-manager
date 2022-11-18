@@ -145,7 +145,7 @@ func CheckIfData(esClient *elasticsearch.Client, ctx context.Context) bool {
 	}
 	
 	//Parsing for the node id of the current node 
-	nodeId:=getNodeId(nodeStatsInterface["nodes"].(map[string]interface{}))
+	nodeId:=GetNodeId(nodeStatsInterface["nodes"].(map[string]interface{}))
 
 	//get the roles for current node
 	roles:=nodeStatsInterface["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["roles"].([]interface{})
@@ -209,7 +209,6 @@ func CheckIfMaster(esClient *elasticsearch.Client, ctx context.Context) bool {
 	}
 
 	//Parsing for the node id of the current node 
-	currentNode:=getNodeId(nodeStatsInterface["nodes"].(map[string]interface{}))
-
+	currentNode:=GetNodeId(nodeStatsInterface["nodes"].(map[string]interface{}))
 	return masterNode == currentNode
 }

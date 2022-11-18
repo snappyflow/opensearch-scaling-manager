@@ -90,6 +90,6 @@ func IndexClusterHealth(esClient *elasticsearch.Client, ctx context.Context) {
 	
 
 	//Check and index the Json document into elasticsearch
-	utils.CheckIfIndexExists(esClient, ctx) //Need to update checkIfIndexExists and IndexNodeMetrics with 
-	utils.IndexMetrics(ctx, esClient, clusterHealthJson) //opensearch client
+	utils.CheckIfIndexExists(esClient, ctx) 
+	utils.IndexMetrics(ctx, esClient, clusterHealthJson) 
 }
