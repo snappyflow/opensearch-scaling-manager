@@ -19,8 +19,6 @@ func FetchMetrics() {
 		Addresses: []string{
 			"http://localhost:9200",
 		},
-		 Username: "elastic",
-		 Password: "Zuf4RkyeuO9ANJBSY0yQ",
 	}
 
 	//create the client using the configuration

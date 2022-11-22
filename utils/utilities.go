@@ -161,13 +161,12 @@ func CheckIfData(esClient *elasticsearch.Client, ctx context.Context) bool {
 
 //Inputs: map[string]interface which holds the node stats response 
 //Description: Fetches the node ID of the current node 
-//Output: string whic describes node ID of the current node 
+//Output: string which describes node ID of the current node 
 func GetNodeId(m map[string]interface{}) string {
-	var keys []string
 	for k := range m {
-		keys = append(keys, k)
+		return k
 	}
-	return keys[0]
+	return ""
 }
 
 //Input: opensearch client and context 
