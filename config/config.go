@@ -23,9 +23,9 @@ type OsCredentials struct {
 // This struct contains the Cloud Secret Key and Access Key via which we can connect to the cloud.
 type CloudCredentials struct {
 	// SecretKey indicates the Secret key for connecting to the cloud.
-	SecretKey string `yaml:"secret_key"`
+	SecretKey string `yaml:"secret_key" validate:"required"`
 	// AccessKey indicates the Access key for connecting to the cloud.
-	AccessKey string `yaml:"access_key"`
+	AccessKey string `yaml:"access_key" validate:"required"`
 }
 
 // This struct contains the data structure to parse the cluster details present in the configuration file.
