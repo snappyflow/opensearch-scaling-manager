@@ -83,24 +83,43 @@ func GetConfig(path string) (ConfigStruct, error) {
 func validation(config ConfigStruct) error {
 	validate := validator.New()
 	validate.RegisterValidation("isValidName", isValidName)
+	validate.RegisterValidation("isValidTaskName", isValidTaskName)
 	err := validate.Struct(config)
 	return err
 }
 
 // Inputs:
 //
-//	filed(validator.FieldLevel): The field which needs to be validated.
+//	field(validator.FieldLevel): The field which needs to be validated.
 //
 // Description:
 //
-//	This function will be validating the cluster and task name.
+//	This function will be validating the cluster name.
 //
 // Return:
 //
-//	Return true if there is a valida cluster and task name else false.
+//	Return true if there is a valida cluster name else false.
 func isValidName(fl validator.FieldLevel) bool {
 	nameRegexString := `^[a-zA-Z][a-zA-Z0-9\-\._]+[a-zA-Z0-9]$`
 	nameRegex := regexp.MustCompile(nameRegexString)
 
 	return nameRegex.MatchString(fl.Field().String())
+}
+
+// Inputs:
+//
+//	field(validator.FieldLevel): The field which needs to be validated.
+//
+// Description:
+//
+//	This function will be validating the Task name.
+//
+// Return:
+//
+//	Return true if there is a valid Task name else false.
+func isValidTaskName(fl validator.FieldLevel) bool {
+	TaskNameRegexString := `scale_(up|down)_by_[0-9]+`
+	TaskNameRegex := regexp.MustCompile(TaskNameRegexString)
+
+	return TaskNameRegex.MatchString(fl.Field().String())
 }

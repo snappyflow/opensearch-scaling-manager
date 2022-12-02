@@ -24,5 +24,4 @@ func main() {
 	//task.Tasks = configStruct.TaskDetails
 	// This function is responsible for evaluating the task and recommend.
 	//task.EvaluateTask()
-	//}
 }

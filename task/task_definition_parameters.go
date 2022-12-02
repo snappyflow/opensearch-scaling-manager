@@ -15,7 +15,7 @@ import (
 // This struct contains the task to be perforrmed by the recommendation and set of rules wrt the action.
 type Task struct {
 	// TaskName indicates the name of the task to recommend by the recommendation engine.
-	TaskName string `yaml:"task_name" validate:"required,isValidName"`
+	TaskName string `yaml:"task_name" validate:"required,isValidTaskName"`
 	// Rules indicates list of rules to evaluate the criteria for the recomm+endation engine.
 	Rules []Rule `yaml:"rules" validate:"gt=0,dive"`
 	// Operator indicates the logical operation needs to be performed while executing the rules

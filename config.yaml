@@ -7,8 +7,8 @@ cluster_details:
     os_admin_password: changeme
   cloud_type: AWS
   cloud_credentials:
-    secret_key:
-    access_key:
+    secret_key: secret_key
+    access_key: access_key
   base_node_type: t2x.large
   number_cpus_per_node: 5
   ram_per_node_in_gb: 10
