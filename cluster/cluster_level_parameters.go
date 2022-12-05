@@ -10,6 +10,13 @@
 // The structs be used by recommendation module.
 package cluster
 
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+)
+
 // This struct will contain node metrics for a node in the OpenSearch cluster.
 type Node struct {
 	// NodeId indicates a unique ID of the node given by OpenSearch.
@@ -159,9 +166,23 @@ type MetricViolatedCountCluster struct {
 // Return:
 //		Return populated MetricStatsCluster struct.
 
-func GetClusterAvg(metricName string, decisionPeriod int) MetricStatsCluster {
-	var metricStatsCluster MetricStatsCluster
-	return metricStatsCluster
+func GetClusterAvg(metricName string, decisionPeriod int) MetricStats {
+	var metricStats MetricStats
+	url := fmt.Sprintf("http://localhost:5000/stats/avg/%s/%d", metricName, decisionPeriod)
+	resp, err := http.Get(url)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	defer resp.Body.Close()
+
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(&metricStats)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return metricStats
 }
 
 // Input:
@@ -179,8 +200,24 @@ func GetClusterAvg(metricName string, decisionPeriod int) MetricStatsCluster {
 // Return:
 //		Return populated MetricViolatedCountCluster struct.
 
-func GetClusterCount(metricName string, decisonPeriod int, limit float32) MetricViolatedCountCluster {
-	var metricViolatedCount MetricViolatedCountCluster
+func GetClusterCount(metricName string, decisonPeriod int, limit float32) MetricViolatedCount {
+	var metricViolatedCount MetricViolatedCount
+	url := fmt.Sprintf("http://localhost:5000/stats/violated/%s/%d/%f", metricName, decisonPeriod, limit)
+
+	resp, err := http.Get(url)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	defer resp.Body.Close()
+
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(&metricViolatedCount)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
 	return metricViolatedCount
 }
 

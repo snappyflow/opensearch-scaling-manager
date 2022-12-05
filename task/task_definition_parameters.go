@@ -152,8 +152,8 @@ func (r Rule) GetNextRule() bool {
 //		Return marshal form of either MetricStatsCluster or MetricViolatedCountCluster struct([]byte)
 
 func (r Rule) GetMetrics() []byte {
-	var clusterStats cluster.MetricStatsCluster
-	var clusterCount cluster.MetricViolatedCountCluster
+	var clusterStats cluster.MetricStats
+	var clusterCount cluster.MetricViolatedCount
 	var clusterMetric []byte
 	var jsonErr error
 
@@ -185,30 +185,30 @@ func (r Rule) GetMetrics() []byte {
 
 func (r Rule) EvaluateRule(clusterMetric []byte) bool {
 	if r.Stat == "AVG" {
-		var clusterStats cluster.MetricStatsCluster
+		var clusterStats cluster.MetricStats
 		err := json.Unmarshal(clusterMetric, &clusterStats)
 		if err != nil {
 			log.Fatal("Error converting struct to json: ", err)
 		}
-		if clusterStats.ClusterLevel.Avg > r.Limit {
+		if clusterStats.Avg > r.Limit {
 			return true
 		} else {
 			return false
 		}
 	} else if r.Stat == "COUNT" || r.Stat == "TERM" {
-		var clusterStats cluster.MetricViolatedCountCluster
+		var clusterStats cluster.MetricViolatedCount
 		err := json.Unmarshal(clusterMetric, &clusterStats)
 		if err != nil {
 			log.Fatal("Error converting struct to json: ", err)
 		}
 		if r.Stat == "COUNT" {
-			if clusterStats.ClusterLevel.ViolatedCount > r.Occurences {
+			if clusterStats.ViolatedCount > r.Occurences {
 				return true
 			} else {
 				return false
 			}
 		} else if r.Stat == "TERM" {
-			if clusterStats.ClusterLevel.ViolatedCount > int(r.Limit) {
+			if clusterStats.ViolatedCount > int(r.Limit) {
 				return true
 			} else {
 				return false
