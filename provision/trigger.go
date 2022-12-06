@@ -20,8 +20,6 @@ func GetRecommendation(state *State, recommendation_queue []string) {
 	scaleRegex := regexp.MustCompile(scaleRegexString)
 	if len(recommendation_queue) > 0 {
 		clusterCurrent := cluster.GetClusterCurrent()
-		// Remove later
-		clusterCurrent.ClusterDynamic.ClusterStatus = "green"
 		current_state := state.GetCurrentState()
 		if clusterCurrent.ClusterDynamic.ClusterStatus == "green" && current_state == "normal" {
 			var command Command
@@ -47,8 +45,6 @@ func GetRecommendation(state *State, recommendation_queue []string) {
 // Return:
 func (c *Command) triggerRecommendation(state *State) {
 	clusterCurrent := cluster.GetClusterCurrent()
-	// Remove later
-	clusterCurrent.ClusterDynamic.ClusterStatus = "green"
 	current_state := state.GetCurrentState()
 	if clusterCurrent.ClusterDynamic.ClusterStatus == "green" && current_state == "normal" {
 		if c.Operation == "scale_up" {

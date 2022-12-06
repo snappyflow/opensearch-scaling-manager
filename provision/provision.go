@@ -124,8 +124,6 @@ func (c *Command) ScaleOut(numNodes int, state *State) bool {
 		fmt.Println("Waiting for the cluster to become healthy")
 		time.Sleep(5 * time.Second)
 		cluster := cluster.GetClusterCurrent()
-		// Remove later
-		cluster.ClusterDynamic.ClusterStatus = "yellow"
 		for i := 0; i <= 12; i++ {
 			if cluster.ClusterDynamic.ClusterStatus == "green" {
 				current_state := state.GetCurrentState()
@@ -134,6 +132,7 @@ func (c *Command) ScaleOut(numNodes int, state *State) bool {
 				break
 			}
 			time.Sleep(10 * time.Second)
+			// Remove later
 			cluster.ClusterDynamic.ClusterStatus = "green"
 		}
 		current_state := state.GetCurrentState()
@@ -187,8 +186,6 @@ func (c *Command) ScaleIn(numNodes int, state *State) bool {
 	if state.GetCurrentState() == "provisioning_scaledown_completed" {
 		fmt.Println("Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
 		cluster := cluster.GetClusterCurrent()
-		// Remove later
-		cluster.ClusterDynamic.ClusterStatus = "yellow"
 		for i := 0; i <= 12; i++ {
 			if cluster.ClusterDynamic.ClusterStatus == "green" {
 				current_state := state.GetCurrentState()
