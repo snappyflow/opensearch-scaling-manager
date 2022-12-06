@@ -66,17 +66,21 @@ type TaskDetails struct {
 //		If the task is meeting the criteria then it will push the task to recommendation queue.
 //
 // Return:
+//		Returns an array of the recommendations.
 
-func (t TaskDetails) EvaluateTask() {
+func (t TaskDetails) EvaluateTask() []string {
+	var recommendationArray []string
 	for _, v := range t.Tasks {
 		isRecommendeTask := v.GetNextTask()
 		if isRecommendeTask {
 			v.PushToRecommendationQueue()
+			recommendationArray = append(recommendationArray, v.TaskName)
 		} else {
 			fmt.Printf("The %s task is not recommended as rules are not satisfied", v.TaskName)
 			fmt.Println()
 		}
 	}
+	return recommendationArray
 }
 
 // Inputs:
