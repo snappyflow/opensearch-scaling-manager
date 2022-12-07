@@ -28,7 +28,11 @@ func GetRecommendation(state *State, recommendation_queue []string) {
 			subMatch := scaleRegex.FindStringSubmatch(recommendation_queue[0])
 			command.NumNodes, _ = strconv.Atoi(subMatch[2])
 			command.Operation = subMatch[1]
-			configStruct := config.GetConfig("config.yaml")
+			configStruct, err := config.GetConfig("config.yaml")
+			if err != nil {
+				log.Warn(log.ProvisionerWarn, "Unable to get Config from GetConfig()")
+				return
+			}
 			command.ClusterDetails = configStruct.ClusterDetails
 			command.triggerRecommendation(state)
 		} else {
