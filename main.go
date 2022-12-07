@@ -1,12 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"scaling_manager/cluster"
 	"scaling_manager/config"
 	log "scaling_manager/logger"
 	"scaling_manager/provision"
 	"scaling_manager/task"
-	log "scaling_manager/logger"
 	"strings"
 	"time"
 
