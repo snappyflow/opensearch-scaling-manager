@@ -8,8 +8,8 @@ package task
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"scaling_manager/cluster"
+	log "scaling_manager/logger"
 )
 
 // This struct contains the task to be perforrmed by the recommendation and set of rules wrt the action.
@@ -76,8 +76,7 @@ func (t TaskDetails) EvaluateTask() []string {
 			v.PushToRecommendationQueue()
 			recommendationArray = append(recommendationArray, v.TaskName)
 		} else {
-			fmt.Printf("The %s task is not recommended as rules are not satisfied", v.TaskName)
-			fmt.Println()
+			log.Warn(log.RecommendationWarn, fmt.Sprintf("The %s task is not recommended as rules are not satisfied", v.TaskName))
 		}
 	}
 	return recommendationArray
@@ -165,13 +164,13 @@ func (r Rule) GetMetrics() []byte {
 		clusterStats = cluster.GetClusterAvg(r.Metric, r.DecisionPeriod)
 		clusterMetric, jsonErr = json.MarshalIndent(clusterStats, "", "\t")
 		if jsonErr != nil {
-			log.Fatal("Error converting struct to json: ", jsonErr)
+			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: ", jsonErr))
 		}
 	} else if r.Stat == "COUNT" || r.Stat == "TERM" {
 		clusterCount = cluster.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit)
 		clusterMetric, jsonErr = json.MarshalIndent(clusterCount, "", "\t")
 		if jsonErr != nil {
-			log.Fatal("Error converting struct to json: ", jsonErr)
+			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: ", jsonErr))
 		}
 	}
 
@@ -192,7 +191,7 @@ func (r Rule) EvaluateRule(clusterMetric []byte) bool {
 		var clusterStats cluster.MetricStats
 		err := json.Unmarshal(clusterMetric, &clusterStats)
 		if err != nil {
-			log.Fatal("Error converting struct to json: ", err)
+			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: ", err))
 		}
 		if clusterStats.Avg > r.Limit {
 			return true
@@ -203,7 +202,7 @@ func (r Rule) EvaluateRule(clusterMetric []byte) bool {
 		var clusterStats cluster.MetricViolatedCount
 		err := json.Unmarshal(clusterMetric, &clusterStats)
 		if err != nil {
-			log.Fatal("Error converting struct to json: ", err)
+			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: ", err))
 		}
 		if r.Stat == "COUNT" {
 			if clusterStats.ViolatedCount > r.Occurences {
@@ -231,6 +230,5 @@ func (r Rule) EvaluateRule(clusterMetric []byte) bool {
 // Return:
 
 func (task Task) PushToRecommendationQueue() {
-	fmt.Printf("The %s task is recommended and will be pushed to the queue", task.TaskName)
-	fmt.Println()
+	log.Info(log.RecommendationInfo, fmt.Sprintf("The %s task is recommended and will be pushed to the queue", task.TaskName))
 }

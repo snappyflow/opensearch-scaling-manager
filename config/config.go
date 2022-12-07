@@ -1,11 +1,12 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"regexp"
 	"scaling_manager/cluster"
+	log "scaling_manager/logger"
 	"scaling_manager/task"
 
 	"github.com/go-playground/validator/v10"
@@ -56,14 +57,14 @@ type ConfigStruct struct {
 func GetConfig(path string) (ConfigStruct, error) {
 	yamlConfig, err := os.Open(path)
 	if err != nil {
-		log.Fatal("Unable to read the config file: ", err)
+		log.Fatal(log.RecommendationFatal, fmt.Sprintf("Unable to read the config file: ", err))
 	}
 	defer yamlConfig.Close()
 	configByte, _ := ioutil.ReadAll(yamlConfig)
 	var config = new(ConfigStruct)
 	err = yaml.Unmarshal(configByte, &config)
 	if err != nil {
-		log.Fatalf("Unmarshal: %v", err)
+		log.Fatal(log.RecommendationFatal, fmt.Sprintf("Unmarshal: %v", err))
 	}
 	err = validation(*config)
 	return *config, err

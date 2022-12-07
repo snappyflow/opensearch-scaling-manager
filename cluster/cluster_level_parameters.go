@@ -13,8 +13,8 @@ package cluster
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
+	log "scaling_manager/logger"
 	"time"
 )
 
@@ -176,7 +176,7 @@ func GetClusterAvg(metricName string, decisionPeriod int) MetricStats {
 	resp, err := client.Get(url)
 
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(log.RecommendationFatal, err)
 	}
 
 	defer resp.Body.Close()
@@ -184,7 +184,7 @@ func GetClusterAvg(metricName string, decisionPeriod int) MetricStats {
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(&metricStats)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(log.RecommendationFatal, err)
 	}
 	return metricStats
 }
@@ -214,7 +214,7 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) Metric
 	resp, err := client.Get(url)
 
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(log.RecommendationFatal, err)
 	}
 
 	defer resp.Body.Close()
@@ -223,7 +223,7 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) Metric
 	err = decoder.Decode(&metricViolatedCount)
 
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(log.RecommendationFatal, err)
 	}
 	return metricViolatedCount
 }
@@ -248,13 +248,13 @@ func GetClusterCurrent() Cluster {
 	}
 	resp, err := client.Get(url)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(log.RecommendationFatal, err)
 	}
 	defer resp.Body.Close()
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(&clusterStats)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(log.RecommendationFatal, err)
 	}
 	clusterCurrent.ClusterDynamic.ClusterStatus = clusterStats["current"]
 
