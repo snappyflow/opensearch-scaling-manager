@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
 // This struct will contain node metrics for a node in the OpenSearch cluster.
@@ -169,7 +170,10 @@ type MetricViolatedCountCluster struct {
 func GetClusterAvg(metricName string, decisionPeriod int) MetricStats {
 	var metricStats MetricStats
 	url := fmt.Sprintf("http://localhost:5000/stats/avg/%s/%d", metricName, decisionPeriod)
-	resp, err := http.Get(url)
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
+	resp, err := client.Get(url)
 
 	if err != nil {
 		log.Fatalln(err)
@@ -203,8 +207,11 @@ func GetClusterAvg(metricName string, decisionPeriod int) MetricStats {
 func GetClusterCount(metricName string, decisonPeriod int, limit float32) MetricViolatedCount {
 	var metricViolatedCount MetricViolatedCount
 	url := fmt.Sprintf("http://localhost:5000/stats/violated/%s/%d/%f", metricName, decisonPeriod, limit)
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
 
-	resp, err := http.Get(url)
+	resp, err := client.Get(url)
 
 	if err != nil {
 		log.Fatalln(err)
@@ -236,7 +243,10 @@ func GetClusterCurrent() Cluster {
 	var clusterStats map[string]string
 
 	url := fmt.Sprintf("http://localhost:5000/stats/current/status")
-	resp, err := http.Get(url)
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
+	resp, err := client.Get(url)
 	if err != nil {
 		log.Fatalln(err)
 	}
