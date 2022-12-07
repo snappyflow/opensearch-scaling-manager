@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"scaling_manager/cluster"
 	"scaling_manager/config"
 	"scaling_manager/provision"
 	"scaling_manager/task"
+	log "scaling_manager/logger"
 	"strings"
 	"time"
 )
@@ -51,22 +51,22 @@ func periodicProvisionCheck() {
 					// command struct to be filled with the recommendation queue and config file
 					var command provision.Command
 					if strings.Contains(current_state, "scaleup") {
-						fmt.Println("Calling scaleOut")
+						log.Info("Calling scaleOut")
 						isScaledUp := command.ScaleOut(1, State)
 						if isScaledUp {
-							fmt.Println("Scaleup completed successfully")
+							log.Info("Scaleup completed successfully")
 						} else {
 							// Add a retry mechanism
-							fmt.Println("Scaleup failed")
+							log.Warn("Scaleup failed")
 						}
 					} else if strings.Contains(current_state, "scaledown") {
-						fmt.Println("Calling scaleIn")
+						log.Info("Calling scaleIn")
 						isScaledDown := command.ScaleIn(1, State)
 						if isScaledDown {
-							fmt.Println("Scaledown completed successfully")
+							log.Info("Scaledown completed successfully")
 						} else {
 							// Add a retry mechanism
-							fmt.Println("Scaledown failed")
+							log.Warn("Scaledown failed")
 						}
 					}
 				}

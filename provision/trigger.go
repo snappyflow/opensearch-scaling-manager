@@ -1,11 +1,12 @@
 package provision
 
 import (
-	"fmt"
 	"regexp"
 	"scaling_manager/cluster"
 	"scaling_manager/config"
 	"strconv"
+
+	log "scaling_manager/logger"
 )
 
 // Input:
@@ -31,7 +32,7 @@ func GetRecommendation(state *State, recommendation_queue []string) {
 			command.ClusterDetails = configStruct.ClusterDetails
 			command.triggerRecommendation(state)
 		} else {
-			fmt.Println("Recommendation can not be provisioned as open search cluster is already in provisioning phase or the cluster isn't healthy yet")
+			log.Warn(log.ProvisionerWarn, "Recommendation can not be provisioned as open search cluster is already in provisioning phase or the cluster isn't healthy yet")
 		}
 	}
 }
@@ -54,7 +55,7 @@ func (c *Command) triggerRecommendation(state *State) {
 		}
 		go c.Provision(state)
 	} else {
-		fmt.Println("Recommendation can not be provisioned as open search cluster is already in provisioning phase or the cluster isn't healthy yet")
+		log.Warn(log.ProvisionerWarn, "Recommendation can not be provisioned as open search cluster is already in provisioning phase or the cluster isn't healthy yet")
 	}
 }
 
