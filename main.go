@@ -22,13 +22,12 @@ func main() {
 		// In starting we will call simulator to provide this details with current timestamp.
 		// fetch.FetchMetrics()
 		// This function will be responsible for parsing the config file and fill in task_details struct.
-		var task = new(task.TaskDetails)
-		configStruct := config.GetConfig("config.yaml")
+		configStruct, _ := config.GetConfig("config.yaml")
 		task.Tasks = configStruct.TaskDetails
 		// This function is responsible for evaluating the task and recommend.
-		recommendation_list := task.EvaluateTask()
+		recommendationList := task.EvaluateTask()
 		// This function is responsible for getting the recommendation and provision.
-		provision.GetRecommendation(State, recommendation_list)
+		provision.GetRecommendation(State, recommendationList)
 	}
 }
 
@@ -76,4 +75,3 @@ func periodicProvisionCheck() {
 		previous_master = current_master
 	}
 }
-

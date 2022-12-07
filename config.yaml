@@ -1,0 +1,57 @@
+---
+cluster_details:
+  ip_address: 10.81.1.250
+  cluster_name: cluster.1
+  os_credentials: 
+    os_admin_username: elastic
+    os_admin_password: changeme
+  cloud_type: AWS
+  cloud_credentials:
+    secret_key: secret_key
+    access_key: access_key
+  base_node_type: t2x.large
+  number_cpus_per_node: 5
+  ram_per_node_in_gb: 10
+  disk_per_node_in_gb: 100
+  number_max_nodes_allowed: 2
+task_details:
+- task_name: scale_up_by_1
+  operator: OR
+  rules:
+  - metric: cpu
+    limit: 2
+    stat: AVG
+    decision_period: 9
+  - metric: cpu
+    limit: 1
+    stat: COUNT
+    occurences: 10
+    decision_period: 9
+  - metric: mem
+    limit: 59
+    stat: AVG
+    decision_period: 9
+  - metric: shard
+    stat: TERM
+    limit: 900
+    decision_period: 9
+- task_name: scale_down_by_1
+  operator: AND
+  rules:
+  - metric: cpu
+    limit: 0.5
+    stat: AVG
+    decision_period: 9
+  - metric: cpu
+    limit: 1
+    stat: COUNT
+    occurences: 6
+    decision_period: 9
+  - metric: mem
+    limit: 59
+    stat: AVG
+    decision_period: 9
+  - metric: shard
+    stat: TERM
+    limit: 800
+    decision_period: 9
