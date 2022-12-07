@@ -3,10 +3,11 @@
 package provision
 
 import (
-	"fmt"
 	"scaling_manager/cluster"
 	"scaling_manager/config"
 	"time"
+
+	log "scaling_manager/logger"
 )
 
 var counter uint8 = 1
@@ -61,7 +62,7 @@ func (c *Command) Provision(state *State) {
 		state.SetState("provisioning_scaleup", current_state)
 		isScaledUp := c.ScaleOut(1, state)
 		if isScaledUp {
-			fmt.Println("Scaleup successful")
+			log.Info(log.ProvisionerInfo, "Scaleup successful")
 		} else {
 			current_state = state.GetCurrentState()
 			// Add a retry mechanism
@@ -71,7 +72,7 @@ func (c *Command) Provision(state *State) {
 		state.SetState("provisioning_scaledown", current_state)
 		isScaledDown := c.ScaleIn(1, state)
 		if isScaledDown {
-			fmt.Println("Scaledown successful")
+			log.Info(log.ProvisionerInfo, "Scaledown successful")
 		} else {
 			current_state = state.GetCurrentState()
 			// Add a retry mechanism
@@ -99,36 +100,36 @@ func (c *Command) ScaleOut(numNodes int, state *State) bool {
 	// If no stage was already set. The function returns an empty string. Then, start the scaleup process
 	if state.GetCurrentState() == "provisioning_scaleup" {
 		state.SetState("start_scaleup_process", "provision_scaleup")
-		fmt.Println("Starting scaleUp process")
+		log.Info(log.ProvisionerInfo, "Starting scaleUp process")
 	}
 	// Spin new VMs based on number of nodes and cloud type
 	if state.GetCurrentState() == "start_scaleup_process" {
-		fmt.Println("Spin new vms based on the cloud type")
+		log.Info(log.ProvisionerInfo, "Spin new vms based on the cloud type")
 		state.SetState("scaleup_triggered_spin_vm", "start_scaleup_process")
-		fmt.Println("Spinning new vms")
+		log.Info(log.ProvisionerInfo, "Spinning new vms")
 		time.Sleep(5 * time.Second)
 	}
 	// Add the newly added VM to the list of VMs
 	// Configure OS on newly created VM
 	if state.GetCurrentState() == "scaleup_triggered_spin_vm" {
-		fmt.Println("Check if the vm creation is complete and wait till done")
-		fmt.Println("Adding the spinned nodes into the list of vms")
-		fmt.Println("Configure ES")
+		log.Info(log.ProvisionerInfo, "Check if the vm creation is complete and wait till done")
+		log.Info(log.ProvisionerInfo, "Adding the spinned nodes into the list of vms")
+		log.Info(log.ProvisionerInfo, "Configure ES")
 		state.SetState("provisioning_scaleup_completed", "scaleup_triggered_spin_vm")
-		fmt.Println("Configuring in progress")
+		log.Info(log.ProvisionerInfo, "Configuring in progress")
 		time.Sleep(5 * time.Second)
 	}
 	// Check cluster status after the configuration
 	if state.GetCurrentState() == "provisioning_scaleup_completed" {
-		fmt.Println("Wait for the cluster health and return status")
-		fmt.Println("Waiting for the cluster to become healthy")
+		log.Info(log.ProvisionerInfo, "Wait for the cluster health and return status")
+		log.Info(log.ProvisionerInfo, "Waiting for the cluster to become healthy")
 		time.Sleep(5 * time.Second)
 		cluster := cluster.GetClusterCurrent()
 		for i := 0; i <= 12; i++ {
 			if cluster.ClusterDynamic.ClusterStatus == "green" {
 				current_state := state.GetCurrentState()
 				state.SetState("provisioned_successfully", current_state)
-				fmt.Println("Provisioned successfully")
+				log.Info(log.ProvisionerInfo, "Provisioned successfully")
 				break
 			}
 			time.Sleep(10 * time.Second)
@@ -138,11 +139,11 @@ func (c *Command) ScaleOut(numNodes int, state *State) bool {
 		current_state := state.GetCurrentState()
 		if current_state != "provisioned_successfully" {
 			state.SetState("provisioned_failed", current_state)
-			fmt.Println("Failed to provision")
+			log.Warn(log.ProvisionerWarn, "Failed to provision")
 		}
 		time.Sleep(5 * time.Second)
 		state.SetState("normal", state.GetCurrentState())
-		fmt.Println("State set back to normal")
+		log.Info(log.ProvisionerInfo, "State set back to normal")
 	}
 	return true
 }
@@ -165,26 +166,26 @@ func (c *Command) ScaleIn(numNodes int, state *State) bool {
 	// If no stage was already set. The function returns an empty string. Then, start the scaledown process
 	if state.GetCurrentState() == "provisioning_scaledown" {
 		state.SetState("start_scaledown_process", "provision_scaledown")
-		fmt.Println("Staring scaleDown process")
+		log.Info(log.ProvisionerInfo, "Staring scaleDown process")
 	}
 
 	// Identify the node which can be removed from the cluster.
 	if state.GetCurrentState() == "start_scaledown_process" {
-		fmt.Println("Identify the node to remove from the cluster and store the node_ip")
+		log.Info(log.ProvisionerInfo, "Identify the node to remove from the cluster and store the node_ip")
 		time.Sleep(2 * time.Second)
 		state.SetState("scaledown_node_identified", "start_scaledown_process")
 	}
 	// Configure OS to tell master node that the present node is going to be removed
 	if state.GetCurrentState() == "scaledown_node_identified" {
-		fmt.Println("Configure ES to remove the node ip from cluster")
+		log.Info(log.ProvisionerInfo, "Configure ES to remove the node ip from cluster")
 		state.SetState("provisioning_scaledown_completed", "scaledown_node_identified")
 		time.Sleep(5 * time.Second)
-		fmt.Println("Node removed from ES configuration")
+		log.Info(log.ProvisionerInfo, "Node removed from ES configuration")
 	}
 	// Wait for cluster to be in stable state(Shard rebalance)
 	// Shut down the node
 	if state.GetCurrentState() == "provisioning_scaledown_completed" {
-		fmt.Println("Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
+		log.Info(log.ProvisionerInfo, "Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
 		cluster := cluster.GetClusterCurrent()
 		for i := 0; i <= 12; i++ {
 			if cluster.ClusterDynamic.ClusterStatus == "green" {
@@ -199,10 +200,10 @@ func (c *Command) ScaleIn(numNodes int, state *State) bool {
 		current_state := state.GetCurrentState()
 		if current_state != "provisioned_successfully" {
 			state.SetState("provisioned_failed", current_state)
-			fmt.Println("Cluster hasn't come back to healthy state. Returning false")
+			log.Warn(log.ProvisionerWarn, "Cluster hasn't come back to healthy state. Returning false")
 		}
 		time.Sleep(5 * time.Second)
-		fmt.Println("Shutdown the node")
+		log.Info(log.ProvisionerInfo, "Shutdown the node")
 		state.SetState("normal", state.GetCurrentState())
 	}
 	return true
