@@ -39,6 +39,11 @@ func Error(format string, v ...interface{}) {
         log.Errorf(format, v...)
 }
 
+// Fatal ...
+func Fatal(format string, v ...interface{}) {
+	log.Fatalf(format, v...)
+}
+
 var (
 
         // RecommendationError ...
@@ -50,6 +55,9 @@ var (
         // RecommendationInfo ...
         RecommendationInfo = "%v type=recommendation.info"
 
+	// RecommendationFatal ...
+        RecommendationFatal = "%v type=recommendation.fatal"
+
         // ProvisionerWarn ...
         ProvisionerWarn = "%v type=provisioner.warn"
 
@@ -58,5 +66,8 @@ var (
 
         // ProvisionerError ...
         ProvisionerError = "%v type=provisioner.error"
+
+	// ProvisionerFatal ...
+        ProvisionerFatal = "%v type=provisioner.fatal"
 )
 
