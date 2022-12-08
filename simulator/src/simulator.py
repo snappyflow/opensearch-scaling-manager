@@ -5,6 +5,7 @@ import random
 from datetime import datetime, timedelta
 
 import constants
+from config_parser import get_source_code_dir
 from cluster import Cluster
 from data_ingestion import DataIngestion
 from search import Search
@@ -62,17 +63,6 @@ class Simulator:
         return random.choice(
             [constants.CLUSTER_STATE_GREEN] * 5 + [constants.CLUSTER_STATE_YELLOW] * 3 + [constants.CLUSTER_STATE_RED])
 
-    def file_name_for_pickling(self, passed_minutes: int, passed_days: int = 0):
-        now = datetime.now()
-        date_obj = now - timedelta(
-            hours=now.hour,
-            minutes=now.minute,
-            seconds=now.second,
-            microseconds=now.microsecond
-        )
-        resultant_time = date_obj + timedelta(minutes=passed_minutes, days=passed_days)
-        return resultant_time.strftime(constants.DATE_TIME_FORMAT)
-
     def run(self, duration_minutes):
         resultant_cluster_objects = []
         data_x, data_y = self.aggregate_data(duration_minutes)
@@ -93,3 +83,31 @@ class Simulator:
             resultant_cluster_objects.append((copy.deepcopy(self.cluster),date_time))
             self.elapsed_time_minutes += self.frequency_minutes
         return resultant_cluster_objects
+
+    @staticmethod
+    def create_provisioning_lock():
+        lock_file_path = os.path.join(get_source_code_dir(), constants.PROVISION_LOCK_FILE_NAME)
+        expiry_time = datetime.now() + timedelta(seconds=random.randint(15, 65))
+        with open(lock_file_path, 'w') as file_handler:
+            file_handler.write(expiry_time.isoformat())
+        return expiry_time.isoformat()
+
+    @staticmethod
+    def is_provision_in_progress():
+        lock_file_path = os.path.join(get_source_code_dir(), constants.PROVISION_LOCK_FILE_NAME)
+        if os.path.exists(lock_file_path):
+            with open(lock_file_path, 'r') as file_handler:
+                if datetime.now() > datetime.fromisoformat(file_handler.read()):
+                    file_handler.close()
+                    Simulator.remove_provisioning_lock()
+                    return False
+                else:
+                    return True
+        return False
+
+
+    @staticmethod
+    def remove_provisioning_lock():
+        lock_file_path = os.path.join(get_source_code_dir(), constants.PROVISION_LOCK_FILE_NAME)
+        if os.path.exists(lock_file_path):
+            os.remove(lock_file_path)
