@@ -17,8 +17,7 @@ STAT_REQUEST = {
 
 APP_PORT = 5000
 
-SCHEMA_PATH = '\schema.py'
-CONFIG_PATH = '\config.yaml'
+CONFIG_PATH = 'config.yaml'
 
 DATA_INGESTION = "data_ingestion"
 SEARCHES = "searches"
