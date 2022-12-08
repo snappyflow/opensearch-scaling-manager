@@ -42,10 +42,6 @@ def violated_count(stat_name, duration, threshold):
     time_now = datetime.now()
 
     # Convert the minutes to time object to compare and query for required data points
-    # datetime_object = convert_to_hh_mm(duration)
-    # h=datetime_object.time().hour
-    # m =datetime_object.time().minute
-    # time = time_now - timedelta(hours=h,minutes=m)
     time_obj = time_now - timedelta(minutes=duration)
 
     try:
@@ -71,10 +67,6 @@ def average(stat_name,duration):
     time_now = datetime.now()
 
     # Convert the minutes to time object to compare and query for required data points 
-    # datetime_object = convert_to_hh_mm(duration)
-    # h=datetime_object.time().hour
-    # m =datetime_object.time().minute
-    # time_obj = time_now - timedelta(hours=h,minutes=m)
     time_obj = time_now - timedelta(minutes=duration)
 
     stat_list = []
@@ -109,7 +101,7 @@ def current(stat_name):
         if len(current) == 0:
             return Response("Not enough Data points",status=400)
 
-        return jsonify({"current": current[0]})
+        return jsonify({"current": dict(current[0])})
 
     except Exception as e:
         return Response(e,status=404)
