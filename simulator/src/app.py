@@ -1,12 +1,11 @@
 from flask import Flask,jsonify,Response
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime,timedelta
-from sqlalchemy import func,text,desc
+from sqlalchemy import text,desc
 from simulator import Simulator
 from cluster import Cluster
 from data_ingestion import State, DataIngestion
 import constants
-import json
 import os
 from config_parser import parse_config
 import shutil
@@ -24,6 +23,7 @@ class DataModel(db.Model):
     status = db.Column(db.String(200))
     cpu_usage_percent = db.Column(db.Float, default=0)
     memory_usage_percent = db.Column(db.Float, default=0)
+    shards_count = db.Column(db.Integer,default=0)
     date_created = db.Column(db.DateTime, default = datetime.now(),primary_key =True)
 
 
@@ -32,7 +32,6 @@ def convert_to_hh_mm(duration_in_m):
     time_h_m  = '{:02d}:{:02d}'.format(*divmod(duration_in_m, 60))
     time_obj  = datetime.strptime(time_h_m, '%H:%M')
     return time_obj
-
 
 
 # Returns the violated count for a requested metric, threshold and duration, returns error if sufficient data points are not present.
@@ -46,14 +45,14 @@ def violated_count(stat_name, duration, threshold):
 
     try:
         # Fetching the count of data points for given duration.
-        data_point_count = DataModel.query.order_by(constants.STAT_REQUEST[stat_name]).filter(DataModel.date_created > time_obj).count()
+        data_point_count = DataModel.query.order_by(constants.STAT_REQUEST[stat_name]).filter(DataModel.date_created > time_obj).filter(DataModel.date_created < time_now).count()
 
         # If expected data points are not present then respond with error
         if duration/DATA_POINT_FREQUENCY_MINUTES > data_point_count:
             return Response("Not enough data points",status=400)
 
         # Fetches the count of stat_name that exceeds the threshold for given duration
-        stats = DataModel.query.order_by(constants.STAT_REQUEST[stat_name]).filter(DataModel.cpu_usage_percent > threshold).filter(DataModel.date_created > time_obj).count()
+        stats = DataModel.query.order_by(constants.STAT_REQUEST[stat_name]).filter(DataModel.__getattribute__(DataModel,constants.STAT_REQUEST[stat_name]) > threshold).filter(DataModel.date_created > time_obj).filter(DataModel.date_created < time_now).count()
         
         return jsonify({"ViolatedCount" : stats})
     
@@ -72,7 +71,7 @@ def average(stat_name,duration):
     stat_list = []
     try:
         # Fetches list of rows that is filter by stat_name and are filterd by decision period
-        avg_list = DataModel.query.order_by(constants.STAT_REQUEST[stat_name]).filter(DataModel.date_created > time_obj).with_entities(text(constants.STAT_REQUEST[stat_name])).all()
+        avg_list = DataModel.query.order_by(constants.STAT_REQUEST[stat_name]).filter(DataModel.date_created > time_obj).filter(DataModel.date_created < time_now).with_entities(text(constants.STAT_REQUEST[stat_name])).all()
         for i in avg_list:  
             stat_list.append(i[0])
 
@@ -108,7 +107,7 @@ def current(stat_name):
 
 @app.route('/all')
 def all():
-    task = DataModel.query.with_entities(DataModel.cpu_usage_percent,DataModel.memory_usage_percent,DataModel.status,DataModel.date_created).count()
+    task = DataModel.query.with_entities(DataModel.cpu_usage_percent,DataModel.memory_usage_percent,DataModel.status).count()
     return jsonify(task)
     
 
@@ -134,5 +133,5 @@ if __name__ == "__main__":
         )
         db.session.add(task)
     db.session.commit()       
-    app.run(port=constants.APP_PORT,debug=True,use_reloader=False)
+    app.run(port=constants.APP_PORT,debug=True)
 
