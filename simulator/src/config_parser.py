@@ -1,8 +1,10 @@
-import yaml
+import os
 import sys
-from cerberus import Validator
 from pathlib import Path
+import yaml
+from cerberus import Validator
 import constants as const
+
 
 class Config:
     def __init__(
@@ -28,7 +30,7 @@ def validate_config(all_configs):
     """
     # Fetching the dir path and appending the schema file path
     source_code_dir: Path = Path(__file__).parent.resolve()
-    schema_path = str(source_code_dir) + const.SCHEMA_PATH 
+    schema_path = os.path.join(source_code_dir, const.SCHEMA_FILE_NAME)
     schema = eval(open(schema_path, "r").read())
 
     # validating config file against the schema
@@ -69,9 +71,10 @@ def parse_config(config_file_path):
     # If it is a valid config file, Place the file in the simulator/src/main and return
     if is_valid:
         # cwd = os.getcwd()
-        file = open(str(source_code_dir) + const.CONFIG_PATH, "w")
-        yaml.dump(all_configs, file, allow_unicode=True)
-        file.close()
+        config_file_path = os.path.join(source_code_dir, const.CONFIG_PATH)
+        file_handler = open(config_file_path, "w")
+        yaml.dump(all_configs, file_handler, allow_unicode=True)
+        file_handler.close()
 
     # If the required fields is not present in the config file then do not place it in src/
     else:
