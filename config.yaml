@@ -31,10 +31,10 @@ task_details:
     limit: 59
     stat: AVG
     decision_period: 9
-  - metric: shard
-    stat: TERM
-    limit: 900
-    decision_period: 9
+  #- metric: shard
+  #  stat: TERM
+  #  limit: 900
+  #  decision_period: 9
 - task_name: scale_down_by_1
   operator: AND
   rules:
@@ -51,7 +51,7 @@ task_details:
     limit: 59
     stat: AVG
     decision_period: 9
-  - metric: shard
-    stat: TERM
-    limit: 800
-    decision_period: 9
+  #- metric: shard
+  #  stat: TERM
+  #  limit: 800
+  #  decision_period: 9
