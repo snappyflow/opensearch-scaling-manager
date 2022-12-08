@@ -324,3 +324,16 @@ func CheckIfMaster() bool {
 	currentNode.IsMaster = true
 	return currentNode.IsMaster
 }
+
+// Input:
+//
+// Description:
+//              Calls OS Api to get the cluster id
+//				ToDo: We need to add logic to fetch the cluster id from OS and return it.
+// Return:
+//              Returns clusterId for the cluster
+
+func GetClusterId() string {
+	var clusterId = "vcPboLtxQXyPhJMe8bn44A"
+	return clusterId
+}
