@@ -1,17 +1,16 @@
 import os
 import shutil
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 
-from flask import Flask,jsonify,Response, request
+from flask import Flask, jsonify, Response, request
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text,desc
+from sqlalchemy import text, desc
 
 import constants
 from config_parser import parse_config, get_source_code_dir
 from data_ingestion import State, DataIngestion
 from cluster import Cluster
 from simulator import Simulator
-
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///datapoints.db'
@@ -20,19 +19,20 @@ if os.path.exists('instance'):
     shutil.rmtree('instance')
 db = SQLAlchemy(app)
 
+
 # Database model to store the datapoints
 class DataModel(db.Model):
     status = db.Column(db.String(200))
     cpu_usage_percent = db.Column(db.Float, default=0)
     memory_usage_percent = db.Column(db.Float, default=0)
-    shards_count = db.Column(db.Integer,default=0)
-    date_created = db.Column(db.DateTime, default = datetime.now(),primary_key =True)
+    shards_count = db.Column(db.Integer, default=0)
+    date_created = db.Column(db.DateTime, default=datetime.now(), primary_key=True)
 
 
 # Converts the duration in minutes to time object of "HH:MM" format
 def convert_to_hh_mm(duration_in_m):
-    time_h_m  = '{:02d}:{:02d}'.format(*divmod(duration_in_m, 60))
-    time_obj  = datetime.strptime(time_h_m, '%H:%M')
+    time_h_m = '{:02d}:{:02d}'.format(*divmod(duration_in_m, 60))
+    time_obj = datetime.strptime(time_h_m, '%H:%M')
     return time_obj
 
 
@@ -47,23 +47,27 @@ def violated_count(stat_name, duration, threshold):
 
     try:
         # Fetching the count of data points for given duration.
-        data_point_count = DataModel.query.order_by(constants.STAT_REQUEST[stat_name]).filter(DataModel.date_created > time_obj).filter(DataModel.date_created < time_now).count()
+        data_point_count = DataModel.query.order_by(constants.STAT_REQUEST[stat_name]).filter(
+            DataModel.date_created > time_obj).filter(DataModel.date_created < time_now).count()
 
         # If expected data points are not present then respond with error
-        if duration/sim.frequency_minutes > data_point_count:
-            return Response("Not enough data points",status=400)
+        if duration // sim.frequency_minutes > data_point_count:
+            return Response("Not enough data points", status=400)
 
         # Fetches the count of stat_name that exceeds the threshold for given duration
-        stats = DataModel.query.order_by(constants.STAT_REQUEST[stat_name]).filter(DataModel.__getattribute__(DataModel,constants.STAT_REQUEST[stat_name]) > threshold).filter(DataModel.date_created > time_obj).filter(DataModel.date_created < time_now).count()
-        
-        return jsonify({"ViolatedCount" : stats})
-    
+        stats = DataModel.query.order_by(constants.STAT_REQUEST[stat_name]).filter(
+            DataModel.__getattribute__(DataModel, constants.STAT_REQUEST[stat_name]) > threshold).filter(
+            DataModel.date_created > time_obj).filter(DataModel.date_created < time_now).count()
+
+        return jsonify({"ViolatedCount": stats})
+
     except Exception as e:
-        return Response(e,status=404)
+        return Response(e, status=404)
+
 
 # The endpoint returns average of requested stat for a duration, returns error if sufficient data points are not present
 @app.route('/stats/avg/<string:stat_name>/<int:duration>')
-def average(stat_name,duration):
+def average(stat_name, duration):
     # calculate time to query for data 
     time_now = datetime.now()
 
@@ -73,22 +77,28 @@ def average(stat_name,duration):
     stat_list = []
     try:
         # Fetches list of rows that is filter by stat_name and are filterd by decision period
-        avg_list = DataModel.query.order_by(constants.STAT_REQUEST[stat_name]).filter(DataModel.date_created > time_obj).filter(DataModel.date_created < time_now).with_entities(text(constants.STAT_REQUEST[stat_name])).all()
-        for i in avg_list:  
-            stat_list.append(i[0])
+        avg_list = DataModel.query.order_by(constants.STAT_REQUEST[stat_name]).filter(
+            DataModel.date_created > time_obj).filter(DataModel.date_created < time_now).with_entities(
+            text(constants.STAT_REQUEST[stat_name])).all()
+        for avg_value in avg_list:
+            stat_list.append(avg_value[0])
 
         # If expected data points count are not present then respond with error
-        if duration/sim.frequency_minutes > len(stat_list):
-            return Response("Not enough data points",status=400)
+        if duration // sim.frequency_minutes > len(stat_list):
+            return Response("Not enough data points", status=400)
+
+        # check if any data points were collected
+        if not stat_list:
+            return Response("Decision period too small", status=400)
 
         # Average, minimum and maximum value of a stat for a given decision period
         return jsonify({
-            "avg": sum(stat_list)/len(stat_list),
+            "avg": sum(stat_list) / len(stat_list),
             "min": min(stat_list),
-            "max": max(stat_list),})
+            "max": max(stat_list), })
 
     except Exception as e:
-        return Response(e,status=404)
+        return Response(str(e), status=404)
 
 
 # The endpoint returns request stat from the latest poll, returns error if sufficient data points are not present.
@@ -98,12 +108,13 @@ def current(stat_name):
         if constants.STAT_REQUEST[stat_name] == constants.CLUSTER_STATE:
             if Simulator.is_provision_in_progress():
                 return jsonify({"current": constants.CLUSTER_STATE_YELLOW})
-        # Fetches the stat_name for the lastest poll  
-        current = DataModel.query.order_by(desc(DataModel.date_created)).with_entities(DataModel.__getattribute__(DataModel,constants.STAT_REQUEST[stat_name])).all()
-        
+        # Fetches the stat_name for the latest poll
+        current = DataModel.query.order_by(desc(DataModel.date_created)).with_entities(
+            DataModel.__getattribute__(DataModel, constants.STAT_REQUEST[stat_name])).all()
+
         # If expected data points count are not present then respond with error
         if len(current) == 0:
-            return Response("Not enough Data points",status=400)
+            return Response("Not enough Data points", status=400)
 
         return jsonify({"current": current[0][constants.STAT_REQUEST[stat_name]]})
 
@@ -129,7 +140,8 @@ def add_node():
 
 @app.route('/all')
 def all():
-    task = DataModel.query.with_entities(DataModel.cpu_usage_percent,DataModel.memory_usage_percent,DataModel.status).count()
+    task = DataModel.query.with_entities(DataModel.cpu_usage_percent, DataModel.memory_usage_percent,
+                                         DataModel.status).count()
     return jsonify(task)
 
 
@@ -149,14 +161,15 @@ if __name__ == "__main__":
 
     sim = Simulator(cluster, data_function, configs.searches, configs.data_generation_interval_minutes, 0)
     # generate the data points from simulator
-    output = sim.run(24*60)
+    output = sim.run(24 * 60)
     # start serving the apis
-    for sim_obj,timestamp in output:
-        task = DataModel(cpu_usage_percent = sim_obj.cpu_usage_percent,
-            memory_usage_percent = sim_obj.memory_usage_percent,
-            date_created = timestamp,
+    for sim_obj, timestamp in output:
+        task = DataModel(
+            cpu_usage_percent=sim_obj.cpu_usage_percent,
+            memory_usage_percent=sim_obj.memory_usage_percent,
+            date_created=timestamp,
             status=sim_obj.status
         )
         db.session.add(task)
-    db.session.commit()       
-    app.run(port=constants.APP_PORT,debug=True)
+    db.session.commit()
+    app.run(port=constants.APP_PORT, debug=True)
