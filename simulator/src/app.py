@@ -23,6 +23,7 @@ class DataModel(db.Model):
     status = db.Column(db.String(200))
     cpu_usage_percent = db.Column(db.Float, default=0)
     memory_usage_percent = db.Column(db.Float, default=0)
+    shards_count = db.Column(db.Integer,default=0)
     date_created = db.Column(db.DateTime, default = datetime.now(),primary_key =True)
 
 
@@ -31,7 +32,6 @@ def convert_to_hh_mm(duration_in_m):
     time_h_m  = '{:02d}:{:02d}'.format(*divmod(duration_in_m, 60))
     time_obj  = datetime.strptime(time_h_m, '%H:%M')
     return time_obj
-
 
 
 # Returns the violated count for a requested metric, threshold and duration, returns error if sufficient data points are not present.
