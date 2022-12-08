@@ -124,8 +124,8 @@ func (c *Command) ScaleOut(numNodes int, state *State) bool {
 		log.Info(log.ProvisionerInfo, "Wait for the cluster health and return status")
 		log.Info(log.ProvisionerInfo, "Waiting for the cluster to become healthy")
 		time.Sleep(5 * time.Second)
-		cluster := cluster.GetClusterCurrent()
 		for i := 0; i <= 12; i++ {
+			cluster := cluster.GetClusterCurrent()
 			if cluster.ClusterDynamic.ClusterStatus == "green" {
 				current_state := state.GetCurrentState()
 				state.SetState("provisioned_successfully", current_state)
@@ -172,7 +172,7 @@ func (c *Command) ScaleIn(numNodes int, state *State) bool {
 	// Identify the node which can be removed from the cluster.
 	if state.GetCurrentState() == "start_scaledown_process" {
 		log.Info(log.ProvisionerInfo, "Identify the node to remove from the cluster and store the node_ip")
-		time.Sleep(2 * time.Second)
+		time.Sleep(5 * time.Second)
 		state.SetState("scaledown_node_identified", "start_scaledown_process")
 	}
 	// Configure OS to tell master node that the present node is going to be removed
@@ -186,8 +186,8 @@ func (c *Command) ScaleIn(numNodes int, state *State) bool {
 	// Shut down the node
 	if state.GetCurrentState() == "provisioning_scaledown_completed" {
 		log.Info(log.ProvisionerInfo, "Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
-		cluster := cluster.GetClusterCurrent()
 		for i := 0; i <= 12; i++ {
+			cluster := cluster.GetClusterCurrent()
 			if cluster.ClusterDynamic.ClusterStatus == "green" {
 				current_state := state.GetCurrentState()
 				state.SetState("provisioned_successfully", current_state)
@@ -195,7 +195,7 @@ func (c *Command) ScaleIn(numNodes int, state *State) bool {
 			}
 			// Remove later
 			cluster.ClusterDynamic.ClusterStatus = "green"
-			time.Sleep(300 * time.Second)
+			time.Sleep(15 * time.Second)
 		}
 		current_state := state.GetCurrentState()
 		if current_state != "provisioned_successfully" {

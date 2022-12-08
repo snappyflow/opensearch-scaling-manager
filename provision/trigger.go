@@ -17,7 +17,7 @@ import (
 //
 // Return:
 func GetRecommendation(state *State, recommendation_queue []string) {
-	scaleRegexString := `(scale_up|down)_by_([0-9]+)`
+	scaleRegexString := `(scale_up|scale_down)_by_([0-9]+)`
 	scaleRegex := regexp.MustCompile(scaleRegexString)
 	if len(recommendation_queue) > 0 {
 		clusterCurrent := cluster.GetClusterCurrent()
