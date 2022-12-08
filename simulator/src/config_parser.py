@@ -20,6 +20,10 @@ class Config:
         self.searches = searches
 
 
+def get_source_code_dir():
+    return Path(__file__).parent.resolve()
+
+
 def validate_config(all_configs):
     """
     Validate the config file against the defined schema
@@ -29,7 +33,7 @@ def validate_config(all_configs):
     :param v: validate object
     """
     # Fetching the dir path and appending the schema file path
-    source_code_dir: Path = Path(__file__).parent.resolve()
+    source_code_dir: Path = get_source_code_dir()
     schema_path = os.path.join(source_code_dir, const.SCHEMA_FILE_NAME)
     schema = eval(open(schema_path, "r").read())
 
@@ -63,7 +67,7 @@ def parse_config(config_file_path):
 
     fp.close()
 
-    source_code_dir: Path = Path(__file__).parent.resolve()
+    source_code_dir: Path = get_source_code_dir()
 
     # Perform Validation of the config file
     is_valid, errors = validate_config(all_configs)

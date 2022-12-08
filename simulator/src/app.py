@@ -1,16 +1,18 @@
-from flask import Flask,jsonify,Response
-from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime,timedelta
-from sqlalchemy import text,desc
-from simulator import Simulator
-from cluster import Cluster
-from data_ingestion import State, DataIngestion
-import constants
 import os
-from config_parser import parse_config
 import shutil
+from datetime import datetime,timedelta
 
-DATA_POINT_FREQUENCY_MINUTES = 5 
+from flask import Flask,jsonify,Response, request
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text,desc
+
+import constants
+from config_parser import parse_config, get_source_code_dir
+from data_ingestion import State, DataIngestion
+from cluster import Cluster
+from simulator import Simulator
+
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///datapoints.db'
 app.app_context().push()
@@ -48,7 +50,7 @@ def violated_count(stat_name, duration, threshold):
         data_point_count = DataModel.query.order_by(constants.STAT_REQUEST[stat_name]).filter(DataModel.date_created > time_obj).filter(DataModel.date_created < time_now).count()
 
         # If expected data points are not present then respond with error
-        if duration/DATA_POINT_FREQUENCY_MINUTES > data_point_count:
+        if duration/sim.frequency_minutes > data_point_count:
             return Response("Not enough data points",status=400)
 
         # Fetches the count of stat_name that exceeds the threshold for given duration
@@ -76,7 +78,7 @@ def average(stat_name,duration):
             stat_list.append(i[0])
 
         # If expected data points count are not present then respond with error
-        if duration/DATA_POINT_FREQUENCY_MINUTES > len(stat_list):
+        if duration/sim.frequency_minutes > len(stat_list):
             return Response("Not enough data points",status=400)
 
         # Average, minimum and maximum value of a stat for a given decision period
@@ -93,6 +95,9 @@ def average(stat_name,duration):
 @app.route('/stats/current/<string:stat_name>')
 def current(stat_name):
     try:
+        if constants.STAT_REQUEST[stat_name] == constants.CLUSTER_STATE:
+            if Simulator.is_provision_in_progress():
+                return jsonify({"current": constants.CLUSTER_STATE_YELLOW})
         # Fetches the stat_name for the lastest poll  
         current = DataModel.query.order_by(desc(DataModel.date_created)).with_entities(DataModel.__getattribute__(DataModel,constants.STAT_REQUEST[stat_name])).all()
         
@@ -103,17 +108,38 @@ def current(stat_name):
         return jsonify({"current": current[0][constants.STAT_REQUEST[stat_name]]})
 
     except Exception as e:
-        return Response(e,status=404)
+        return Response(str(e), status=404)
+
+
+@app.route('/provision/addnode', methods=["POST"])
+def add_node():
+    """
+    Endpoint to simulate that a cluster state change is under provision
+    Expects request body to specify the number of nodes added or removed
+    :return: total number of resultant nodes and duration of cluster state as yellow
+    """
+    try:
+        request.json['nodes']
+    except:
+        return Response("Expected request body with key 'nodes'", status=404)
+    # Todo - Reflect node count in cluster
+    expiry_time = Simulator.create_provisioning_lock()
+    return jsonify({'expiry': expiry_time})
+
 
 @app.route('/all')
 def all():
     task = DataModel.query.with_entities(DataModel.cpu_usage_percent,DataModel.memory_usage_percent,DataModel.status).count()
     return jsonify(task)
-    
+
 
 if __name__ == "__main__":
     db.create_all()
-    configs = parse_config('config.yaml')
+
+    # remove any existing provision lock
+    Simulator.remove_provisioning_lock()
+
+    configs = parse_config(os.path.join(get_source_code_dir(), constants.CONFIG_PATH))
     all_states = [State(**state) for state in configs.data_ingestion.get('states')]
     randomness_percentage = configs.data_ingestion.get('randomness_percentage')
 
@@ -134,4 +160,3 @@ if __name__ == "__main__":
         db.session.add(task)
     db.session.commit()       
     app.run(port=constants.APP_PORT,debug=True)
-
