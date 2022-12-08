@@ -101,7 +101,7 @@ def current(stat_name):
         if len(current) == 0:
             return Response("Not enough Data points",status=400)
 
-        return jsonify({"current": dict(current[0])})
+        return jsonify({"current": current[0][constants.STAT_REQUEST[stat_name]]})
 
     except Exception as e:
         return Response(e,status=404)
