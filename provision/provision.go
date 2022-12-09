@@ -136,14 +136,13 @@ func (c *Command) ScaleOut(numNodes int, state *State) bool {
 				log.Info(log.ProvisionerInfo, "Provisioned successfully")
 				break
 			}
+			log.Info(log.ProvisionerInfo, "Waiting for cluster to be healthy.......")
 			time.Sleep(10 * time.Second)
-			// Remove later
-			cluster.ClusterDynamic.ClusterStatus = "green"
 		}
 		current_state := state.GetCurrentState()
 		if current_state != "provisioned_successfully" {
 			state.SetState("provisioned_failed", current_state)
-			log.Warn(log.ProvisionerWarn, "Failed to provision")
+			log.Warn(log.ProvisionerWarn, "Cluster hasn't come back to healthy state.")
 		}
 		time.Sleep(5 * time.Second)
 		state.SetState("normal", state.GetCurrentState())
@@ -198,18 +197,18 @@ func (c *Command) ScaleIn(numNodes int, state *State) bool {
 				state.SetState("provisioned_successfully", current_state)
 				break
 			}
-			// Remove later
-			cluster.ClusterDynamic.ClusterStatus = "green"
+			log.Info(log.ProvisionerInfo, "Waiting for cluster to be healthy.......")
 			time.Sleep(15 * time.Second)
 		}
 		current_state := state.GetCurrentState()
 		if current_state != "provisioned_successfully" {
 			state.SetState("provisioned_failed", current_state)
-			log.Warn(log.ProvisionerWarn, "Cluster hasn't come back to healthy state. Returning false")
+			log.Warn(log.ProvisionerWarn, "Cluster hasn't come back to healthy state.")
 		}
 		time.Sleep(5 * time.Second)
 		log.Info(log.ProvisionerInfo, "Shutdown the node")
 		state.SetState("normal", state.GetCurrentState())
+		log.Info(log.ProvisionerInfo, "State set back to normal")
 	}
 	return true
 }
