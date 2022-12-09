@@ -16,6 +16,7 @@ import (
 	"net/http"
 	log "scaling_manager/logger"
 	"time"
+	"io/ioutil"
 )
 
 // This struct will contain node metrics for a node in the OpenSearch cluster.
@@ -132,7 +133,7 @@ type MetricStatsCluster struct {
 // This struct will provide count, number of times a rule is voilated for a metric
 type MetricViolatedCount struct {
 	// Count indicates number of times the limit is reached calulated for a given period
-	ViolatedCount int
+	ViolatedCount int `json:"violated_count"`
 }
 
 // This struct will provide count, number of times a rule is voilated for a metric in a node
@@ -167,7 +168,7 @@ type MetricViolatedCountCluster struct {
 // Return:
 //		Return populated MetricStatsCluster struct.
 
-func GetClusterAvg(metricName string, decisionPeriod int) MetricStats {
+func GetClusterAvg(metricName string, decisionPeriod int) (MetricStats, []byte) {
 	var metricStats MetricStats
 	url := fmt.Sprintf("http://localhost:5000/stats/avg/%s/%d", metricName, decisionPeriod)
 	client := http.Client{
@@ -179,6 +180,13 @@ func GetClusterAvg(metricName string, decisionPeriod int) MetricStats {
 		log.Fatal(log.RecommendationFatal, err)
 	}
 
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 400 {
+			response, _ := ioutil.ReadAll(resp.Body)
+			return metricStats, response
+		}
+	}
+
 	defer resp.Body.Close()
 
 	decoder := json.NewDecoder(resp.Body)
@@ -186,7 +194,7 @@ func GetClusterAvg(metricName string, decisionPeriod int) MetricStats {
 	if err != nil {
 		log.Fatal(log.RecommendationFatal, err)
 	}
-	return metricStats
+	return metricStats, nil
 }
 
 // Input:
@@ -204,7 +212,7 @@ func GetClusterAvg(metricName string, decisionPeriod int) MetricStats {
 // Return:
 //		Return populated MetricViolatedCountCluster struct.
 
-func GetClusterCount(metricName string, decisonPeriod int, limit float32) MetricViolatedCount {
+func GetClusterCount(metricName string, decisonPeriod int, limit float32) (MetricViolatedCount, []byte) {
 	var metricViolatedCount MetricViolatedCount
 	url := fmt.Sprintf("http://localhost:5000/stats/violated/%s/%d/%f", metricName, decisonPeriod, limit)
 	client := http.Client{
@@ -217,6 +225,13 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) Metric
 		log.Fatal(log.RecommendationFatal, err)
 	}
 
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 400 {
+			response, _ := ioutil.ReadAll(resp.Body)
+			return metricViolatedCount, response
+		}
+	}
+
 	defer resp.Body.Close()
 
 	decoder := json.NewDecoder(resp.Body)
@@ -225,7 +240,7 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) Metric
 	if err != nil {
 		log.Fatal(log.RecommendationFatal, err)
 	}
-	return metricViolatedCount
+	return metricViolatedCount, nil
 }
 
 // Input:

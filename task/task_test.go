@@ -35,9 +35,9 @@ func TestTaskNotRecommendedOr(t *testing.T) {
 	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/avg/mem/9",
 		func(req *http.Request) (*http.Response, error) {
 			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
-				"Avg": 1,
-				"Min": 0,
-				"Max": 1,
+				"Avg": 30,
+				"Min": 20,
+				"Max": 80,
 			})
 			return resp, err
 		},
@@ -64,8 +64,8 @@ func TestTaskRecommendedOr(t *testing.T) {
 		func(req *http.Request) (*http.Response, error) {
 			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
 				"avg": 4,
-				"min": 0,
-				"max": 1,
+				"min": 4,
+				"max": 12,
 			})
 			return resp, err
 		},
@@ -115,11 +115,11 @@ func TestTaskNotRecommendedAnd(t *testing.T) {
 	assert.Equal(t, false, isRecommendedTask)
 }
 
-func TestTaskRecommendedAnd(t *testing.T) {
+func TestTaskNotRecommendedAnd1(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
-	yamlString := `{task_name: scale_up_by_1, operator: AND, rules: [{metric: cpu, limit: 1, stat: AVG, decision_period: 9}, {metric: mem, limit: 59, stat: AVG, decision_period: 9}]}`
+	yamlString := `{task_name: scale_up_by_1, operator: AND, rules: [{metric: cpu, limit: 1, stat: AVG, decision_period: 9}, {metric: mem, limit: 59, stat: AVG, decision_period: 9}, {metric: mem, limit: 70, stat: AVG, decision_period: 9}]}`
 	var task = new(Task)
 	err := yaml.Unmarshal([]byte(yamlString), &task)
 	if err != nil {
@@ -151,5 +151,370 @@ func TestTaskRecommendedAnd(t *testing.T) {
 
 	isRecommendedTask := task.GetNextTask()
 	t.Log(isRecommendedTask)
+	assert.Equal(t, false, isRecommendedTask)
+}
+
+func TestTaskRecommendedAnd(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	yamlString := `{task_name: scale_up_by_1, operator: AND, rules: [{metric: cpu, limit: 1, stat: AVG, decision_period: 9}, {metric: mem, limit: 10, stat: AVG, decision_period: 9}]}`
+	var task = new(Task)
+	err := yaml.Unmarshal([]byte(yamlString), &task)
+	if err != nil {
+		t.Fail()
+		t.Logf("failed to unmarshal yaml: %v", err.Error())
+	}
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/avg/cpu/9",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"avg": 4,
+				"min": 12,
+				"max": 8,
+			})
+			return resp, err
+		},
+	)
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/avg/mem/9",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"avg": 20,
+				"min": 80,
+				"max": 40,
+			})
+			return resp, err
+		},
+	)
+
+	isRecommendedTask := task.GetNextTask()
+	t.Log(isRecommendedTask)
 	assert.Equal(t, true, isRecommendedTask)
+}
+
+func TestTaskNotEnoughDataAnd(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	yamlString := `{task_name: scale_up_by_1, operator: AND, rules: [{metric: cpu, limit: 1, stat: AVG, decision_period: 9}, {metric: mem, limit: 10, stat: AVG, decision_period: 9}, {metric: mem, limit: 10, stat: AVG, decision_period: 9}]}`
+	var task = new(Task)
+	err := yaml.Unmarshal([]byte(yamlString), &task)
+	if err != nil {
+		t.Fail()
+		t.Logf("failed to unmarshal yaml: %v", err.Error())
+	}
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/avg/cpu/9",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"avg": 4,
+				"min": 12,
+				"max": 8,
+			})
+			return resp, err
+		},
+	)
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/avg/mem/9",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(400, "Not enough Data points")
+			return resp, err
+		},
+	)
+
+	isRecommendedTask := task.GetNextTask()
+	t.Log(isRecommendedTask)
+	assert.Equal(t, false, isRecommendedTask)
+}
+
+func TestTaskNotEnoughDataAnd1(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	yamlString := `{task_name: scale_up_by_1, operator: AND, rules: [{metric: cpu, limit: 1, stat: AVG, decision_period: 9}, {metric: mem, limit: 10, stat: AVG, decision_period: 20}, {metric: mem, limit: 10, stat: AVG, decision_period: 9}]}`
+	var task = new(Task)
+	err := yaml.Unmarshal([]byte(yamlString), &task)
+	if err != nil {
+		t.Fail()
+		t.Logf("failed to unmarshal yaml: %v", err.Error())
+	}
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/avg/cpu/9",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"avg": 4,
+				"min": 12,
+				"max": 8,
+			})
+			return resp, err
+		},
+	)
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/avg/mem/20",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"avg": 20,
+				"min": 80,
+				"max": 40,
+			})
+			return resp, err
+		},
+	)
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/avg/mem/9",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(400, "Not enough Data points")
+			return resp, err
+		},
+	)
+
+	isRecommendedTask := task.GetNextTask()
+	t.Log(isRecommendedTask)
+	assert.Equal(t, false, isRecommendedTask)
+}
+
+func TestTaskNotEnoughDataOr(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	yamlString := `{task_name: scale_up_by_1, operator: OR, rules: [{metric: cpu, limit: 5, stat: AVG, decision_period: 9}, {metric: mem, limit: 59, stat: AVG, decision_period: 9}]}`
+	var task = new(Task)
+	err := yaml.Unmarshal([]byte(yamlString), &task)
+	if err != nil {
+		t.Fail()
+		t.Logf("failed to unmarshal yaml: %v", err.Error())
+	}
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/avg/cpu/9",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"avg": 4,
+				"min": 12,
+				"max": 8,
+			})
+			return resp, err
+		},
+	)
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/avg/mem/9",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(400, "Not enough Data points")
+			return resp, err
+		},
+	)
+
+	isRecommendedTask := task.GetNextTask()
+	t.Log(isRecommendedTask)
+	assert.Equal(t, false, isRecommendedTask)
+}
+
+func TestTaskDecisionPeriodSmallAnd(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	yamlString := `{task_name: scale_up_by_1, operator: AND, rules: [{metric: cpu, limit: 1, stat: AVG, decision_period: 9}, {metric: mem, limit: 10, stat: AVG, decision_period: 9}, {metric: mem, limit: 10, stat: AVG, decision_period: 9}]}`
+	var task = new(Task)
+	err := yaml.Unmarshal([]byte(yamlString), &task)
+	if err != nil {
+		t.Fail()
+		t.Logf("failed to unmarshal yaml: %v", err.Error())
+	}
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/avg/cpu/9",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"avg": 4,
+				"min": 12,
+				"max": 8,
+			})
+			return resp, err
+		},
+	)
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/avg/mem/9",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(400, "Decision period too small")
+			return resp, err
+		},
+	)
+
+	isRecommendedTask := task.GetNextTask()
+	t.Log(isRecommendedTask)
+	assert.Equal(t, false, isRecommendedTask)
+}
+
+func TestTaskDecisionPeriodSmallOr(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	yamlString := `{task_name: scale_up_by_1, operator: OR, rules: [{metric: cpu, limit: 5, stat: AVG, decision_period: 9}, {metric: mem, limit: 59, stat: AVG, decision_period: 9}]}`
+	var task = new(Task)
+	err := yaml.Unmarshal([]byte(yamlString), &task)
+	if err != nil {
+		t.Fail()
+		t.Logf("failed to unmarshal yaml: %v", err.Error())
+	}
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/avg/cpu/9",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"avg": 4,
+				"min": 12,
+				"max": 8,
+			})
+			return resp, err
+		},
+	)
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/avg/mem/9",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(400, "Decision period too small")
+			return resp, err
+		},
+	)
+
+	isRecommendedTask := task.GetNextTask()
+	t.Log(isRecommendedTask)
+	assert.Equal(t, false, isRecommendedTask)
+}
+
+func TestTaskNotRecommendedOrCountTerm(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	yamlString := `{task_name: scale_up_by_1, operator: OR, rules: [{metric: cpu, limit: 1, stat: COUNT, occurences: 10, decision_period: 9}, {metric: mem, limit: 59, stat: COUNT, occurences: 12, decision_period: 9}]}`
+	var task = new(Task)
+	err := yaml.Unmarshal([]byte(yamlString), &task)
+	if err != nil {
+		t.Fail()
+		t.Logf("failed to unmarshal yaml: %v", err.Error())
+	}
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/violated/cpu/9/1.000000",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"violated_count": 3,
+			})
+			return resp, err
+		},
+	)
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/violated/mem/9/59.000000",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"violated_count": 4,
+			})
+			return resp, err
+		},
+	)
+
+	isRecommendedTask := task.GetNextTask()
+	t.Log(isRecommendedTask)
+	assert.Equal(t, false, isRecommendedTask)
+}
+
+func TestTaskRecommendedOrCountTerm(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	yamlString := `{task_name: scale_up_by_1, operator: OR, rules: [{metric: cpu, limit: 1, stat: COUNT, occurences: 10, decision_period: 9}, {metric: mem, limit: 59, stat: COUNT, occurences: 12, decision_period: 9}]}`
+
+	var task = new(Task)
+	err := yaml.Unmarshal([]byte(yamlString), &task)
+	if err != nil {
+		t.Fail()
+		t.Logf("failed to unmarshal yaml: %v", err.Error())
+	}
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/violated/cpu/9/1.000000",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"violated_count": 6,
+			})
+			return resp, err
+		},
+	)
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/violated/mem/9/59.000000",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"violated_count": 13,
+			})
+			return resp, err
+		},
+	)
+
+	isRecommendedTask := task.GetNextTask()
+	t.Log(isRecommendedTask)
+	assert.Equal(t, true, isRecommendedTask)
+}
+
+func TestTaskRecommendedAndCountTerm(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	yamlString := `{task_name: scale_up_by_1, operator: AND, rules: [{metric: cpu, limit: 1.0, stat: COUNT, occurences: 10, decision_period: 9}, {metric: mem, limit: 59.0, stat: COUNT, occurences: 12, decision_period: 9}]}`
+	var task = new(Task)
+	err := yaml.Unmarshal([]byte(yamlString), &task)
+	if err != nil {
+		t.Fail()
+		t.Logf("failed to unmarshal yaml: %v", err.Error())
+	}
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/violated/cpu/9/1.000000",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"violated_count": 11,
+			})
+			return resp, err
+		},
+	)
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/violated/mem/9/59.000000",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"violated_count": 13,
+			})
+			return resp, err
+		},
+	)
+	
+	isRecommendedTask := task.GetNextTask()
+	t.Log(isRecommendedTask)
+	assert.Equal(t, true, isRecommendedTask)
+}
+
+func TestTaskNotRecommendedAndCountTerm(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	yamlString := `{task_name: scale_up_by_1, operator: AND, rules: [{metric: cpu, limit: 1, stat: COUNT, occurences: 3, decision_period: 9}, {metric: mem, limit: 59, stat: COUNT, occurences: 12, decision_period: 9}]}`
+	var task = new(Task)
+	err := yaml.Unmarshal([]byte(yamlString), &task)
+	if err != nil {
+		t.Fail()
+		t.Logf("failed to unmarshal yaml: %v", err.Error())
+	}
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/violated/cpu/9/1.000000",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"violated_count": 4,
+			})
+			return resp, err
+		},
+	)
+
+	httpmock.RegisterResponder("GET", "http://localhost:5000/stats/violated/mem/9/59.000000",
+		func(req *http.Request) (*http.Response, error) {
+			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+				"violated_count": 4,
+			})
+			return resp, err
+		},
+	)
+	isRecommendedTask := task.GetNextTask()
+	t.Log(isRecommendedTask)
+	assert.Equal(t, false, isRecommendedTask)
 }
