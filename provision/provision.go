@@ -3,6 +3,9 @@
 package provision
 
 import (
+	"bytes"
+	"fmt"
+	"net/http"
 	"scaling_manager/cluster"
 	"scaling_manager/config"
 	"time"
@@ -50,10 +53,10 @@ type Command struct {
 //
 //	Provision will scale in/out the cluster based on the operation.
 //	ToDo:
-//		Think about the scenario where event based scaling needs to be performed.
-//		Morning need to scale up and evening need to scale down.
-//		If in morning the scale up was not successful then we should not perform the scale down.
-//		May be we can keep a concept of minimum number of nodes as a configuration input.
+//	        Think about the scenario where event based scaling needs to be performed.
+//	        Morning need to scale up and evening need to scale down.
+//	        If in morning the scale up was not successful then we should not perform the scale down.
+//	        May be we can keep a concept of minimum number of nodes as a configuration input.
 //
 // Return:
 func (c *Command) Provision(state *State) {
@@ -88,9 +91,9 @@ func (c *Command) Provision(state *State) {
 // Caller: Object of Command
 // Description:
 //
-//		ScaleOut will scale out the cluster with the number of nodes.
-//		This function will invoke commands to create a VM based on cloud type.
-//	 	Then it will configure the opensearch on newly created nodes.
+//	ScaleOut will scale out the cluster with the number of nodes.
+//	This function will invoke commands to create a VM based on cloud type.
+//	Then it will configure the opensearch on newly created nodes.
 //
 // Return:
 //
@@ -121,6 +124,7 @@ func (c *Command) ScaleOut(numNodes int, state *State) bool {
 	}
 	// Check cluster status after the configuration
 	if state.GetCurrentState() == "provisioning_scaleup_completed" {
+		SimulateSharRebalancing()
 		log.Info(log.ProvisionerInfo, "Wait for the cluster health and return status")
 		log.Info(log.ProvisionerInfo, "Waiting for the cluster to become healthy")
 		time.Sleep(5 * time.Second)
@@ -185,6 +189,7 @@ func (c *Command) ScaleIn(numNodes int, state *State) bool {
 	// Wait for cluster to be in stable state(Shard rebalance)
 	// Shut down the node
 	if state.GetCurrentState() == "provisioning_scaledown_completed" {
+		SimulateSharRebalancing()
 		log.Info(log.ProvisionerInfo, "Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
 		for i := 0; i <= 12; i++ {
 			cluster := cluster.GetClusterCurrent()
@@ -212,9 +217,9 @@ func (c *Command) ScaleIn(numNodes int, state *State) bool {
 // Input:
 // Description:
 //
-//		CheckClusterHealth will check the current cluster health and also check if there are any relocating
-//	 	shards. If the cluster status is green and there are no relocating shard then we will update the status
-//	 	to provisioned_successfully. Else, we will wait for 3 minutes and perform this check again for 3 times.
+//	CheckClusterHealth will check the current cluster health and also check if there are any relocating
+//	shards. If the cluster status is green and there are no relocating shard then we will update the status
+//	to provisioned_successfully. Else, we will wait for 3 minutes and perform this check again for 3 times.
 //
 // Return:
 func CheckClusterHealth(state *State) {
@@ -236,10 +241,27 @@ func CheckClusterHealth(state *State) {
 
 // Input:
 // Description:
-//		Read the current stage that the provisioning process is in from Elasticsearch or any centralized DB which will be updated after each stage.
+//              Read the current stage that the provisioning process is in from Elasticsearch or any centralized DB which will be updated after each stage.
 // Return: Stage returned from ES
 
 func readStageFromEs() string {
 	return ""
 }
 
+func SimulateSharRebalancing() {
+	// Add logic to call the simulator's end point
+	var jsonStr = []byte(`{"nodes":1}`)
+	urlLink := fmt.Sprintf("http://localhost:5000/provision/addnode")
+	req, err := http.NewRequest("POST", urlLink, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
+	resp, err := client.Do(req)
+
+	if err != nil {
+		log.Fatal(log.ProvisionerFatal, err)
+	}
+
+	defer resp.Body.Close()
+}
