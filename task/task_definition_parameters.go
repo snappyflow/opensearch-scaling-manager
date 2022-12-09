@@ -98,31 +98,28 @@ func (t TaskDetails) EvaluateTask() []string {
 func (t Task) GetNextTask() bool {
 	var isRecommendedTask bool = true
 	var isRecommendedRule bool
+	var err []byte
 
 	// We should have a mechanism to check if we have enough data points for evaluating the rules.
 	// If we do not have enough data point for evaluating rule then we should not recommend the task.
 	// In case of AND condition if we do not have enough data point for even one rule then the for
 	// loop should be broken.
 	// This can be considered while implementation.
-	if t.Operator == "AND" {
-		// Here we will add go routine.
+	for _, v := range t.Rules {
+		// Here we can add go routine.
 		// So that all the rules getMetrics will be fetched in concurrent way
-		for _, v := range t.Rules {
-			isRecommendedRule = v.GetNextRule()
-			isRecommendedTask = isRecommendedRule && isRecommendedTask
+		// There is a possibility that each rule is taking time.
+		// What if in the case of AND the non matching rule is present at the last.
+		// What if in the case of OR the matching rule is present at the last.
+		isRecommendedRule, err = v.GetNextRule()
+		if err != nil {
+			log.Warn(log.RecommendationWarn, fmt.Sprintf("%s for the rule: %v",string(err),v))
 		}
-	} else if t.Operator == "OR" {
-		// Here we will add go routine.
-		// So that all the rules getMetrics will be fetched in concurrent way
-		// There is a possibility that each rule is taking time and the matching rule may be at last in or condition
-		for _, v := range t.Rules {
-			isRecommendedRule = v.GetNextRule()
-			if isRecommendedRule {
-				break
-			}
+		if isRecommendedRule && t.Operator == "OR" || ! isRecommendedRule && t.Operator == "AND" {
+			break
 		}
-		isRecommendedTask = isRecommendedRule
 	}
+	isRecommendedTask = isRecommendedRule
 	return isRecommendedTask
 }
 
@@ -136,10 +133,15 @@ func (t Task) GetNextTask() bool {
 // Return:
 //		Return if a rule is meeting the criteria or not(bool)
 
-func (r Rule) GetNextRule() bool {
-	cluster := r.GetMetrics()
+func (r Rule) GetNextRule() (bool, []byte) {
+	cluster, err := r.GetMetrics()
+	if err != nil {
+		return false, err
+	}
 	isRecommended := r.EvaluateRule(cluster)
-	return isRecommended
+	log.Info(log.RecommendationInfo, r)
+	log.Info(log.RecommendationInfo, isRecommended)
+	return isRecommended, nil
 }
 
 // Input:
@@ -154,27 +156,36 @@ func (r Rule) GetNextRule() bool {
 // Return:
 //		Return marshal form of either MetricStatsCluster or MetricViolatedCountCluster struct([]byte)
 
-func (r Rule) GetMetrics() []byte {
+func (r Rule) GetMetrics() ([]byte, []byte) {
 	var clusterStats cluster.MetricStats
 	var clusterCount cluster.MetricViolatedCount
 	var clusterMetric []byte
 	var jsonErr error
+	var err []byte
 
 	if r.Stat == "AVG" {
-		clusterStats = cluster.GetClusterAvg(r.Metric, r.DecisionPeriod)
+		clusterStats, err = cluster.GetClusterAvg(r.Metric, r.DecisionPeriod)
+		if err != nil {
+			return clusterMetric, err
+		}
 		clusterMetric, jsonErr = json.MarshalIndent(clusterStats, "", "\t")
+		log.Info(log.RecommendationInfo, clusterStats)
 		if jsonErr != nil {
-			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: ", jsonErr))
+			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: %s", jsonErr))
 		}
 	} else if r.Stat == "COUNT" || r.Stat == "TERM" {
-		clusterCount = cluster.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit)
+		clusterCount, err = cluster.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit)
+		if err != nil {
+			return clusterMetric, err
+		}
 		clusterMetric, jsonErr = json.MarshalIndent(clusterCount, "", "\t")
+		log.Info(log.RecommendationInfo, clusterCount)
 		if jsonErr != nil {
-			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: ", jsonErr))
+			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: %s", jsonErr))
 		}
 	}
 
-	return clusterMetric
+	return clusterMetric, nil
 }
 
 // Input: clusterMetric []byte: Marshal struct containing clusterMetric details based on stats.
@@ -191,7 +202,7 @@ func (r Rule) EvaluateRule(clusterMetric []byte) bool {
 		var clusterStats cluster.MetricStats
 		err := json.Unmarshal(clusterMetric, &clusterStats)
 		if err != nil {
-			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: ", err))
+			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: %s", err))
 		}
 		if clusterStats.Avg > r.Limit {
 			return true
@@ -202,7 +213,7 @@ func (r Rule) EvaluateRule(clusterMetric []byte) bool {
 		var clusterStats cluster.MetricViolatedCount
 		err := json.Unmarshal(clusterMetric, &clusterStats)
 		if err != nil {
-			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: ", err))
+			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: %s", err))
 		}
 		if r.Stat == "COUNT" {
 			if clusterStats.ViolatedCount > r.Occurences {
