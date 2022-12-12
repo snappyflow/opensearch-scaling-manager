@@ -3,6 +3,7 @@ package main
 import (
 	"scaling_manager/cluster"
 	"scaling_manager/config"
+	log "scaling_manager/logger"
 	"scaling_manager/task"
 	"time"
 )
@@ -18,7 +19,12 @@ func main() {
 			// fetch.FetchMetrics()
 			// This function will be responsible for parsing the config file and fill in task_details struct.
 			var task = new(task.TaskDetails)
-			configStruct, _ := config.GetConfig("config.yaml")
+			configStruct, err := config.GetConfig("config.yaml")
+			if err != nil {
+				log.Error("The recommendation can not be made as there is an error in the validation of config file.")
+				log.Error(err.Error())
+				continue
+			}
 			task.Tasks = configStruct.TaskDetails
 			// This function is responsible for evaluating the task and recommend.
 			recommendationList := task.EvaluateTask()

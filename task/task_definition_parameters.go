@@ -8,6 +8,7 @@ package task
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"scaling_manager/cluster"
 	log "scaling_manager/logger"
 )
@@ -100,6 +101,13 @@ func (t Task) GetNextTask() bool {
 	var isRecommendedRule bool
 	var err []byte
 
+	scaleRegexString := `(scale_up|scale_down)_by_([0-9]+)`
+	scaleRegex := regexp.MustCompile(scaleRegexString)
+
+	subMatch := scaleRegex.FindStringSubmatch(t.TaskName)
+
+	taskOperation := subMatch[1]
+
 	// We should have a mechanism to check if we have enough data points for evaluating the rules.
 	// If we do not have enough data point for evaluating rule then we should not recommend the task.
 	// In case of AND condition if we do not have enough data point for even one rule then the for
@@ -111,11 +119,11 @@ func (t Task) GetNextTask() bool {
 		// There is a possibility that each rule is taking time.
 		// What if in the case of AND the non matching rule is present at the last.
 		// What if in the case of OR the matching rule is present at the last.
-		isRecommendedRule, err = v.GetNextRule()
+		isRecommendedRule, err = v.GetNextRule(taskOperation)
 		if err != nil {
-			log.Warn(log.RecommendationWarn, fmt.Sprintf("%s for the rule: %v",string(err),v))
+			log.Warn(log.RecommendationWarn, fmt.Sprintf("%s for the rule: %v", string(err), v))
 		}
-		if isRecommendedRule && t.Operator == "OR" || ! isRecommendedRule && t.Operator == "AND" {
+		if isRecommendedRule && t.Operator == "OR" || !isRecommendedRule && t.Operator == "AND" {
 			break
 		}
 	}
@@ -133,12 +141,12 @@ func (t Task) GetNextTask() bool {
 // Return:
 //		Return if a rule is meeting the criteria or not(bool)
 
-func (r Rule) GetNextRule() (bool, []byte) {
+func (r Rule) GetNextRule(taskOperation string) (bool, []byte) {
 	cluster, err := r.GetMetrics()
 	if err != nil {
 		return false, err
 	}
-	isRecommended := r.EvaluateRule(cluster)
+	isRecommended := r.EvaluateRule(cluster, taskOperation)
 	log.Info(log.RecommendationInfo, r)
 	log.Info(log.RecommendationInfo, isRecommended)
 	return isRecommended, nil
@@ -197,14 +205,16 @@ func (r Rule) GetMetrics() ([]byte, []byte) {
 // Return:
 //		Return whether a rule is meeting the criteria or not(bool)
 
-func (r Rule) EvaluateRule(clusterMetric []byte) bool {
+func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
+	log.Info(taskOperation)
 	if r.Stat == "AVG" {
 		var clusterStats cluster.MetricStats
 		err := json.Unmarshal(clusterMetric, &clusterStats)
 		if err != nil {
 			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: %s", err))
 		}
-		if clusterStats.Avg > r.Limit {
+		if clusterStats.Avg > r.Limit && taskOperation == "scale_up" ||
+			clusterStats.Avg < r.Limit && taskOperation == "scale_down" {
 			return true
 		} else {
 			return false
@@ -216,13 +226,15 @@ func (r Rule) EvaluateRule(clusterMetric []byte) bool {
 			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: %s", err))
 		}
 		if r.Stat == "COUNT" {
-			if clusterStats.ViolatedCount > r.Occurences {
+			if clusterStats.ViolatedCount > r.Occurences && taskOperation == "scale_up" ||
+				clusterStats.ViolatedCount < r.Occurences && taskOperation == "scale_down" {
 				return true
 			} else {
 				return false
 			}
 		} else if r.Stat == "TERM" {
-			if clusterStats.ViolatedCount > int(r.Limit) {
+			if clusterStats.ViolatedCount > int(r.Limit) && taskOperation == "scale_up" ||
+				clusterStats.ViolatedCount > int(r.Limit) && taskOperation == "scale_down" {
 				return true
 			} else {
 				return false
