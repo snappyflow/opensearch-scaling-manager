@@ -1,5 +1,6 @@
 import os
 import shutil
+import json
 from datetime import datetime, timedelta
 
 from flask import Flask, jsonify, Response, request
@@ -52,7 +53,7 @@ def violated_count(stat_name, duration, threshold):
 
         # If expected data points are not present then respond with error
         if duration // sim.frequency_minutes > data_point_count:
-            return Response("Not enough data points", status=400)
+            return Response(json.dumps("Not enough Data points"), status=400)
 
         # Fetches the count of stat_name that exceeds the threshold for given duration
         stats = DataModel.query.order_by(constants.STAT_REQUEST[stat_name]).filter(
@@ -85,11 +86,11 @@ def average(stat_name, duration):
 
         # If expected data points count are not present then respond with error
         if duration // sim.frequency_minutes > len(stat_list):
-            return Response("Not enough data points", status=400)
+            return Response(json.dumps("Not enough Data points"), status = 400)
 
         # check if any data points were collected
         if not stat_list:
-            return Response("Decision period too small", status=400)
+            return Response(json.dumps("Not enough Data points"), status = 400)
 
         # Average, minimum and maximum value of a stat for a given decision period
         return jsonify({
@@ -98,7 +99,7 @@ def average(stat_name, duration):
             "max": max(stat_list), })
 
     except Exception as e:
-        return Response(str(e), status=404)
+        return Response(str(e), status = 404)
 
 
 # The endpoint returns request stat from the latest poll, returns error if sufficient data points are not present.
@@ -114,7 +115,7 @@ def current(stat_name):
 
         # If expected data points count are not present then respond with error
         if len(current) == 0:
-            return Response("Not enough Data points", status=400)
+            return Response(json.dumps("Not enough Data points"), status=400)
 
         return jsonify({"current": current[0][constants.STAT_REQUEST[stat_name]]})
 
@@ -132,7 +133,7 @@ def add_node():
     try:
         request.json['nodes']
     except:
-        return Response("Expected request body with key 'nodes'", status=404)
+        return Response(json.dumps("Not enough Data points"), status=404)
     # Todo - Reflect node count in cluster
     expiry_time = Simulator.create_provisioning_lock()
     return jsonify({'expiry': expiry_time})
