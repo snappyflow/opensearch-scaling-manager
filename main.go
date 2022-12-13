@@ -16,7 +16,7 @@ func fileWatch(filePath string) {
 	//Adding file watcher to detect the change in configuration
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Error(fmt.Sprintf("ERROR", err))
+		log.Error(fmt.Sprintf("ERROR: %v", err))
 	}
 	defer watcher.Close()
 	done := make(chan bool)
@@ -32,14 +32,14 @@ func fileWatch(filePath string) {
 				log.Error(fmt.Sprintf("EVENT! %#v\n", event))
 				log.Error("The recommendation queue will be cleared.")
 			case err := <-watcher.Errors:
-				log.Error("ERROR in file watcher", err)
+				log.Error(fmt.Sprintf("ERROR in file watcher: %v", err))
 			}
 		}
 	}()
 
 	// Adding fsnotify watcher to keep track of the changes in config file
 	if err := watcher.Add(filePath); err != nil {
-		log.Error(fmt.Sprintf("ERROR", err))
+		log.Error(fmt.Sprintf("ERROR: %v", err))
 	}
 
 	<-done
