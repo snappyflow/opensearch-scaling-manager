@@ -13,10 +13,10 @@ package cluster
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	log "scaling_manager/logger"
 	"time"
-	"io/ioutil"
 )
 
 // This struct will contain node metrics for a node in the OpenSearch cluster.
@@ -133,7 +133,7 @@ type MetricStatsCluster struct {
 // This struct will provide count, number of times a rule is voilated for a metric
 type MetricViolatedCount struct {
 	// Count indicates number of times the limit is reached calulated for a given period
-	ViolatedCount int `json:"violated_count"`
+	ViolatedCount int
 }
 
 // This struct will provide count, number of times a rule is voilated for a metric in a node
