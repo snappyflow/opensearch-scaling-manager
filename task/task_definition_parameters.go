@@ -123,7 +123,8 @@ func (t Task) GetNextTask() bool {
 		if err != nil {
 			log.Warn(log.RecommendationWarn, fmt.Sprintf("%s for the rule: %v", string(err), v))
 		}
-		if isRecommendedRule && t.Operator == "OR" || !isRecommendedRule && t.Operator == "AND" {
+		if t.Operator == "OR" && isRecommendedRule ||
+			t.Operator == "AND" && !isRecommendedRule {
 			break
 		}
 	}
@@ -213,8 +214,8 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 		if err != nil {
 			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: %s", err))
 		}
-		if clusterStats.Avg > r.Limit && taskOperation == "scale_up" ||
-			clusterStats.Avg < r.Limit && taskOperation == "scale_down" {
+		if taskOperation == "scale_up" && clusterStats.Avg > r.Limit ||
+			taskOperation == "scale_down" && clusterStats.Avg < r.Limit {
 			return true
 		} else {
 			return false
@@ -226,15 +227,15 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: %s", err))
 		}
 		if r.Stat == "COUNT" {
-			if clusterStats.ViolatedCount > r.Occurences && taskOperation == "scale_up" ||
-				clusterStats.ViolatedCount < r.Occurences && taskOperation == "scale_down" {
+			if taskOperation == "scale_up" && clusterStats.ViolatedCount > r.Occurences ||
+				taskOperation == "scale_down" && clusterStats.ViolatedCount < r.Occurences {
 				return true
 			} else {
 				return false
 			}
 		} else if r.Stat == "TERM" {
-			if clusterStats.ViolatedCount > int(r.Limit) && taskOperation == "scale_up" ||
-				clusterStats.ViolatedCount > int(r.Limit) && taskOperation == "scale_down" {
+			if taskOperation == "scale_up" && clusterStats.ViolatedCount > int(r.Limit) ||
+				taskOperation == "scale_down" && clusterStats.ViolatedCount > int(r.Limit) {
 				return true
 			} else {
 				return false
