@@ -235,7 +235,7 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 			}
 		} else if r.Stat == "TERM" {
 			if taskOperation == "scale_up" && clusterStats.ViolatedCount > int(r.Limit) ||
-				taskOperation == "scale_down" && clusterStats.ViolatedCount > int(r.Limit) {
+				taskOperation == "scale_down" && clusterStats.ViolatedCount < int(r.Limit) {
 				return true
 			} else {
 				return false
