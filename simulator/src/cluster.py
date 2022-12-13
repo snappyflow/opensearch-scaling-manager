@@ -1,5 +1,4 @@
-import time
-
+from datetime import datetime
 
 class Cluster:
     """
@@ -78,6 +77,7 @@ class Cluster:
         self.relocating_shards = relocating_shards_count
         self.unassigned_shards = unassigned_shards_count
         self.active_shards = active_shards_count
+        self.date_time = datetime.now()
         self._ingestion_rate = 0
 
     # TODO: Define methods for controlling cluster behaviour,

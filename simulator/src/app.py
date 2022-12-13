@@ -11,7 +11,9 @@ import constants
 from config_parser import parse_config, get_source_code_dir
 from data_ingestion import State, DataIngestion
 from cluster import Cluster
-from simulator import Simulator
+from open_search_simulator import Simulator
+from plotter import plot_data_points
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///datapoints.db'
@@ -152,25 +154,26 @@ if __name__ == "__main__":
     # remove any existing provision lock
     Simulator.remove_provisioning_lock()
 
-    configs = parse_config(os.path.join(get_source_code_dir(), constants.CONFIG_PATH))
-    all_states = [State(**state) for state in configs.data_ingestion.get('states')]
-    randomness_percentage = configs.data_ingestion.get('randomness_percentage')
+    configs = parse_config(os.path.join(get_source_code_dir(), constants.CONFIG_FILE_PATH))
+    all_states = [State(**state) for state in configs.data_ingestion.get(constants.DATA_INGESTION_STATES)]
+    randomness_percentage = configs.data_ingestion.get(constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE)
 
     data_function = DataIngestion(all_states, randomness_percentage)
 
     cluster = Cluster(**configs.stats)
 
-    sim = Simulator(cluster, data_function, configs.searches, configs.data_generation_interval_minutes, 0)
+    sim = Simulator(cluster, data_function, configs.searches, configs.data_generation_interval_minutes)
     # generate the data points from simulator
-    output = sim.run(24 * 60)
-    # start serving the apis
-    for sim_obj, timestamp in output:
+    cluster_objects = sim.run(24 * 60)
+    plot_data_points(cluster_objects)
+    for cluster_obj in cluster_objects:
         task = DataModel(
-            cpu_usage_percent=sim_obj.cpu_usage_percent,
-            memory_usage_percent=sim_obj.memory_usage_percent,
-            date_created=timestamp,
-            status=sim_obj.status
+            cpu_usage_percent=cluster_obj.cpu_usage_percent,
+            memory_usage_percent=cluster_obj.memory_usage_percent,
+            date_created=cluster_obj.date_time,
+            status=cluster_obj.status
         )
         db.session.add(task)
     db.session.commit()
+    # start serving the apis
     app.run(port=constants.APP_PORT, debug=True)

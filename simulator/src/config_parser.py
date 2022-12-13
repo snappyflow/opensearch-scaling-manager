@@ -75,7 +75,7 @@ def parse_config(config_file_path):
     # If it is a valid config file, Place the file in the simulator/src/main and return
     if is_valid:
         # cwd = os.getcwd()
-        config_file_path = os.path.join(source_code_dir, const.CONFIG_PATH)
+        config_file_path = os.path.join(source_code_dir, const.CONFIG_FILE_PATH)
         file_handler = open(config_file_path, "w")
         yaml.dump(all_configs, file_handler, allow_unicode=True)
         file_handler.close()
