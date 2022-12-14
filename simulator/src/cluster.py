@@ -18,7 +18,7 @@ class Cluster:
             master_eligible_nodes_count: int,
             index_count: int,
             shards_per_index: int,
-            index_roll_over_size: int,
+            index_roll_over_size_gb: int,
             index_clean_up_age_days: int,
 
             status: str = "green",
@@ -43,7 +43,7 @@ class Cluster:
         :param master_eligible_nodes_count: total number of master eligible nodes of the cluster
         :param index_count: total number of indexes in the cluster
         :param shards_per_index: maximum number of shards per index
-        :param index_roll_over_size: size in bytes after which the index will be rolled over
+        :param index_roll_over_size_gb: size in bytes after which the index will be rolled over
         :param index_clean_up_age_days: time in minutes after which the index will be cleaned up
         :param status: status of the cluster from "green", "yellow" or "red"
         :param cpu_usage_percent: average cluster cpu usage in percent
@@ -69,7 +69,7 @@ class Cluster:
         self.data_nodes_count = data_nodes_count
         self.master_eligible_nodes_count = master_eligible_nodes_count
         self.index_count = index_count
-        self.index_roll_over_size = index_roll_over_size
+        self.index_roll_over_size_gb = index_roll_over_size_gb
         self.index_clean_up_age_in_minutes = index_clean_up_age_days
         self.total_shard_count = total_shard_count
         self.shards_per_index = shards_per_index

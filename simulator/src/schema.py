@@ -35,7 +35,7 @@
 	'required':True,
 	'type':'number'
 	},
-'index_roll_over_size':{
+'index_roll_over_size_gb':{
 	'required':True,
 	'type':'number'
 	},
