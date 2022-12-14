@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 from cerberus import Validator
 import constants as const
-
+from errors import ValidationError
 
 class Config:
     def __init__(
@@ -63,7 +63,7 @@ def parse_config(config_file_path):
         fp.close()
         sys.stdout.write(e)
         sys.stdout.write("Could not read data, please check if all fields are filled")
-        return
+        raise ValidationError(str(e))
 
     fp.close()
 
@@ -84,7 +84,7 @@ def parse_config(config_file_path):
     else:
         sys.stdout.write(str(errors))
         sys.stdout.write("Please pass a Valid config file")
-        exit()
+        raise ValidationError(str(e))
     data_generation_interval_minutes = all_configs.pop(
         const.DATA_GENERATION_INTERVAL_MINUTES
     )
