@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"scaling_manager/cluster"
 	"scaling_manager/config"
+	"strings"
 	"time"
 
 	log "scaling_manager/logger"
@@ -16,23 +17,30 @@ import (
 var counter uint8 = 1
 
 // This struct contains the State of the opensearch scaling manager
-// States can be of following types:
-//  1. normal : This is the state when the recommnedation will be provisioned.
-//  2. provision_scaleup/provision_scaledown : Once the trigger module will call provision it will set this state.
-//  3. provisioning_scaleup/provisioning_scaledown : Once the provision module will start provisioning it will set this state.
-//  4. provisioning_scaleup_completed/provisioning_scaledown_completed : Once the provision is completed then this state will be state.
-//  5. provisioning_scaleup_failed/provisioning_scaledown_failed: If the provision is failed then this state will be set.
-//  6. provisioned_successfully: If the provision is completed and cluster state is green then
-//     this state will be set.
-//  7. provisioned_failed: If the provision is completed and the cluster state is not green after
-//     certain retries then this state will be set.
+// States can be of following types: (May change in real implementation with new stages identified)
+// At any point, the state should have either "scaleup/scaledown" to identify the current operation happening
+//
+//	normal : This is the state when the recommnedation will be provisioned.
+//	provisioning_scaleup/provisioning_scaledown : Once the provision module will start provisioning it will set this state.
+//	start_scaleup_process/start_scaledown_process : Indicates start of scaleup/scaledown process
+//	scaleup_triggered_spin_vm: Indicates trigger for spinning new vms while scaleup
+//	scaledown_node_identified: A state to identify node identification to scaledown
+//	provisioning_scaleup_completed/provisioning_scaledown_completed : Once the provision is completed then this state will be state.
+//	provisioning_scaleup_failed/provisioning_scaledown_failed: If the provision is failed then this state will be set.
+//	provisioned_scaleup_successfully/provisioned_scaledown_successfully: If the provision is completed and cluster state is green then
+//	   this state will be set.
 type State struct {
 	// CurrentState indicate the current state of the scaling manager
 	CurrentState string
 	// PreviousState indicates the previous state of the scaling manager
 	PreviousState string
 	// Remark indicates the additional remarks for the state of the scaling manager
-	Remark string
+	Remark              string
+	LastProvisionedTime time.Time
+	ProvisionStartTime  time.Time
+	RuleTriggered       string
+	NumNodes            int
+	RemainingNodes      int
 }
 
 // This struct contains the operation and details to scale the cluster
@@ -59,27 +67,35 @@ type Command struct {
 //	        May be we can keep a concept of minimum number of nodes as a configuration input.
 //
 // Return:
-func (c *Command) Provision(state *State) {
-	current_state := state.GetCurrentState()
+func (c *Command) TriggerProvision(state *State) {
+	state.GetCurrentState()
 	if c.Operation == "scale_up" {
-		state.SetState("provisioning_scaleup", current_state)
-		isScaledUp := c.ScaleOut(1, state)
+		state.PreviousState = state.CurrentState
+		state.CurrentState = "provisioning_scaleup"
+		state.UpdateState()
+		isScaledUp := c.ScaleOut(state)
 		if isScaledUp {
 			log.Info(log.ProvisionerInfo, "Scaleup successful")
 		} else {
-			current_state = state.GetCurrentState()
+			state.GetCurrentState()
 			// Add a retry mechanism
-			state.SetState("provisioning_scaleup_failed", current_state)
+			state.PreviousState = state.CurrentState
+			state.CurrentState = "provisioning_scaleup_failed"
+			state.UpdateState()
 		}
 	} else if c.Operation == "scale_down" {
-		state.SetState("provisioning_scaledown", current_state)
-		isScaledDown := c.ScaleIn(1, state)
+		state.PreviousState = state.CurrentState
+		state.CurrentState = "provisioning_scaledown"
+		state.UpdateState()
+		isScaledDown := c.ScaleIn(state)
 		if isScaledDown {
 			log.Info(log.ProvisionerInfo, "Scaledown successful")
 		} else {
-			current_state = state.GetCurrentState()
+			state.GetCurrentState()
 			// Add a retry mechanism
-			state.SetState("provisioning_scaledown_failed", current_state)
+			state.PreviousState = state.CurrentState
+			state.CurrentState = "provisioning_scaledown_failed"
+			state.UpdateState()
 		}
 	}
 }
@@ -98,54 +114,54 @@ func (c *Command) Provision(state *State) {
 // Return:
 //
 //	Return the status of scale out of the nodes.
-func (c *Command) ScaleOut(numNodes int, state *State) bool {
+func (c *Command) ScaleOut(state *State) bool {
 	// Read the current state of scaleup process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaleup process
-	if state.GetCurrentState() == "provisioning_scaleup" {
-		state.SetState("start_scaleup_process", "provision_scaleup")
+	state.GetCurrentState()
+	if state.CurrentState == "provisioning_scaleup" {
 		log.Info(log.ProvisionerInfo, "Starting scaleUp process")
+		state.PreviousState = state.CurrentState
+		state.CurrentState = "start_scaleup_process"
+		state.ProvisionStartTime = time.Now()
+		state.RuleTriggered = "scale_up"
+		state.NumNodes = c.NumNodes
+		state.UpdateState()
 	}
 	// Spin new VMs based on number of nodes and cloud type
-	if state.GetCurrentState() == "start_scaleup_process" {
+	if state.CurrentState == "start_scaleup_process" {
 		log.Info(log.ProvisionerInfo, "Spin new vms based on the cloud type")
-		state.SetState("scaleup_triggered_spin_vm", "start_scaleup_process")
 		log.Info(log.ProvisionerInfo, "Spinning new vms")
 		time.Sleep(5 * time.Second)
+		state.PreviousState = state.CurrentState
+		state.CurrentState = "scaleup_triggered_spin_vm"
+		state.UpdateState()
 	}
 	// Add the newly added VM to the list of VMs
 	// Configure OS on newly created VM
-	if state.GetCurrentState() == "scaleup_triggered_spin_vm" {
+	if state.CurrentState == "scaleup_triggered_spin_vm" {
 		log.Info(log.ProvisionerInfo, "Check if the vm creation is complete and wait till done")
 		log.Info(log.ProvisionerInfo, "Adding the spinned nodes into the list of vms")
 		log.Info(log.ProvisionerInfo, "Configure ES")
-		state.SetState("provisioning_scaleup_completed", "scaleup_triggered_spin_vm")
 		log.Info(log.ProvisionerInfo, "Configuring in progress")
 		time.Sleep(5 * time.Second)
+		state.PreviousState = state.CurrentState
+		state.CurrentState = "provisioning_scaleup_completed"
+		state.UpdateState()
 	}
 	// Check cluster status after the configuration
-	if state.GetCurrentState() == "provisioning_scaleup_completed" {
+	if state.CurrentState == "provisioning_scaleup_completed" {
 		SimulateSharRebalancing()
 		log.Info(log.ProvisionerInfo, "Wait for the cluster health and return status")
 		log.Info(log.ProvisionerInfo, "Waiting for the cluster to become healthy")
 		time.Sleep(5 * time.Second)
-		for i := 0; i <= 12; i++ {
-			cluster := cluster.GetClusterCurrent()
-			if cluster.ClusterDynamic.ClusterStatus == "green" {
-				current_state := state.GetCurrentState()
-				state.SetState("provisioned_successfully", current_state)
-				log.Info(log.ProvisionerInfo, "Provisioned successfully")
-				break
-			}
-			log.Info(log.ProvisionerInfo, "Waiting for cluster to be healthy.......")
-			time.Sleep(10 * time.Second)
-		}
-		current_state := state.GetCurrentState()
-		if current_state != "provisioned_successfully" {
-			state.SetState("provisioned_failed", current_state)
-			log.Warn(log.ProvisionerWarn, "Cluster hasn't come back to healthy state.")
-		}
+		CheckClusterHealth(state)
+		state.LastProvisionedTime = time.Now()
+		state.ProvisionStartTime = time.Time{}
+		state.PreviousState = state.CurrentState
+		state.CurrentState = "normal"
+		state.RuleTriggered = ""
+		state.UpdateState()
 		time.Sleep(5 * time.Second)
-		state.SetState("normal", state.GetCurrentState())
 		log.Info(log.ProvisionerInfo, "State set back to normal")
 	}
 	return true
@@ -164,50 +180,51 @@ func (c *Command) ScaleOut(numNodes int, state *State) bool {
 // Return:
 //
 //	Return the status of scale in of the nodes.
-func (c *Command) ScaleIn(numNodes int, state *State) bool {
+func (c *Command) ScaleIn(state *State) bool {
 	// Read the current state of scaledown process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaledown process
-	if state.GetCurrentState() == "provisioning_scaledown" {
-		state.SetState("start_scaledown_process", "provision_scaledown")
+	state.GetCurrentState()
+	if state.CurrentState == "provisioning_scaledown" {
 		log.Info(log.ProvisionerInfo, "Staring scaleDown process")
+		state.PreviousState = state.CurrentState
+		state.CurrentState = "start_scaledown_process"
+		state.ProvisionStartTime = time.Now()
+		state.RuleTriggered = "scale_down"
+		state.NumNodes = c.NumNodes
+		state.UpdateState()
 	}
 
 	// Identify the node which can be removed from the cluster.
-	if state.GetCurrentState() == "start_scaledown_process" {
+	if state.CurrentState == "start_scaledown_process" {
 		log.Info(log.ProvisionerInfo, "Identify the node to remove from the cluster and store the node_ip")
 		time.Sleep(5 * time.Second)
-		state.SetState("scaledown_node_identified", "start_scaledown_process")
+		state.PreviousState = state.CurrentState
+		state.CurrentState = "scaledown_node_identified"
+		state.UpdateState()
 	}
 	// Configure OS to tell master node that the present node is going to be removed
-	if state.GetCurrentState() == "scaledown_node_identified" {
+	if state.CurrentState == "scaledown_node_identified" {
 		log.Info(log.ProvisionerInfo, "Configure ES to remove the node ip from cluster")
-		state.SetState("provisioning_scaledown_completed", "scaledown_node_identified")
+		state.PreviousState = state.CurrentState
+		state.CurrentState = "provisioning_scaledown_completed"
+		state.UpdateState()
 		time.Sleep(5 * time.Second)
 		log.Info(log.ProvisionerInfo, "Node removed from ES configuration")
 	}
 	// Wait for cluster to be in stable state(Shard rebalance)
 	// Shut down the node
-	if state.GetCurrentState() == "provisioning_scaledown_completed" {
+	if state.CurrentState == "provisioning_scaledown_completed" {
 		SimulateSharRebalancing()
 		log.Info(log.ProvisionerInfo, "Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
-		for i := 0; i <= 12; i++ {
-			cluster := cluster.GetClusterCurrent()
-			if cluster.ClusterDynamic.ClusterStatus == "green" {
-				current_state := state.GetCurrentState()
-				state.SetState("provisioned_successfully", current_state)
-				break
-			}
-			log.Info(log.ProvisionerInfo, "Waiting for cluster to be healthy.......")
-			time.Sleep(15 * time.Second)
-		}
-		current_state := state.GetCurrentState()
-		if current_state != "provisioned_successfully" {
-			state.SetState("provisioned_failed", current_state)
-			log.Warn(log.ProvisionerWarn, "Cluster hasn't come back to healthy state.")
-		}
-		time.Sleep(5 * time.Second)
+		CheckClusterHealth(state)
 		log.Info(log.ProvisionerInfo, "Shutdown the node")
-		state.SetState("normal", state.GetCurrentState())
+		time.Sleep(5 * time.Second)
+		state.LastProvisionedTime = time.Now()
+		state.ProvisionStartTime = time.Time{}
+		state.RuleTriggered = ""
+		state.PreviousState = state.CurrentState
+		state.CurrentState = "normal"
+		state.UpdateState()
 		log.Info(log.ProvisionerInfo, "State set back to normal")
 	}
 	return true
@@ -222,16 +239,33 @@ func (c *Command) ScaleIn(numNodes int, state *State) bool {
 //
 // Return:
 func CheckClusterHealth(state *State) {
-	cluster := cluster.GetClusterCurrent()
-	if cluster.ClusterDynamic.ClusterStatus == "green" {
-		current_state := state.GetCurrentState()
-		state.SetState("provisioned_successfully", current_state)
-	} else if counter >= 3 {
-		time.Sleep(180 * time.Second)
-		CheckClusterHealth(state)
-	} else {
-		current_state := state.GetCurrentState()
-		state.SetState("provisioned_failed", current_state)
+	for i := 0; i <= 12; i++ {
+		cluster := cluster.GetClusterCurrent()
+		log.Info(cluster.ClusterDynamic.ClusterStatus)
+		if cluster.ClusterDynamic.ClusterStatus == "green" {
+			state.GetCurrentState()
+			state.PreviousState = state.CurrentState
+			if strings.Contains(state.PreviousState, "scaleup") {
+				state.CurrentState = "provisioned_scaleup_successfully"
+			} else {
+				state.CurrentState = "provisioned_scaledown_successfully"
+			}
+			state.UpdateState()
+			break
+		}
+		log.Info(log.ProvisionerInfo, "Waiting for cluster to be healthy.......")
+		time.Sleep(15 * time.Second)
+	}
+	state.GetCurrentState()
+	if !(strings.Contains(state.CurrentState, "success")) {
+		state.PreviousState = state.CurrentState
+		if strings.Contains(state.PreviousState, "scaleup") {
+			state.CurrentState = "provisioning_scaleup_failed"
+		} else {
+			state.CurrentState = "provisioning_scaledown_failed"
+		}
+		state.UpdateState()
+		log.Warn(log.ProvisionerWarn, "Cluster hasn't come back to healthy state.")
 	}
 	// We should wait for buffer period after provisioned_successfully state to stablize the cluster.
 	// After that buffer period we should change the state to normal, which can tell trigger module to trigger

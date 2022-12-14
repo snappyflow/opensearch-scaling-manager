@@ -38,42 +38,45 @@ func main() {
 
 func periodicProvisionCheck() {
 	tick := time.Tick(5 * time.Second)
-	previous_master := cluster.GetCurrentMasterIp()
+	previous_master := cluster.CheckIfMaster()
 	for range tick {
-		current_state := State.GetCurrentState()
+		State.GetCurrentState()
 		// Call a function which returns the current master node
-		current_master := cluster.GetCurrentMasterIp()
-		if current_state != "normal" {
-			if cluster.CheckIfMaster() {
-				if previous_master != current_master {
-					// Create a new command struct and call the scaleIn or scaleOut functions
-					// Call these scaleOut and scaleIn functions using goroutines so that this periodic check continues
-					// command struct to be filled with the recommendation queue and config file
-					var command provision.Command
-					if strings.Contains(current_state, "scaleup") {
-						log.Info("Calling scaleOut")
-						isScaledUp := command.ScaleOut(1, State)
-						if isScaledUp {
-							log.Info("Scaleup completed successfully")
-						} else {
-							// Add a retry mechanism
-							log.Warn("Scaleup failed")
-						}
-					} else if strings.Contains(current_state, "scaledown") {
-						log.Info("Calling scaleIn")
-						isScaledDown := command.ScaleIn(1, State)
-						if isScaledDown {
-							log.Info("Scaledown completed successfully")
-						} else {
-							// Add a retry mechanism
-							log.Warn("Scaledown failed")
-						}
+		currentMaster := cluster.CheckIfMaster()
+		if State.CurrentState != "normal" {
+			if !(previous_master) && currentMaster {
+				// Create a new command struct and call the scaleIn or scaleOut functions
+				// Call these scaleOut and scaleIn functions using goroutines so that this periodic check continues
+				// command struct to be filled with the recommendation queue and config file
+				var command provision.Command
+				configStruct, err := config.GetConfig("config.yaml")
+				if err != nil {
+					log.Warn(log.ProvisionerWarn, "Unable to get Config from GetConfig()")
+					return
+				}
+				command.ClusterDetails = configStruct.ClusterDetails
+				if strings.Contains(State.CurrentState, "scaleup") {
+					log.Info("Calling scaleOut")
+					isScaledUp := command.ScaleOut(State)
+					if isScaledUp {
+						log.Info("Scaleup completed successfully")
+					} else {
+						// Add a retry mechanism
+						log.Warn("Scaleup failed")
+					}
+				} else if strings.Contains(State.CurrentState, "scaledown") {
+					log.Info("Calling scaleIn")
+					isScaledDown := command.ScaleIn(State)
+					if isScaledDown {
+						log.Info("Scaledown completed successfully")
+					} else {
+						// Add a retry mechanism
+						log.Warn("Scaledown failed")
 					}
 				}
 			}
 		}
 		// Update the repvious_master for next loop
-		previous_master = current_master
+		previous_master = currentMaster
 	}
 }
-
