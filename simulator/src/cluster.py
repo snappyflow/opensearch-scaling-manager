@@ -43,7 +43,7 @@ class Cluster:
         :param master_eligible_nodes_count: total number of master eligible nodes of the cluster
         :param index_count: total number of indexes in the cluster
         :param shards_per_index: maximum number of shards per index
-        :param index_roll_over_size_gb: size in bytes after which the index will be rolled over
+        :param index_roll_over_size_gb: size in gb after which the index will be rolled over
         :param index_clean_up_age_days: time in minutes after which the index will be cleaned up
         :param status: status of the cluster from "green", "yellow" or "red"
         :param cpu_usage_percent: average cluster cpu usage in percent
