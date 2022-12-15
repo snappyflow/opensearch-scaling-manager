@@ -67,6 +67,7 @@ func (c *ConfigClusterDetails) TriggerProvision(state *State, numNodes int, oper
 		state.CurrentState = "provisioning_scaleup"
 		state.NumNodes = numNodes
 		state.RemainingNodes = numNodes
+		state.RuleTriggered = "scale_up"
 		state.UpdateState()
 		isScaledUp := c.ScaleOut(state)
 		if isScaledUp {
@@ -83,6 +84,7 @@ func (c *ConfigClusterDetails) TriggerProvision(state *State, numNodes int, oper
 		state.CurrentState = "provisioning_scaledown"
 		state.NumNodes = numNodes
 		state.RemainingNodes = numNodes
+		state.RuleTriggered = "scale_down"
 		state.UpdateState()
 		isScaledDown := c.ScaleIn(state)
 		if isScaledDown {
@@ -120,7 +122,6 @@ func (c *ConfigClusterDetails) ScaleOut(state *State) bool {
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "start_scaleup_process"
 		state.ProvisionStartTime = time.Now()
-		state.RuleTriggered = "scale_up"
 		state.UpdateState()
 	}
 	// Spin new VMs based on number of nodes and cloud type
@@ -189,7 +190,6 @@ func (c *ConfigClusterDetails) ScaleIn(state *State) bool {
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "start_scaledown_process"
 		state.ProvisionStartTime = time.Now()
-		state.RuleTriggered = "scale_down"
 		state.UpdateState()
 	}
 
