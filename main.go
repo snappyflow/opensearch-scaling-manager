@@ -45,19 +45,15 @@ func periodicProvisionCheck() {
 		currentMaster := cluster.CheckIfMaster()
 		if state.CurrentState != "normal" {
 			if !(previousMaster) && currentMaster {
-				// Create a new command struct and call the scaleIn or scaleOut functions
-				// Call these scaleOut and scaleIn functions using goroutines so that this periodic check continues
-				// command struct to be filled with the recommendation queue and config file
-				var command provision.Command
 				configStruct, err := config.GetConfig("config.yaml")
 				if err != nil {
 					log.Warn(log.ProvisionerWarn, "Unable to get Config from GetConfig()")
 					return
 				}
-				command.ClusterDetails = configStruct.ClusterDetails
+				cfg := provision.ConfigClusterDetails(configStruct.ClusterDetails)
 				if strings.Contains(state.CurrentState, "scaleup") {
 					log.Info("Calling scaleOut")
-					isScaledUp := command.ScaleOut(state)
+					isScaledUp := cfg.ScaleOut(state)
 					if isScaledUp {
 						log.Info("Scaleup completed successfully")
 					} else {
@@ -66,7 +62,7 @@ func periodicProvisionCheck() {
 					}
 				} else if strings.Contains(state.CurrentState, "scaledown") {
 					log.Info("Calling scaleIn")
-					isScaledDown := command.ScaleIn(state)
+					isScaledDown := cfg.ScaleIn(state)
 					if isScaledDown {
 						log.Info("Scaledown completed successfully")
 					} else {

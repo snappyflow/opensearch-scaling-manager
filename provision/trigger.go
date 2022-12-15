@@ -26,18 +26,17 @@ func GetRecommendation(state *State, recommendationQueue []string) {
 		clusterCurrent := cluster.GetClusterCurrent()
 		state.GetCurrentState()
 		if clusterCurrent.ClusterDynamic.ClusterStatus == "green" && state.CurrentState == "normal" {
-			var command Command
 			// Fill in the command struct with the recommendation queue and config file and trigger the recommendation.
 			subMatch := scaleRegex.FindStringSubmatch(recommendationQueue[0])
-			command.NumNodes, _ = strconv.Atoi(subMatch[2])
-			command.Operation = subMatch[1]
+			numNodes, _ := strconv.Atoi(subMatch[2])
+			operation := subMatch[1]
 			configStruct, err := config.GetConfig("config.yaml")
 			if err != nil {
 				log.Warn(log.ProvisionerWarn, "Unable to get Config from GetConfig()")
 				return
 			}
-			command.ClusterDetails = configStruct.ClusterDetails
-			go command.TriggerProvision(state)
+			cfg := ConfigClusterDetails(configStruct.ClusterDetails)
+			cfg.TriggerProvision(state, numNodes, operation)
 		} else {
 			log.Warn(log.ProvisionerWarn, "Recommendation can not be provisioned as open search cluster is already in provisioning phase or the cluster isn't healthy yet")
 		}
