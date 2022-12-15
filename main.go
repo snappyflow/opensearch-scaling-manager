@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var State = new(provision.State)
+var state = new(provision.State)
 
 func main() {
 	// A periodic check if there is a change in master node to pick up incomplete provisioning
@@ -28,7 +28,7 @@ func main() {
 		// This function is responsible for evaluating the task and recommend.
 		recommendation_list := task.EvaluateTask()
 		// This function is responsible for getting the recommendation and provision.
-		provision.GetRecommendation(State, recommendation_list)
+		provision.GetRecommendation(state, recommendation_list)
 	}
 }
 
@@ -38,13 +38,13 @@ func main() {
 
 func periodicProvisionCheck() {
 	tick := time.Tick(5 * time.Second)
-	previous_master := cluster.CheckIfMaster()
+	previousMaster := cluster.CheckIfMaster()
 	for range tick {
-		State.GetCurrentState()
+		state.GetCurrentState()
 		// Call a function which returns the current master node
 		currentMaster := cluster.CheckIfMaster()
-		if State.CurrentState != "normal" {
-			if !(previous_master) && currentMaster {
+		if state.CurrentState != "normal" {
+			if !(previousMaster) && currentMaster {
 				// Create a new command struct and call the scaleIn or scaleOut functions
 				// Call these scaleOut and scaleIn functions using goroutines so that this periodic check continues
 				// command struct to be filled with the recommendation queue and config file
@@ -55,18 +55,18 @@ func periodicProvisionCheck() {
 					return
 				}
 				command.ClusterDetails = configStruct.ClusterDetails
-				if strings.Contains(State.CurrentState, "scaleup") {
+				if strings.Contains(state.CurrentState, "scaleup") {
 					log.Info("Calling scaleOut")
-					isScaledUp := command.ScaleOut(State)
+					isScaledUp := command.ScaleOut(state)
 					if isScaledUp {
 						log.Info("Scaleup completed successfully")
 					} else {
 						// Add a retry mechanism
 						log.Warn("Scaleup failed")
 					}
-				} else if strings.Contains(State.CurrentState, "scaledown") {
+				} else if strings.Contains(state.CurrentState, "scaledown") {
 					log.Info("Calling scaleIn")
-					isScaledDown := command.ScaleIn(State)
+					isScaledDown := command.ScaleIn(state)
 					if isScaledDown {
 						log.Info("Scaledown completed successfully")
 					} else {
@@ -76,8 +76,8 @@ func periodicProvisionCheck() {
 				}
 			}
 		}
-		// Update the repvious_master for next loop
-		previous_master = currentMaster
+		// Update the previousMaster for next loop
+		previousMaster = currentMaster
 	}
 }
 

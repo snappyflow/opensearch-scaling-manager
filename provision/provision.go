@@ -14,21 +14,18 @@ import (
 	log "scaling_manager/logger"
 )
 
-var counter uint8 = 1
-
 // This struct contains the State of the opensearch scaling manager
 // States can be of following types: (May change in real implementation with new stages identified)
 // At any point, the state should have either "scaleup/scaledown" to identify the current operation happening
 //
-//	normal : This is the state when the recommnedation will be provisioned.
-//	provisioning_scaleup/provisioning_scaledown : Once the provision module will start provisioning it will set this state.
-//	start_scaleup_process/start_scaledown_process : Indicates start of scaleup/scaledown process
-//	scaleup_triggered_spin_vm: Indicates trigger for spinning new vms while scaleup
-//	scaledown_node_identified: A state to identify node identification to scaledown
-//	provisioning_scaleup_completed/provisioning_scaledown_completed : Once the provision is completed then this state will be state.
-//	provisioning_scaleup_failed/provisioning_scaledown_failed: If the provision is failed then this state will be set.
-//	provisioned_scaleup_successfully/provisioned_scaledown_successfully: If the provision is completed and cluster state is green then
-//	   this state will be set.
+//	* normal : This is the state when the recommnedation will be provisioned.
+//	* provisioning_scaleup/provisioning_scaledown : Once the provision module will start provisioning it will set this state.
+//	* start_scaleup_process/start_scaledown_process : Indicates start of scaleup/scaledown process
+//	* scaleup_triggered_spin_vm: Indicates trigger for spinning new vms while scaleup
+//	* scaledown_node_identified: A state to identify node identification to scaledown
+//	* provisioning_scaleup_completed/provisioning_scaledown_completed : Once the provision is completed then this state will be state.
+//	* provisioning_scaleup_failed/provisioning_scaledown_failed: If the provision is failed then this state will be set.
+//	* provisioned_scaleup_successfully/provisioned_scaledown_successfully: If the provision is completed and cluster state is green then this state will be set.
 type State struct {
 	// CurrentState indicate the current state of the scaling manager
 	CurrentState string
@@ -36,10 +33,15 @@ type State struct {
 	PreviousState string
 	// Remark indicates the additional remarks for the state of the scaling manager
 	Remark              string
+	// Last Provisioned time is when the last successful provision was completed
 	LastProvisionedTime time.Time
+	// Start time of the current provisioning in place
 	ProvisionStartTime  time.Time
+	// Rule triggered for provisioning. i.e., scale_up/scale_down
 	RuleTriggered       string
+	// Number of nodes being added(scale_up) / removed(scale_down) from the cluster due to current provision
 	NumNodes            int
+	// Number of nodes remaining to be scaled up/scaled down 
 	RemainingNodes      int
 }
 
@@ -56,10 +58,11 @@ type Command struct {
 }
 
 // Input:
+//	state: The current provisioning state of the system
 // Caller: Object of Command
 // Description:
 //
-//	Provision will scale in/out the cluster based on the operation.
+//	TriggerProvision will scale in/out the cluster based on the operation.
 //	ToDo:
 //	        Think about the scenario where event based scaling needs to be performed.
 //	        Morning need to scale up and evening need to scale down.
@@ -102,8 +105,7 @@ func (c *Command) TriggerProvision(state *State) {
 
 // Input:
 //
-//	numNodes(int): Number of nodes to scale out.
-//
+//	state: The current provisioning state of the system
 // Caller: Object of Command
 // Description:
 //
@@ -160,6 +162,7 @@ func (c *Command) ScaleOut(state *State) bool {
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "normal"
 		state.RuleTriggered = ""
+		state.NumNodes = 0
 		state.UpdateState()
 		time.Sleep(5 * time.Second)
 		log.Info(log.ProvisionerInfo, "State set back to normal")
@@ -169,7 +172,7 @@ func (c *Command) ScaleOut(state *State) bool {
 
 // Input:
 //
-//	numNodes(int): Number of nodes to scale in.
+//	state: Pointer to the current provisioning state of the system
 //
 // Caller: Object of Command
 // Description:
@@ -222,6 +225,7 @@ func (c *Command) ScaleIn(state *State) bool {
 		state.LastProvisionedTime = time.Now()
 		state.ProvisionStartTime = time.Time{}
 		state.RuleTriggered = ""
+		state.NumNodes = 0
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "normal"
 		state.UpdateState()
@@ -231,6 +235,8 @@ func (c *Command) ScaleIn(state *State) bool {
 }
 
 // Input:
+//      state: Pointer to the current provisioning state of the system
+//
 // Description:
 //
 //	CheckClusterHealth will check the current cluster health and also check if there are any relocating
@@ -272,14 +278,6 @@ func CheckClusterHealth(state *State) {
 	// the recommendation.
 }
 
-// Input:
-// Description:
-//              Read the current stage that the provisioning process is in from Elasticsearch or any centralized DB which will be updated after each stage.
-// Return: Stage returned from ES
-
-func readStageFromEs() string {
-	return ""
-}
 
 func SimulateSharRebalancing() {
 	// Add logic to call the simulator's end point

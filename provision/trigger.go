@@ -10,22 +10,25 @@ import (
 )
 
 // Input:
+//	state: The current provisioning state of the system
+//	recommendationQueue: Recommendations provided by the recommendation engine in the form of an array of strings
 // Description:
 //
-//	GetRecommendation will fetch the recommendation from recommendation queue and clear the queue.
-//	It will populate the command queue which contains all the details to scale out the cluster.
+//	GetRecommendation will fetch the recommendation from recommendation queue.
+//	It will call the Provisioner with all the user defined configs.
+// 	Triggers the provisioning
 //
 // Return:
-func GetRecommendation(state *State, recommendation_queue []string) {
+func GetRecommendation(state *State, recommendationQueue []string) {
 	scaleRegexString := `(scale_up|scale_down)_by_([0-9]+)`
 	scaleRegex := regexp.MustCompile(scaleRegexString)
-	if len(recommendation_queue) > 0 {
+	if len(recommendationQueue) > 0 {
 		clusterCurrent := cluster.GetClusterCurrent()
 		state.GetCurrentState()
 		if clusterCurrent.ClusterDynamic.ClusterStatus == "green" && state.CurrentState == "normal" {
 			var command Command
 			// Fill in the command struct with the recommendation queue and config file and trigger the recommendation.
-			subMatch := scaleRegex.FindStringSubmatch(recommendation_queue[0])
+			subMatch := scaleRegex.FindStringSubmatch(recommendationQueue[0])
 			command.NumNodes, _ = strconv.Atoi(subMatch[2])
 			command.Operation = subMatch[1]
 			configStruct, err := config.GetConfig("config.yaml")

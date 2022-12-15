@@ -14,7 +14,15 @@ import (
 	opensearchapi "github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
+// A global variable which stores the document ID of the State document that will to stored and fetched frm Opensearch
 var docId = fmt.Sprint(hash(cluster.GetClusterId()))
+
+
+// Input: string
+//
+// Description: Returns a hashed value of the string passed as input
+//
+// Output: uint32 (Hashed value of string)
 
 func hash(s string) uint32 {
 	h := fnv.New32a()
@@ -22,10 +30,19 @@ func hash(s string) uint32 {
 	return h.Sum32()
 }
 
+// Index name where the State document will be stored
 const IndexName = "monitor-stats-1"
 
+// Global variable for Opensearch client to avoid multiple client creations
 var client *opensearch.Client
 
+
+// Input:
+// Description: 
+//	1. Initializes the opensearch client
+//	2. Reads the mapping for the index to be created
+//	3. Calls the createNewIndex function to create the index if not already present with defined mappings
+// Output:
 func init() {
 
 	var err error
@@ -46,6 +63,10 @@ func init() {
 	createNewIndexWithMappings(mapping)
 }
 
+// Input: json string as mapping
+// Description: 
+//		Creates a new OS index if it doesn't exixts with the provided mapping
+// Output:
 func createNewIndexWithMappings(mapping string) {
 	ctx := context.Background()
 	createReq := opensearchapi.IndicesCreateRequest{}
@@ -70,11 +91,11 @@ func createNewIndexWithMappings(mapping string) {
 // Input:
 // Description:
 //
-//      GetCurrentState will get the current state of provisioning system of the scaling manager.
+//      GetCurrentState will update the state variable pointer such that it is insync with the updated values.
+//	Reads the document from Opensearch and updates the Struct
 //
 // Return:
 //
-//      Returns a string which contains the current state.
 
 func (s *State) GetCurrentState() {
 	// Get the document.
@@ -86,8 +107,7 @@ func (s *State) GetCurrentState() {
 
 	searchResponse, err := search.Do(context.Background(), client)
 	if err != nil {
-		log.Error(log.ProvisionerError, fmt.Sprintf("failed to search document: %v ", err))
-		os.Exit(1)
+		log.Fatal(log.ProvisionerError, fmt.Sprintf("failed to search document: %v ", err))
 	}
 	var stateInterface map[string]interface{}
 	log.Info(log.ProvisionerInfo, fmt.Sprintf("Get resp: %v ", searchResponse))
@@ -98,8 +118,7 @@ func (s *State) GetCurrentState() {
 	}
 	jsonErr := json.NewDecoder(searchResponse.Body).Decode(&stateInterface)
 	if jsonErr != nil {
-		log.Error(log.ProvisionerError, fmt.Sprintf("Unable to decode the response into interface: %v", jsonErr))
-		return
+		log.Fatal(log.ProvisionerError, fmt.Sprintf("Unable to decode the response into interface: %v", jsonErr))
 	}
 	// convert map to json
 	jsonString, errr := json.Marshal(stateInterface["_source"].(map[string]interface{}))
@@ -113,12 +132,9 @@ func (s *State) GetCurrentState() {
 
 // Input:
 //
-//      currentState(string): The current state for the provisioner.
-//      previousState(string): The previous state for the provisioner.
-//
 // Description:
 //
-//      SetState will set the state of provisioning system of the scaling manager.
+//      Updates the opensearch document with the values in state Struct pointer.
 //
 // Return:
 
