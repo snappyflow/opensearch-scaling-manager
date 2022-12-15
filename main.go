@@ -13,7 +13,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-var State = new(provision.State)
+var state = new(provision.State)
 
 func main() {
 	// The following go routine will watch the changes inside config.yaml
@@ -40,7 +40,7 @@ func main() {
 			// This function is responsible for evaluating the task and recommend.
 			recommendationList := task.EvaluateTask()
 			// This function is responsible for getting the recommendation and provision.
-			provision.GetRecommendation(State, recommendationList)
+			provision.GetRecommendation(state, recommendationList)
 		}
 	}
 }
@@ -51,42 +51,46 @@ func main() {
 
 func periodicProvisionCheck() {
 	tick := time.Tick(5 * time.Second)
-	previous_master := cluster.GetCurrentMasterIp()
+	previousMaster := cluster.CheckIfMaster()
 	for range tick {
-		current_state := State.GetCurrentState()
+		state.GetCurrentState()
 		// Call a function which returns the current master node
-		current_master := cluster.GetCurrentMasterIp()
-		if current_state != "normal" {
-			if cluster.CheckIfMaster() {
-				if previous_master != current_master {
-					// Create a new command struct and call the scaleIn or scaleOut functions
-					// Call these scaleOut and scaleIn functions using goroutines so that this periodic check continues
-					// command struct to be filled with the recommendation queue and config file
-					var command provision.Command
-					if strings.Contains(current_state, "scaleup") {
-						log.Info("Calling scaleOut")
-						isScaledUp := command.ScaleOut(1, State)
-						if isScaledUp {
-							log.Info("Scaleup completed successfully")
-						} else {
-							// Add a retry mechanism
-							log.Warn("Scaleup failed")
-						}
-					} else if strings.Contains(current_state, "scaledown") {
-						log.Info("Calling scaleIn")
-						isScaledDown := command.ScaleIn(1, State)
-						if isScaledDown {
-							log.Info("Scaledown completed successfully")
-						} else {
-							// Add a retry mechanism
-							log.Warn("Scaledown failed")
-						}
+		currentMaster := cluster.CheckIfMaster()
+		if state.CurrentState != "normal" {
+			if !(previousMaster) && currentMaster {
+				// Create a new command struct and call the scaleIn or scaleOut functions
+				// Call these scaleOut and scaleIn functions using goroutines so that this periodic check continues
+				// command struct to be filled with the recommendation queue and config file
+				var command provision.Command
+				configStruct, err := config.GetConfig("config.yaml")
+				if err != nil {
+					log.Warn(log.ProvisionerWarn, "Unable to get Config from GetConfig()")
+					return
+				}
+				command.ClusterDetails = configStruct.ClusterDetails
+				if strings.Contains(state.CurrentState, "scaleup") {
+					log.Info("Calling scaleOut")
+					isScaledUp := command.ScaleOut(state)
+					if isScaledUp {
+						log.Info("Scaleup completed successfully")
+					} else {
+						// Add a retry mechanism
+						log.Warn("Scaleup failed")
+					}
+				} else if strings.Contains(state.CurrentState, "scaledown") {
+					log.Info("Calling scaleIn")
+					isScaledDown := command.ScaleIn(state)
+					if isScaledDown {
+						log.Info("Scaledown completed successfully")
+					} else {
+						// Add a retry mechanism
+						log.Warn("Scaledown failed")
 					}
 				}
 			}
 		}
-		// Update the repvious_master for next loop
-		previous_master = current_master
+		// Update the previousMaster for next loop
+		previousMaster = currentMaster
 	}
 }
 
