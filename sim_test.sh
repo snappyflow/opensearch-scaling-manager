@@ -2,15 +2,15 @@
 
 kill_process() {
 	PID_GO=$(ps aufx | grep main.go | grep -v color |grep -v grep| awk -F' ' '{ print $2 }')
-	echo $PID_GO
 	if [ -n "${PID_GO}" ]; then
-		kill $PID_GO
+		kill ${PID_GO}
+		wait ${PID_GO} 2>/dev/null
 	fi
 	
 	PID_PYTHON=$(ps aufx | grep app.py | grep -v color |grep -v grep| awk -F' ' '{ print $2 }')
-	echo $PID_PYTHON
 	if [ -n "${PID_PYTHON}" ]; then
-		kill $PID_PYTHON
+		kill ${PID_PYTHON}
+		wait ${PID_PYTHON} 2>/dev/null
 	fi
 }
 
