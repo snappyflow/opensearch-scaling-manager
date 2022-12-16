@@ -1,5 +1,5 @@
 {
-    "logpath": "logs/another_check",
+    "logpath": "logs",
     "logfile": "application.log",
     "pathsep": "/",
     "level": "trace",
