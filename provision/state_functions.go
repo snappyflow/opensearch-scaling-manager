@@ -115,6 +115,7 @@ func (s *State) GetCurrentState() {
 		//Setting the initial state
 		s.CurrentState = "normal"
 		s.UpdateState()
+		return
 	}
 	jsonErr := json.NewDecoder(searchResponse.Body).Decode(&stateInterface)
 	if jsonErr != nil {
