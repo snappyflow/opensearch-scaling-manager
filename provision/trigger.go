@@ -35,8 +35,8 @@ func GetRecommendation(state *State, recommendationQueue []string) {
 				log.Warn(log.ProvisionerWarn, "Unable to get Config from GetConfig()")
 				return
 			}
-			cfg := ConfigClusterDetails(configStruct.ClusterDetails)
-			cfg.TriggerProvision(state, numNodes, operation)
+			cfg := configStruct.ClusterDetails
+			TriggerProvision(cfg, state, numNodes, operation)
 		} else {
 			log.Warn(log.ProvisionerWarn, "Recommendation can not be provisioned as open search cluster is already in provisioning phase or the cluster isn't healthy yet")
 		}

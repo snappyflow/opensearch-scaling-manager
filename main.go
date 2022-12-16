@@ -50,10 +50,10 @@ func periodicProvisionCheck() {
 					log.Warn(log.ProvisionerWarn, "Unable to get Config from GetConfig()")
 					return
 				}
-				cfg := provision.ConfigClusterDetails(configStruct.ClusterDetails)
+				cfg := configStruct.ClusterDetails
 				if strings.Contains(state.CurrentState, "scaleup") {
 					log.Info("Calling scaleOut")
-					isScaledUp := cfg.ScaleOut(state)
+					isScaledUp := provision.ScaleOut(cfg, state)
 					if isScaledUp {
 						log.Info("Scaleup completed successfully")
 					} else {
@@ -62,7 +62,7 @@ func periodicProvisionCheck() {
 					}
 				} else if strings.Contains(state.CurrentState, "scaledown") {
 					log.Info("Calling scaleIn")
-					isScaledDown := cfg.ScaleIn(state)
+					isScaledDown := provision.ScaleIn(cfg, state)
 					if isScaledDown {
 						log.Info("Scaledown completed successfully")
 					} else {

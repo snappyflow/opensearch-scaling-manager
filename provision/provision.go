@@ -45,7 +45,6 @@ type State struct {
 	RemainingNodes      int
 }
 
-type ConfigClusterDetails config.ClusterDetails
 
 // Input:
 //	state: The current provisioning state of the system
@@ -60,7 +59,7 @@ type ConfigClusterDetails config.ClusterDetails
 //	        May be we can keep a concept of minimum number of nodes as a configuration input.
 //
 // Return:
-func (c *ConfigClusterDetails) TriggerProvision(state *State, numNodes int, operation string) {
+func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, operation string) {
 	state.GetCurrentState()
 	if operation == "scale_up" {
 		state.PreviousState = state.CurrentState
@@ -69,7 +68,7 @@ func (c *ConfigClusterDetails) TriggerProvision(state *State, numNodes int, oper
 		state.RemainingNodes = numNodes
 		state.RuleTriggered = "scale_up"
 		state.UpdateState()
-		isScaledUp := c.ScaleOut(state)
+		isScaledUp := ScaleOut(cfg, state)
 		if isScaledUp {
 			log.Info(log.ProvisionerInfo, "Scaleup successful")
 		} else {
@@ -86,7 +85,7 @@ func (c *ConfigClusterDetails) TriggerProvision(state *State, numNodes int, oper
 		state.RemainingNodes = numNodes
 		state.RuleTriggered = "scale_down"
 		state.UpdateState()
-		isScaledDown := c.ScaleIn(state)
+		isScaledDown := ScaleIn(cfg, state)
 		if isScaledDown {
 			log.Info(log.ProvisionerInfo, "Scaledown successful")
 		} else {
@@ -112,7 +111,7 @@ func (c *ConfigClusterDetails) TriggerProvision(state *State, numNodes int, oper
 // Return:
 //
 //	Return the status of scale out of the nodes.
-func (c *ConfigClusterDetails) ScaleOut(state *State) bool {
+func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 	// Read the current state of scaleup process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaleup process
 	state.GetCurrentState()
@@ -181,7 +180,7 @@ func (c *ConfigClusterDetails) ScaleOut(state *State) bool {
 // Return:
 //
 //	Return the status of scale in of the nodes.
-func (c *ConfigClusterDetails) ScaleIn(state *State) bool {
+func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 	// Read the current state of scaledown process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaledown process
 	state.GetCurrentState()
