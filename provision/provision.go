@@ -11,8 +11,10 @@ import (
 	"strings"
 	"time"
 
-	log "scaling_manager/logger"
+	"scaling_manager/logger"
 )
+
+var log = new(logger.LOG)
 
 // This struct contains the State of the opensearch scaling manager
 // States can be of following types: (May change in real implementation with new stages identified)
@@ -45,6 +47,11 @@ type State struct {
 	RemainingNodes      int
 }
 
+// Initializing logger module
+func init() {
+	log.Init("logger")
+	log.Info.Println("Provisioner module initiated")
+}
 
 // Input:
 //	state: The current provisioning state of the system
@@ -70,7 +77,7 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, ope
 		state.UpdateState()
 		isScaledUp := ScaleOut(cfg, state)
 		if isScaledUp {
-			log.Info(log.ProvisionerInfo, "Scaleup successful")
+			log.Info.Println("Scaleup successful")
 		} else {
 			state.GetCurrentState()
 			// Add a retry mechanism
@@ -87,7 +94,7 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, ope
 		state.UpdateState()
 		isScaledDown := ScaleIn(cfg, state)
 		if isScaledDown {
-			log.Info(log.ProvisionerInfo, "Scaledown successful")
+			log.Info.Println("Scaledown successful")
 		} else {
 			state.GetCurrentState()
 			// Add a retry mechanism
@@ -116,7 +123,7 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 	// If no stage was already set. The function returns an empty string. Then, start the scaleup process
 	state.GetCurrentState()
 	if state.CurrentState == "provisioning_scaleup" {
-		log.Info(log.ProvisionerInfo, "Starting scaleUp process")
+		log.Info.Println("Starting scaleUp process")
 		time.Sleep(1 * time.Second)
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "start_scaleup_process"
@@ -125,9 +132,9 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 	}
 	// Spin new VMs based on number of nodes and cloud type
 	if state.CurrentState == "start_scaleup_process" {
-		log.Info(log.ProvisionerInfo, "Spin new vms based on the cloud type")
+		log.Info.Println("Spin new vms based on the cloud type")
 		time.Sleep(1 * time.Second)
-		log.Info(log.ProvisionerInfo, "Spinning new vms")
+		log.Info.Println("Spinning new vms")
 		time.Sleep(5 * time.Second)
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "scaleup_triggered_spin_vm"
@@ -136,13 +143,13 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 	// Add the newly added VM to the list of VMs
 	// Configure OS on newly created VM
 	if state.CurrentState == "scaleup_triggered_spin_vm" {
-		log.Info(log.ProvisionerInfo, "Check if the vm creation is complete and wait till done")
+		log.Info.Println("Check if the vm creation is complete and wait till done")
 		time.Sleep(1 * time.Second)
-		log.Info(log.ProvisionerInfo, "Adding the spinned nodes into the list of vms")
+		log.Info.Println("Adding the spinned nodes into the list of vms")
 		time.Sleep(1 * time.Second)
-		log.Info(log.ProvisionerInfo, "Configure ES")
+		log.Info.Println("Configure ES")
 		time.Sleep(1 * time.Second)
-		log.Info(log.ProvisionerInfo, "Configuring in progress")
+		log.Info.Println("Configuring in progress")
 		time.Sleep(5 * time.Second)
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaleup_completed"
@@ -151,7 +158,7 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 	// Check cluster status after the configuration
 	if state.CurrentState == "provisioning_scaleup_completed" {
 		SimulateSharRebalancing()
-		log.Info(log.ProvisionerInfo, "Waiting for the cluster to become healthy")
+		log.Info.Println("Waiting for the cluster to become healthy")
 		time.Sleep(5 * time.Second)
 		CheckClusterHealth(state)
 		state.LastProvisionedTime = time.Now()
@@ -162,7 +169,7 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 		state.RemainingNodes = state.RemainingNodes - 1
 		state.UpdateState()
 		time.Sleep(5 * time.Second)
-		log.Info(log.ProvisionerInfo, "State set back to normal")
+		log.Info.Println("State set back to normal")
 	}
 	return true
 }
@@ -185,7 +192,7 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 	// If no stage was already set. The function returns an empty string. Then, start the scaledown process
 	state.GetCurrentState()
 	if state.CurrentState == "provisioning_scaledown" {
-		log.Info(log.ProvisionerInfo, "Staring scaleDown process")
+		log.Info.Println("Staring scaleDown process")
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "start_scaledown_process"
 		state.ProvisionStartTime = time.Now()
@@ -194,7 +201,7 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 
 	// Identify the node which can be removed from the cluster.
 	if state.CurrentState == "start_scaledown_process" {
-		log.Info(log.ProvisionerInfo, "Identify the node to remove from the cluster and store the node_ip")
+		log.Info.Println("Identify the node to remove from the cluster and store the node_ip")
 		time.Sleep(5 * time.Second)
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "scaledown_node_identified"
@@ -202,20 +209,20 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 	}
 	// Configure OS to tell master node that the present node is going to be removed
 	if state.CurrentState == "scaledown_node_identified" {
-		log.Info(log.ProvisionerInfo, "Configure ES to remove the node ip from cluster")
+		log.Info.Println("Configure ES to remove the node ip from cluster")
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaledown_completed"
 		state.UpdateState()
 		time.Sleep(5 * time.Second)
-		log.Info(log.ProvisionerInfo, "Node removed from ES configuration")
+		log.Info.Println("Node removed from ES configuration")
 	}
 	// Wait for cluster to be in stable state(Shard rebalance)
 	// Shut down the node
 	if state.CurrentState == "provisioning_scaledown_completed" {
 		SimulateSharRebalancing()
-		log.Info(log.ProvisionerInfo, "Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
+		log.Info.Println("Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
 		CheckClusterHealth(state)
-		log.Info(log.ProvisionerInfo, "Shutdown the node")
+		log.Info.Println("Shutdown the node")
 		time.Sleep(5 * time.Second)
 		state.LastProvisionedTime = time.Now()
 		state.ProvisionStartTime = time.Time{}
@@ -224,7 +231,7 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "normal"
 		state.UpdateState()
-		log.Info(log.ProvisionerInfo, "State set back to normal")
+		log.Info.Println("State set back to normal")
 	}
 	return true
 }
@@ -242,7 +249,7 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 func CheckClusterHealth(state *State) {
 	for i := 0; i <= 12; i++ {
 		cluster := cluster.GetClusterCurrent()
-		log.Info(cluster.ClusterDynamic.ClusterStatus)
+		log.Info.Println(cluster.ClusterDynamic.ClusterStatus)
 		if cluster.ClusterDynamic.ClusterStatus == "green" {
 			state.GetCurrentState()
 			state.PreviousState = state.CurrentState
@@ -254,7 +261,7 @@ func CheckClusterHealth(state *State) {
 			state.UpdateState()
 			break
 		}
-		log.Info(log.ProvisionerInfo, "Waiting for cluster to be healthy.......")
+		log.Info.Println("Waiting for cluster to be healthy.......")
 		time.Sleep(15 * time.Second)
 	}
 	state.GetCurrentState()
@@ -266,7 +273,7 @@ func CheckClusterHealth(state *State) {
 			state.CurrentState = "provisioning_scaledown_failed"
 		}
 		state.UpdateState()
-		log.Warn(log.ProvisionerWarn, "Cluster hasn't come back to healthy state.")
+		log.Warn.Println("Cluster hasn't come back to healthy state.")
 	}
 	// We should wait for buffer period after provisioned_successfully state to stablize the cluster.
 	// After that buffer period we should change the state to normal, which can tell trigger module to trigger
@@ -286,7 +293,7 @@ func SimulateSharRebalancing() {
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Fatal(log.ProvisionerFatal, err)
+		log.Fatal.Println(err)
 	}
 
 	defer resp.Body.Close()
