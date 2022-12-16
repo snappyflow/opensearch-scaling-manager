@@ -45,21 +45,10 @@ type State struct {
 	RemainingNodes      int
 }
 
-// This struct contains the operation and details to scale the cluster
-type Command struct {
-	// Operation indicates the operation will be performed by the provisioner.
-	// As of now two operations can be performed by the provisioner:
-	//  1) scale_up
-	//  2) scale_down
-	Operation string
-	// NumNodes indicates the number of nodes need to be scaled in or out.
-	NumNodes int
-	config.ClusterDetails
-}
 
 // Input:
 //	state: The current provisioning state of the system
-// Caller: Object of Command
+// Caller: Object of ConfigClusterDetails
 // Description:
 //
 //	TriggerProvision will scale in/out the cluster based on the operation.
@@ -70,13 +59,16 @@ type Command struct {
 //	        May be we can keep a concept of minimum number of nodes as a configuration input.
 //
 // Return:
-func (c *Command) TriggerProvision(state *State) {
+func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, operation string) {
 	state.GetCurrentState()
-	if c.Operation == "scale_up" {
+	if operation == "scale_up" {
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaleup"
+		state.NumNodes = numNodes
+		state.RemainingNodes = numNodes
+		state.RuleTriggered = "scale_up"
 		state.UpdateState()
-		isScaledUp := c.ScaleOut(state)
+		isScaledUp := ScaleOut(cfg, state)
 		if isScaledUp {
 			log.Info(log.ProvisionerInfo, "Scaleup successful")
 		} else {
@@ -86,11 +78,14 @@ func (c *Command) TriggerProvision(state *State) {
 			state.CurrentState = "provisioning_scaleup_failed"
 			state.UpdateState()
 		}
-	} else if c.Operation == "scale_down" {
+	} else if operation == "scale_down" {
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaledown"
+		state.NumNodes = numNodes
+		state.RemainingNodes = numNodes
+		state.RuleTriggered = "scale_down"
 		state.UpdateState()
-		isScaledDown := c.ScaleIn(state)
+		isScaledDown := ScaleIn(cfg, state)
 		if isScaledDown {
 			log.Info(log.ProvisionerInfo, "Scaledown successful")
 		} else {
@@ -106,7 +101,7 @@ func (c *Command) TriggerProvision(state *State) {
 // Input:
 //
 //	state: The current provisioning state of the system
-// Caller: Object of Command
+// Caller: Object of ConfigClusterDetails
 // Description:
 //
 //	ScaleOut will scale out the cluster with the number of nodes.
@@ -116,22 +111,22 @@ func (c *Command) TriggerProvision(state *State) {
 // Return:
 //
 //	Return the status of scale out of the nodes.
-func (c *Command) ScaleOut(state *State) bool {
+func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 	// Read the current state of scaleup process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaleup process
 	state.GetCurrentState()
 	if state.CurrentState == "provisioning_scaleup" {
 		log.Info(log.ProvisionerInfo, "Starting scaleUp process")
+		time.Sleep(1 * time.Second)
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "start_scaleup_process"
 		state.ProvisionStartTime = time.Now()
-		state.RuleTriggered = "scale_up"
-		state.NumNodes = c.NumNodes
 		state.UpdateState()
 	}
 	// Spin new VMs based on number of nodes and cloud type
 	if state.CurrentState == "start_scaleup_process" {
 		log.Info(log.ProvisionerInfo, "Spin new vms based on the cloud type")
+		time.Sleep(1 * time.Second)
 		log.Info(log.ProvisionerInfo, "Spinning new vms")
 		time.Sleep(5 * time.Second)
 		state.PreviousState = state.CurrentState
@@ -142,8 +137,11 @@ func (c *Command) ScaleOut(state *State) bool {
 	// Configure OS on newly created VM
 	if state.CurrentState == "scaleup_triggered_spin_vm" {
 		log.Info(log.ProvisionerInfo, "Check if the vm creation is complete and wait till done")
+		time.Sleep(1 * time.Second)
 		log.Info(log.ProvisionerInfo, "Adding the spinned nodes into the list of vms")
+		time.Sleep(1 * time.Second)
 		log.Info(log.ProvisionerInfo, "Configure ES")
+		time.Sleep(1 * time.Second)
 		log.Info(log.ProvisionerInfo, "Configuring in progress")
 		time.Sleep(5 * time.Second)
 		state.PreviousState = state.CurrentState
@@ -153,7 +151,6 @@ func (c *Command) ScaleOut(state *State) bool {
 	// Check cluster status after the configuration
 	if state.CurrentState == "provisioning_scaleup_completed" {
 		SimulateSharRebalancing()
-		log.Info(log.ProvisionerInfo, "Wait for the cluster health and return status")
 		log.Info(log.ProvisionerInfo, "Waiting for the cluster to become healthy")
 		time.Sleep(5 * time.Second)
 		CheckClusterHealth(state)
@@ -162,7 +159,7 @@ func (c *Command) ScaleOut(state *State) bool {
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "normal"
 		state.RuleTriggered = ""
-		state.NumNodes = 0
+		state.RemainingNodes = state.RemainingNodes - 1
 		state.UpdateState()
 		time.Sleep(5 * time.Second)
 		log.Info(log.ProvisionerInfo, "State set back to normal")
@@ -174,7 +171,7 @@ func (c *Command) ScaleOut(state *State) bool {
 //
 //	state: Pointer to the current provisioning state of the system
 //
-// Caller: Object of Command
+// Caller: Object of ConfigClusterDetails
 // Description:
 //
 //	ScaleIn will scale in the cluster with the number of nodes.
@@ -183,7 +180,7 @@ func (c *Command) ScaleOut(state *State) bool {
 // Return:
 //
 //	Return the status of scale in of the nodes.
-func (c *Command) ScaleIn(state *State) bool {
+func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 	// Read the current state of scaledown process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaledown process
 	state.GetCurrentState()
@@ -192,8 +189,6 @@ func (c *Command) ScaleIn(state *State) bool {
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "start_scaledown_process"
 		state.ProvisionStartTime = time.Now()
-		state.RuleTriggered = "scale_down"
-		state.NumNodes = c.NumNodes
 		state.UpdateState()
 	}
 
@@ -225,7 +220,7 @@ func (c *Command) ScaleIn(state *State) bool {
 		state.LastProvisionedTime = time.Now()
 		state.ProvisionStartTime = time.Time{}
 		state.RuleTriggered = ""
-		state.NumNodes = 0
+		state.RemainingNodes = state.RemainingNodes - 1
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "normal"
 		state.UpdateState()
