@@ -8,10 +8,11 @@ data_nodes_count: 4
 master_eligible_nodes_count: 1
 index_count: 1000
 shards_per_index: 5
-index_roll_over_size: 50
+index_roll_over_size_gb: 50
 index_clean_up_age_days: 20
 data_generation_interval_minutes: 5
 
+# Specify data ingestion with respect to time of the day to represent pattern for entire day(24hrs).
 data_ingestion:
   states:
   - position: 1
@@ -31,6 +32,7 @@ data_ingestion:
     ingestion_rate_gb_per_hr: 5
   randomness_percentage: 5
 
+# Specify searches along with their type, probability and load inflected on the cluster.
 searches:
 - type: simple
   probability: 0.3

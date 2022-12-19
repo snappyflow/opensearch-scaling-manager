@@ -38,7 +38,7 @@ def test_validate_config_missing_parameter():
         assert is_valid == False
         assert errors == {
             "index_clean_up_age_days": ["required field"],
-            "index_roll_over_size": ["required field"],
+            "index_roll_over_size_gb": ["required field"],
         }
 
 
