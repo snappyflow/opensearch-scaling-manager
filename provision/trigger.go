@@ -5,18 +5,18 @@ import (
 	"scaling_manager/cluster"
 	"scaling_manager/config"
 	"strconv"
-
-	log "scaling_manager/logger"
 )
 
 // Input:
+//
 //	state: The current provisioning state of the system
 //	recommendationQueue: Recommendations provided by the recommendation engine in the form of an array of strings
+//
 // Description:
 //
 //	GetRecommendation will fetch the recommendation from recommendation queue.
 //	It will call the Provisioner with all the user defined configs.
-// 	Triggers the provisioning
+//	Triggers the provisioning
 //
 // Return:
 func GetRecommendation(state *State, recommendationQueue []string) {
@@ -32,13 +32,13 @@ func GetRecommendation(state *State, recommendationQueue []string) {
 			operation := subMatch[1]
 			configStruct, err := config.GetConfig("config.yaml")
 			if err != nil {
-				log.Warn(log.ProvisionerWarn, "Unable to get Config from GetConfig()")
+				log.Warn.Println("Unable to get Config from GetConfig()", err)
 				return
 			}
 			cfg := configStruct.ClusterDetails
 			TriggerProvision(cfg, state, numNodes, operation)
 		} else {
-			log.Warn(log.ProvisionerWarn, "Recommendation can not be provisioned as open search cluster is already in provisioning phase or the cluster isn't healthy yet")
+			log.Warn.Println("Recommendation can not be provisioned as open search cluster is already in provisioning phase or the cluster isn't healthy yet")
 		}
 	}
 }

@@ -7,7 +7,6 @@ import (
 	"hash/fnv"
 	"os"
 	"scaling_manager/cluster"
-	log "scaling_manager/logger"
 	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go"
@@ -16,7 +15,6 @@ import (
 
 // A global variable which stores the document ID of the State document that will to stored and fetched frm Opensearch
 var docId = fmt.Sprint(hash(cluster.GetClusterId()))
-
 
 // Input: string
 //
@@ -36,12 +34,12 @@ const IndexName = "monitor-stats-1"
 // Global variable for Opensearch client to avoid multiple client creations
 var client *opensearch.Client
 
-
 // Input:
-// Description: 
-//	1. Initializes the opensearch client
-//	2. Reads the mapping for the index to be created
-//	3. Calls the createNewIndex function to create the index if not already present with defined mappings
+// Description:
+//  1. Initializes the opensearch client
+//  2. Reads the mapping for the index to be created
+//  3. Calls the createNewIndex function to create the index if not already present with defined mappings
+//
 // Output:
 func init() {
 
@@ -50,13 +48,13 @@ func init() {
 		Addresses: []string{"http://localhost:9200"},
 	})
 	if err != nil {
-		log.Fatal(log.ProvisionerError, err)
+		log.Fatal.Println(err)
 		os.Exit(1)
 	}
 
 	mappingFile, err := os.ReadFile("provision/mappings.json") // just pass the file name
 	if err != nil {
-		log.Error(log.ProvisionerError, err)
+		log.Error.Println(err)
 	}
 	mapping := string(mappingFile)
 
@@ -64,8 +62,10 @@ func init() {
 }
 
 // Input: json string as mapping
-// Description: 
-//		Creates a new OS index if it doesn't exixts with the provided mapping
+// Description:
+//
+//	Creates a new OS index if it doesn't exixts with the provided mapping
+//
 // Output:
 func createNewIndexWithMappings(mapping string) {
 	ctx := context.Background()
@@ -76,15 +76,15 @@ func createNewIndexWithMappings(mapping string) {
 	req.Index = []string{IndexName}
 	resp, err := req.Do(ctx, client)
 	if err != nil {
-		log.Fatal(log.ProvisionerError, fmt.Sprintf("Index exists check failed: %v", err))
+		log.Fatal.Println("Index exists check failed: ", err)
 	}
-	log.Info(log.ProvisionerInfo, "Index already exists")
+	log.Info.Println("Index already exists")
 	if resp.Status() != "200 OK" {
 		res, err := createReq.Do(ctx, client)
 		if err != nil {
-			log.Info(log.ProvisionerInfo, fmt.Sprintf("Create Index request error: %v ", err))
+			log.Info.Println("Create Index request error: ", err)
 		}
-		log.Info(fmt.Sprintf("Index create Response: %v", res))
+		log.Info.Println("Index create Response: ", res)
 	}
 }
 
@@ -107,10 +107,10 @@ func (s *State) GetCurrentState() {
 
 	searchResponse, err := search.Do(context.Background(), client)
 	if err != nil {
-		log.Fatal(log.ProvisionerError, fmt.Sprintf("failed to search document: %v ", err))
+		log.Fatal.Println("failed to search document: ", err)
 	}
 	var stateInterface map[string]interface{}
-	log.Info(log.ProvisionerInfo, fmt.Sprintf("Get resp: %v ", searchResponse))
+	log.Info.Println("Get resp: ", searchResponse)
 	if searchResponse.Status() == "404 Not Found" {
 		//Setting the initial state
 		s.CurrentState = "normal"
@@ -119,12 +119,12 @@ func (s *State) GetCurrentState() {
 	}
 	jsonErr := json.NewDecoder(searchResponse.Body).Decode(&stateInterface)
 	if jsonErr != nil {
-		log.Fatal(log.ProvisionerError, fmt.Sprintf("Unable to decode the response into interface: %v", jsonErr))
+		log.Fatal.Println("Unable to decode the response into interface: ", jsonErr)
 	}
 	// convert map to json
 	jsonString, errr := json.Marshal(stateInterface["_source"].(map[string]interface{}))
 	if errr != nil {
-		log.Fatal(log.ProvisionerFatal, fmt.Sprintf("Unable to unmarshal interface: %v", errr))
+		log.Fatal.Println("Unable to unmarshal interface: ", errr)
 	}
 
 	// convert json to struct
@@ -144,7 +144,7 @@ func (s *State) UpdateState() {
 
 	state, err := json.Marshal(s)
 	if err != nil {
-		log.Fatal(log.ProvisionerError, fmt.Sprintf("json.Marshal ERROR: %v", err))
+		log.Fatal.Println("json.Marshal ERROR: ", err)
 	}
 	content := string(state)
 
@@ -156,7 +156,7 @@ func (s *State) UpdateState() {
 
 	updateResponse, err := updateReq.Do(context.Background(), client)
 	if err != nil {
-		log.Fatal(log.ProvisionerError, fmt.Sprintf("failed to update document: %v ", err))
+		log.Fatal.Println("failed to update document: ", err)
 	}
-	log.Info(log.ProvisionerInfo, fmt.Sprintf("Update resp: %v ", updateResponse))
+	log.Info.Println("Update resp: ", updateResponse)
 }
