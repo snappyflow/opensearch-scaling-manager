@@ -1,0 +1,10 @@
+{
+    "logpath": "logs/another_check",
+    "logfile": "application.log",
+    "pathsep": "/",
+    "level": "trace",
+    "MaxSize": 1,
+    "MaxBackups": 5,
+    "MaxAge": 28
+}
+
