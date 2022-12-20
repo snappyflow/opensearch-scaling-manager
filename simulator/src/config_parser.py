@@ -9,6 +9,7 @@ import constants
 from cluster import Cluster
 from data_ingestion import DataIngestion, State
 from search import Search
+from errors import ValidationError
 
 
 class Config:
@@ -79,9 +80,7 @@ def parse_config(config_file_path: str):
         all_configs = yaml.safe_load(fp.read())
     except Exception as e:
         fp.close()
-        sys.stdout.write(e)
-        sys.stdout.write("Could not read data, please check if all fields are filled")
-        return
+        raise ValidationError('error reading config file - ' + str(e))
 
     fp.close()
 
@@ -91,9 +90,7 @@ def parse_config(config_file_path: str):
     is_valid, errors = validate_config(all_configs)
 
     if not is_valid:
-        sys.stdout.write(str(errors))
-        sys.stdout.write("Please pass a Valid config file")
-        exit()
+        raise ValidationError('Error validating config file - ' + str(errors))
 
     # Extract the configurations from the file to form Config object
     simulation_frequency_minutes = all_configs.pop(
