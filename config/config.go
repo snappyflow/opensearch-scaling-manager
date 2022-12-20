@@ -6,12 +6,27 @@ import (
 	"os"
 	"regexp"
 	"scaling_manager/cluster"
-	log "scaling_manager/logger"
+	"scaling_manager/logger"
 	"scaling_manager/task"
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
 )
+
+var log logger.LOG
+
+// Input:
+//
+// Description:
+//
+//		Initialize the logger module.
+//		
+// Return:
+//
+func init() {
+	log.Init("logger")
+	log.Info.Println("Main module initialized")
+}
 
 // This struct contains the OS Admin Username and OS Admin Password via which we can connect to OS cluster.
 type OsCredentials struct {
@@ -57,14 +72,14 @@ type ConfigStruct struct {
 func GetConfig(path string) (ConfigStruct, error) {
 	yamlConfig, err := os.Open(path)
 	if err != nil {
-		log.Fatal(log.RecommendationFatal, fmt.Sprintf("Unable to read the config file: ", err))
+		log.Fatal.Println(fmt.Sprintf("Unable to read the config file: ", err))
 	}
 	defer yamlConfig.Close()
 	configByte, _ := ioutil.ReadAll(yamlConfig)
 	var config = new(ConfigStruct)
 	err = yaml.Unmarshal(configByte, &config)
 	if err != nil {
-		log.Fatal(log.RecommendationFatal, fmt.Sprintf("Unmarshal: %v", err))
+		log.Fatal.Println(fmt.Sprintf("Unmarshal: %v", err))
 	}
 	err = validation(*config)
 	return *config, err
