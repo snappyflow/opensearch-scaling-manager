@@ -9,7 +9,7 @@ SIMULATION_GRAPH_FILE_NAME = 'simulation_diagram.png'
 DATA_INGESTION = "data_ingestion"
 DATA_INGESTION_STATES = 'states'
 SEARCHES = "searches"
-DATA_GENERATION_INTERVAL_MINUTES = "data_generation_interval_minutes"
+SIMULATION_FREQUENCY_MINUTES = "simulation_frequency_minutes"
 DATA_INGESTION_RANDOMNESS_PERCENTAGE = 'randomness_percentage'
 # Todo - Shrinidhi/Manoj add remaining keys from config yaml
 
@@ -25,11 +25,15 @@ HIGH_INGESTION_RATE_GB_PER_HOUR = 60
 CLUSTER_STATE = 'status'
 CPU_USAGE_PERCENT = 'cpu_usage_percent'
 MEMORY_USAGE_PERCENT = 'memory_usage_percent'
+TOTAL_NODES_COUNT = 'total_nodes_count'
 STAT_REQUEST = {
     'cpu': CPU_USAGE_PERCENT,
     'mem': MEMORY_USAGE_PERCENT,
-    'status': CLUSTER_STATE
-
-}  # Todo : Shrinidhi/Manoj Add remaining stats
+    'status': CLUSTER_STATE,
+    'nodes': TOTAL_NODES_COUNT
+}  # Todo : Shrinidhi/Manoj Add remaining stats that will be queried from the recommendation engine
 
 APP_PORT = 5000
+
+PRIMARY_SHARDS_IN_ROLLOVER_INDEX = 1
+REPLICA_SHARDS_IN_ROLLOVER_INDEX = 1

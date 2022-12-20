@@ -43,7 +43,7 @@
 	'required':True,
 	'type':'number'
 	},
-'data_generation_interval_minutes':{
+'simulation_frequency_minutes':{
 	'required':True,
 	'type':'number'
 	},
@@ -84,7 +84,7 @@
     'schema': {
     'type':'dict',
     'schema':{
-	   'type':{
+	   'search_type':{
 	     'required':True,
 		 'type':'string'
 		},

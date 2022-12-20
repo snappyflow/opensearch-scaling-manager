@@ -1,5 +1,8 @@
 from datetime import datetime
 
+import constants
+
+
 class Cluster:
     """
     Acts as an interface for simulation of all associated nodes
@@ -82,8 +85,12 @@ class Cluster:
 
     # TODO: Define methods for controlling cluster behaviour,
     #  node addition, removal etc
-    # def add_node(self):
-    #     pass
-    #
-    # def remove_node(self):
-    #     pass
+    def add_nodes(self, nodes=1):
+        self.total_nodes_count += nodes
+        self.status = constants.CLUSTER_STATE_YELLOW
+        # Todo - simulate effect on shards
+
+    def remove_nodes(self, nodes=1):
+        self.total_nodes_count += nodes
+        self.status = constants.CLUSTER_STATE_YELLOW
+        # Todo - simulate effect on shards

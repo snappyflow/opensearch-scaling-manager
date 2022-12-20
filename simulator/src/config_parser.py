@@ -1,40 +1,61 @@
 import os
 import sys
 from pathlib import Path
+
 import yaml
 from cerberus import Validator
-import constants as const
+
+import constants
+from cluster import Cluster
+from data_ingestion import DataIngestion, State
+from search import Search
 
 
 class Config:
+    """
+    Class to hold all the configurations provided in config file together
+    """
     def __init__(
         self,
         stats: dict,
-        data_ingestion: dict,
-        searches: dict,
-        data_generation_interval_minutes: int,
+        data_ingestion: dict[dict],
+        searches: list[dict],
+        simulation_frequency_minutes: int,
     ):
-        self.stats = stats
-        self.data_generation_interval_minutes = data_generation_interval_minutes
-        self.data_ingestion = data_ingestion
-        self.searches = searches
+        """
+        Initialise the Config object
+        :param stats: cluster stats specified in config file
+        :param data_ingestion: data ingestion mapping specified in config file
+        :param searches: searches list specified in config file
+        :param simulation_frequency_minutes: interval between two simulated points
+        """
+        self.cluster = Cluster(**stats)
+        self.simulation_frequency_minutes = simulation_frequency_minutes
+        all_states = [State(**state) for state in data_ingestion.get(constants.DATA_INGESTION_STATES)]
+        randomness_percentage = data_ingestion.get(constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE)
+        self.data_function = DataIngestion(all_states, randomness_percentage)
+        self.searches = [Search(**specs) for specs in searches]
 
 
 def get_source_code_dir():
+    """
+    get the parent directory of simulator code
+    :return: parent directory of simulator code
+    """
     return Path(__file__).parent.resolve()
 
 
-def validate_config(all_configs):
+def validate_config(all_configs: dict):
     """
-    Validate the config file against the defined schema
-    :param current_dir: path to the src directory
-    :param schema_path: path to the schema.py file
-    :param schema: schema model that is used to validate config file
-    :param v: validate object
+    Validate dictionary of configs (read from config file) against the defined schema
+    :param all_configs: dictionary containing all items from config yaml
+    :return: tuple containing validation state of configuration (True/False) and
+             dictionary of errors
+             eg. (True, {})
     """
-    # Fetching the dir path and appending the schema file path
+    # Fetching the dir path to add to the schema file name
     source_code_dir: Path = get_source_code_dir()
-    schema_path = os.path.join(source_code_dir, const.SCHEMA_FILE_NAME)
+    schema_path = os.path.join(source_code_dir, constants.SCHEMA_FILE_NAME)
     schema = eval(open(schema_path, "r").read())
 
     # validating config file against the schema
@@ -42,14 +63,12 @@ def validate_config(all_configs):
     return validator.validate(all_configs, schema), validator.errors
 
 
-def parse_config(config_file_path):
+def parse_config(config_file_path: str):
     """
     Read and parse the config file into objects,
     that can work with simulator
     :param config_file_path: path of the yaml file
-    :param all_configs: config file parsed into a dictionary
-    :param current_dir: path to the src directory
-    :return: stats, events, data_ingestion, searches, data_generation_interval_minutes
+    :return: object of Config class
     """
     # Fetching the config file from the specified path
     fp = open(config_file_path, "r")
@@ -58,7 +77,6 @@ def parse_config(config_file_path):
     try:
         # Loading the config file content to dictionary to validate
         all_configs = yaml.safe_load(fp.read())
-
     except Exception as e:
         fp.close()
         sys.stdout.write(e)
@@ -72,28 +90,17 @@ def parse_config(config_file_path):
     # Perform Validation of the config file
     is_valid, errors = validate_config(all_configs)
 
-    # If it is a valid config file, Place the file in the simulator/src/main and return
-    if is_valid:
-        # cwd = os.getcwd()
-        config_file_path = os.path.join(source_code_dir, const.CONFIG_FILE_PATH)
-        file_handler = open(config_file_path, "w")
-        yaml.dump(all_configs, file_handler, allow_unicode=True)
-        file_handler.close()
-
-    # If the required fields is not present in the config file then do not place it in src/
-    else:
+    if not is_valid:
         sys.stdout.write(str(errors))
         sys.stdout.write("Please pass a Valid config file")
         exit()
-    data_generation_interval_minutes = all_configs.pop(
-        const.DATA_GENERATION_INTERVAL_MINUTES
+
+    # Extract the configurations from the file to form Config object
+    simulation_frequency_minutes = all_configs.pop(
+        constants.SIMULATION_FREQUENCY_MINUTES
     )
-    data_ingestion = all_configs.pop(const.DATA_INGESTION)
-    searches = all_configs.pop(const.SEARCHES)
+    data_ingestion = all_configs.pop(constants.DATA_INGESTION)
+    searches = all_configs.pop(constants.SEARCHES)
     stats = all_configs
 
-    return Config(stats, data_ingestion, searches, data_generation_interval_minutes)
-
-
-if __name__ == "__main__":
-    parse_config("config.yaml")
+    return Config(stats, data_ingestion, searches, simulation_frequency_minutes)
