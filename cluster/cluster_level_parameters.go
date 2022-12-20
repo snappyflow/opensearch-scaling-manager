@@ -15,9 +15,24 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	log "scaling_manager/logger"
+	"scaling_manager/logger"
 	"time"
 )
+
+var log logger.LOG
+
+// Input:
+//
+// Description:
+//
+//		Initialize the logger module.
+//		
+// Return:
+//
+func init() {
+	log.Init("logger")
+	log.Info.Println("Main module initialized")
+}
 
 // This struct will contain node metrics for a node in the OpenSearch cluster.
 type Node struct {
@@ -177,7 +192,7 @@ func GetClusterAvg(metricName string, decisionPeriod int) (MetricStats, []byte) 
 	resp, err := client.Get(url)
 
 	if err != nil {
-		log.Fatal(log.RecommendationFatal, err)
+		log.Fatal.Println(err)
 	}
 
 	if resp.StatusCode != 200 {
@@ -192,7 +207,7 @@ func GetClusterAvg(metricName string, decisionPeriod int) (MetricStats, []byte) 
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(&metricStats)
 	if err != nil {
-		log.Fatal(log.RecommendationFatal, err)
+		log.Fatal.Println(err)
 	}
 	return metricStats, nil
 }
@@ -222,7 +237,7 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) (Metri
 	resp, err := client.Get(url)
 
 	if err != nil {
-		log.Fatal(log.RecommendationFatal, err)
+		log.Fatal.Println(err)
 	}
 
 	if resp.StatusCode != 200 {
@@ -238,7 +253,7 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) (Metri
 	err = decoder.Decode(&metricViolatedCount)
 
 	if err != nil {
-		log.Fatal(log.RecommendationFatal, err)
+		log.Fatal.Println(err)
 	}
 	return metricViolatedCount, nil
 }
@@ -263,13 +278,13 @@ func GetClusterCurrent() Cluster {
 	}
 	resp, err := client.Get(url)
 	if err != nil {
-		log.Fatal(log.RecommendationFatal, err)
+		log.Fatal.Println(err)
 	}
 	defer resp.Body.Close()
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(&clusterStats)
 	if err != nil {
-		log.Fatal(log.RecommendationFatal, err)
+		log.Fatal.Println(err)
 	}
 	clusterCurrent.ClusterDynamic.ClusterStatus = clusterStats["current"]
 

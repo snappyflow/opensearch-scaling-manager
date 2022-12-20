@@ -10,8 +10,23 @@ import (
 	"fmt"
 	"regexp"
 	"scaling_manager/cluster"
-	log "scaling_manager/logger"
+	"scaling_manager/logger"
 )
+
+var log logger.LOG
+
+// Input:
+//
+// Description:
+//
+//		Initialize the logger module.
+//		
+// Return:
+//
+func init() {
+	log.Init("logger")
+	log.Info.Println("Main module initialized")
+}
 
 // This struct contains the task to be perforrmed by the recommendation and set of rules wrt the action.
 type Task struct {
@@ -77,7 +92,7 @@ func (t TaskDetails) EvaluateTask() []string {
 			v.PushToRecommendationQueue()
 			recommendationArray = append(recommendationArray, v.TaskName)
 		} else {
-			log.Warn(log.RecommendationWarn, fmt.Sprintf("The %s task is not recommended as rules are not satisfied", v.TaskName))
+			log.Warn.Println(fmt.Sprintf("The %s task is not recommended as rules are not satisfied", v.TaskName))
 		}
 	}
 	return recommendationArray
@@ -121,7 +136,7 @@ func (t Task) GetNextTask() bool {
 		// What if in the case of OR the matching rule is present at the last.
 		isRecommendedRule, err = v.GetNextRule(taskOperation)
 		if err != nil {
-			log.Warn(log.RecommendationWarn, fmt.Sprintf("%s for the rule: %v", string(err), v))
+			log.Warn.Println(fmt.Sprintf("%s for the rule: %v", string(err), v))
 		}
 		if t.Operator == "OR" && isRecommendedRule ||
 			t.Operator == "AND" && !isRecommendedRule {
@@ -148,8 +163,8 @@ func (r Rule) GetNextRule(taskOperation string) (bool, []byte) {
 		return false, err
 	}
 	isRecommended := r.EvaluateRule(cluster, taskOperation)
-	log.Info(log.RecommendationInfo, r)
-	log.Info(log.RecommendationInfo, isRecommended)
+	log.Info.Println(r)
+	log.Info.Println(isRecommended)
 	return isRecommended, nil
 }
 
@@ -178,9 +193,9 @@ func (r Rule) GetMetrics() ([]byte, []byte) {
 			return clusterMetric, err
 		}
 		clusterMetric, jsonErr = json.MarshalIndent(clusterStats, "", "\t")
-		log.Info(log.RecommendationInfo, clusterStats)
+		log.Info.Println(clusterStats)
 		if jsonErr != nil {
-			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: %s", jsonErr))
+			log.Fatal.Println(fmt.Sprintf("Error converting struct to json: %s", jsonErr))
 		}
 	} else if r.Stat == "COUNT" || r.Stat == "TERM" {
 		clusterCount, err = cluster.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit)
@@ -188,9 +203,9 @@ func (r Rule) GetMetrics() ([]byte, []byte) {
 			return clusterMetric, err
 		}
 		clusterMetric, jsonErr = json.MarshalIndent(clusterCount, "", "\t")
-		log.Info(log.RecommendationInfo, clusterCount)
+		log.Info.Println(clusterCount)
 		if jsonErr != nil {
-			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: %s", jsonErr))
+			log.Fatal.Println(fmt.Sprintf("Error converting struct to json: %s", jsonErr))
 		}
 	}
 
@@ -207,12 +222,12 @@ func (r Rule) GetMetrics() ([]byte, []byte) {
 //		Return whether a rule is meeting the criteria or not(bool)
 
 func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
-	log.Info(taskOperation)
+	log.Info.Println(taskOperation)
 	if r.Stat == "AVG" {
 		var clusterStats cluster.MetricStats
 		err := json.Unmarshal(clusterMetric, &clusterStats)
 		if err != nil {
-			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: %s", err))
+			log.Fatal.Println(fmt.Sprintf("Error converting struct to json: %s", err))
 		}
 		if taskOperation == "scale_up" && clusterStats.Avg > r.Limit ||
 			taskOperation == "scale_down" && clusterStats.Avg < r.Limit {
@@ -224,7 +239,7 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 		var clusterStats cluster.MetricViolatedCount
 		err := json.Unmarshal(clusterMetric, &clusterStats)
 		if err != nil {
-			log.Fatal(log.RecommendationFatal, fmt.Sprintf("Error converting struct to json: %s", err))
+			log.Fatal.Println(fmt.Sprintf("Error converting struct to json: %s", err))
 		}
 		if r.Stat == "COUNT" {
 			if taskOperation == "scale_up" && clusterStats.ViolatedCount > r.Occurences ||
@@ -254,5 +269,5 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 // Return:
 
 func (task Task) PushToRecommendationQueue() {
-	log.Info(log.RecommendationInfo, fmt.Sprintf("The %s task is recommended and will be pushed to the queue", task.TaskName))
+	log.Info.Println(fmt.Sprintf("The %s task is recommended and will be pushed to the queue", task.TaskName))
 }
