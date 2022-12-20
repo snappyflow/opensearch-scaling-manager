@@ -3,10 +3,17 @@ package main
 import (
 	"scaling_manager/cluster"
 	"scaling_manager/config"
-	log "scaling_manager/logger"
+	"scaling_manager/logger"
 	"scaling_manager/task"
 	"time"
 )
+
+var log logger.LOG
+
+func init() {
+	log.Init("logger")
+	log.Info.Println("Main module initialized")
+}
 
 func main() {
 	// The polling interval is set to 5 minutes and can be configured.

@@ -19,10 +19,9 @@ var log logger.LOG
 //
 // Description:
 //
-//		Initialize the logger module.
-//		
-// Return:
+//	Initialize the logger module.
 //
+// Return:
 func init() {
 	log.Init("logger")
 	log.Info.Println("Main module initialized")
@@ -195,7 +194,7 @@ func (r Rule) GetMetrics() ([]byte, []byte) {
 		clusterMetric, jsonErr = json.MarshalIndent(clusterStats, "", "\t")
 		log.Info.Println(clusterStats)
 		if jsonErr != nil {
-			log.Fatal.Println(fmt.Sprintf("Error converting struct to json: %s", jsonErr))
+			log.Fatal.Println("Error converting struct to json: ", jsonErr)
 		}
 	} else if r.Stat == "COUNT" || r.Stat == "TERM" {
 		clusterCount, err = cluster.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit)
@@ -205,7 +204,7 @@ func (r Rule) GetMetrics() ([]byte, []byte) {
 		clusterMetric, jsonErr = json.MarshalIndent(clusterCount, "", "\t")
 		log.Info.Println(clusterCount)
 		if jsonErr != nil {
-			log.Fatal.Println(fmt.Sprintf("Error converting struct to json: %s", jsonErr))
+			log.Fatal.Println("Error converting struct to json: ", jsonErr)
 		}
 	}
 
@@ -227,7 +226,7 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 		var clusterStats cluster.MetricStats
 		err := json.Unmarshal(clusterMetric, &clusterStats)
 		if err != nil {
-			log.Fatal.Println(fmt.Sprintf("Error converting struct to json: %s", err))
+			log.Fatal.Println("Error converting struct to json: ", err)
 		}
 		if taskOperation == "scale_up" && clusterStats.Avg > r.Limit ||
 			taskOperation == "scale_down" && clusterStats.Avg < r.Limit {
@@ -239,7 +238,7 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 		var clusterStats cluster.MetricViolatedCount
 		err := json.Unmarshal(clusterMetric, &clusterStats)
 		if err != nil {
-			log.Fatal.Println(fmt.Sprintf("Error converting struct to json: %s", err))
+			log.Fatal.Println("Error converting struct to json: ", err)
 		}
 		if r.Stat == "COUNT" {
 			if taskOperation == "scale_up" && clusterStats.ViolatedCount > r.Occurences ||
