@@ -15,7 +15,7 @@ func fileWatch(filePath string) {
 	//Adding file watcher to detect the change in configuration
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Error.Println("ERROR: %v", err)
+		log.Error.Println("ERROR: ", err)
 	}
 	defer watcher.Close()
 	done := make(chan bool)
