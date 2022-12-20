@@ -1,8 +1,7 @@
 package main
 
 import (
-	"fmt"
-	log "scaling_manager/logger"
+	"scaling_manager/logger"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -16,7 +15,7 @@ func fileWatch(filePath string) {
 	//Adding file watcher to detect the change in configuration
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Error.Println(fmt.Sprintf("ERROR: %v", err))
+		log.Error.Println("ERROR: %v", err)
 	}
 	defer watcher.Close()
 	done := make(chan bool)
@@ -29,17 +28,17 @@ func fileWatch(filePath string) {
 			case event := <-watcher.Events:
 				//If there is change in config then clear recommendation queue
 				//clearRecommendationQueue()
-				log.Error.Println(fmt.Sprintf("EVENT! %#v\n", event))
-				log.Error.Println("The recommendation queue will be cleared.")
+				log.Warn.Println("EVENT!", event)
+				log.Warn.Println("The recommendation queue will be cleared.")
 			case err := <-watcher.Errors:
-				log.Error.Println(fmt.Sprintf("ERROR in file watcher: %v", err))
+				log.Error.Println("ERROR in file watcher: ", err)
 			}
 		}
 	}()
 
 	// Adding fsnotify watcher to keep track of the changes in config file
 	if err := watcher.Add(filePath); err != nil {
-		log.Error.Println(fmt.Sprintf("ERROR: %v", err))
+		log.Error.Println("ERROR:", err)
 	}
 
 	<-done
