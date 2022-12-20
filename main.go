@@ -21,8 +21,8 @@ func main() {
 			var task = new(task.TaskDetails)
 			configStruct, err := config.GetConfig("config.yaml")
 			if err != nil {
-				log.Error("The recommendation can not be made as there is an error in the validation of config file.")
-				log.Error(err.Error())
+				log.Error.Println("The recommendation can not be made as there is an error in the validation of config file.")
+				log.Error.Println(err.Error())
 				continue
 			}
 			task.Tasks = configStruct.TaskDetails
