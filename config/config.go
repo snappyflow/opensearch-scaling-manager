@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -19,10 +18,9 @@ var log logger.LOG
 //
 // Description:
 //
-//		Initialize the logger module.
-//		
-// Return:
+//	Initialize the logger module.
 //
+// Return:
 func init() {
 	log.Init("logger")
 	log.Info.Println("Main module initialized")
@@ -72,14 +70,14 @@ type ConfigStruct struct {
 func GetConfig(path string) (ConfigStruct, error) {
 	yamlConfig, err := os.Open(path)
 	if err != nil {
-		log.Fatal.Println(fmt.Sprintf("Unable to read the config file: ", err))
+		log.Fatal.Println("Unable to read the config file: ", err)
 	}
 	defer yamlConfig.Close()
 	configByte, _ := ioutil.ReadAll(yamlConfig)
 	var config = new(ConfigStruct)
 	err = yaml.Unmarshal(configByte, &config)
 	if err != nil {
-		log.Fatal.Println(fmt.Sprintf("Unmarshal: %v", err))
+		log.Fatal.Println("Unmarshal: ", err)
 	}
 	err = validation(*config)
 	return *config, err
