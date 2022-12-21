@@ -3,7 +3,6 @@ import shutil
 import json
 from datetime import datetime, timedelta
 
-import flask
 from flask import Flask, jsonify, Response, request
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text, desc
