@@ -10,7 +10,7 @@
     "shards_per_index": {"required": True, "type": "number"},
     "index_roll_over_size_gb": {"required": True, "type": "number"},
     "index_clean_up_age_days": {"required": True, "type": "number"},
-    "data_generation_interval_minutes": {"required": True, "type": "number"},
+    "simulation_frequency_minutes": {"required": True, "type": "number"},
     "data_ingestion": {
         "required": False,
         "type": "dict",
@@ -39,7 +39,7 @@
         "schema": {
             "type": "dict",
             "schema": {
-                "type": {"required": True, "type": "string"},
+                "search_type": {"required": True, "type": "string"},
                 "probability": {"required": True, "type": "number"},
                 "cpu_load_percent": {"required": True, "type": "number"},
                 "memory_load_percent": {"required": True, "type": "number"},

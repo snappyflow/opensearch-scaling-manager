@@ -10,7 +10,7 @@ index_count: 1000
 shards_per_index: 5
 index_roll_over_size_gb: 50
 index_clean_up_age_days: 20
-data_generation_interval_minutes: 5
+simulation_frequency_minutes: 5
 
 # Specify data ingestion with respect to time of the day to represent pattern for entire day(24hrs).
 data_ingestion:
@@ -34,15 +34,15 @@ data_ingestion:
 
 # Specify searches along with their type, probability and load inflected on the cluster.
 searches:
-- type: simple
+- search_type: simple
   probability: 0.3
   cpu_load_percent: 10
   memory_load_percent: 10
-- type: medium
+- search_type: medium
   probability: 0.25
   cpu_load_percent: 20
   memory_load_percent: 20
-- type: complex
+- search_type: complex
   probability: 0.15
   cpu_load_percent: 30
   memory_load_percent: 30
