@@ -43,7 +43,7 @@ func main() {
 // Output:
 
 func periodicProvisionCheck() {
-	tick := time.Tick(5 * time.Second)
+	tick := time.Tick(time.Duration(config.PollingInterval) * time.Second)
 	previousMaster := cluster.CheckIfMaster()
 	for range tick {
 		state.GetCurrentState()
