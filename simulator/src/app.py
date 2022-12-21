@@ -56,22 +56,19 @@ def violated_count(stat_name, duration, threshold):
     time_now = datetime.now()
 
     # Convert the minutes to time object to compare and query for required data points
-    time_obj = time_now - timedelta(minutes=duration)
+    query_begin_time = time_now - timedelta(minutes=duration)
 
     try:
         # Fetching the count of data points for given duration.
         data_point_count = (
             DataModel.query.order_by(constants.STAT_REQUEST[stat_name])
-            .filter(DataModel.date_created > time_obj)
+            .filter(DataModel.date_created > query_begin_time)
             .filter(DataModel.date_created < time_now)
             .count()
         )
 
         # If expected data points are not present then respond with error
-        if (
-            elapsed_time > time_obj
-            or duration // sim.frequency_minutes > data_point_count
-        ):
+        if first_data_point_time > query_begin_time:
             return Response(json.dumps("Not enough Data points"), status=400)
 
         # Fetches the count of stat_name that exceeds the threshold for given duration
@@ -81,7 +78,7 @@ def violated_count(stat_name, duration, threshold):
                 DataModel.__getattribute__(DataModel, constants.STAT_REQUEST[stat_name])
                 > threshold
             )
-            .filter(DataModel.date_created > time_obj)
+            .filter(DataModel.date_created > query_begin_time)
             .filter(DataModel.date_created < time_now)
             .count()
         )
@@ -105,14 +102,14 @@ def average(stat_name, duration):
     time_now = datetime.now()
 
     # Convert the minutes to time object to compare and query for required data points
-    time_obj = time_now - timedelta(minutes=duration)
+    query_begin_time = time_now - timedelta(minutes=duration)
 
     stat_list = []
     try:
         # Fetches list of rows that is filter by stat_name and are filterd by decision period
         avg_list = (
             DataModel.query.order_by(constants.STAT_REQUEST[stat_name])
-            .filter(DataModel.date_created > time_obj)
+            .filter(DataModel.date_created > query_begin_time)
             .filter(DataModel.date_created < time_now)
             .with_entities(text(constants.STAT_REQUEST[stat_name]))
             .all()
@@ -121,9 +118,7 @@ def average(stat_name, duration):
             stat_list.append(avg_value[0])
 
         # If expected data points count are not present then respond with error
-        if elapsed_time > time_obj or duration // sim.frequency_minutes > len(
-            stat_list
-        ):
+        if first_data_point_time > query_begin_time:
             return Response(json.dumps("Not enough Data points"), status=400)
 
         # check if any data points were collected
@@ -230,7 +225,7 @@ if __name__ == "__main__":
     )
     # generate the data points from simulator
     cluster_objects = sim.run(24 * 60)
-    elapsed_time = cluster_objects[0].date_time
+    first_data_point_time = cluster_objects[0].date_time
     plot_data_points(cluster_objects)
     for cluster_obj in cluster_objects:
         task = DataModel(
