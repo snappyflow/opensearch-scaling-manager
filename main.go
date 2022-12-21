@@ -17,7 +17,7 @@ func init() {
 
 func main() {
 	// The polling interval is set to 5 minutes and can be configured.
-	ticker := time.Tick(5 * time.Second)
+	ticker := time.Tick(time.Duration(config.PollingInterval) * time.Second)
 	for range ticker {
 		// The recommendation and provisioning should only happen on master node.
 		if cluster.CheckIfMaster() {
