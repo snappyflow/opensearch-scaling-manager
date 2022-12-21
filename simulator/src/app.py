@@ -54,8 +54,8 @@ def violated_count(stat_name, duration, threshold):
             DataModel.date_created > time_obj).filter(DataModel.date_created < time_now).count()
 
         # If expected data points are not present then respond with error
-        if duration // sim.frequency_minutes > data_point_count:
-            return Response(json.dumps("Not enough Data points"), status=400)
+        if elapsed_time > time_obj or duration // sim.frequency_minutes > data_point_count:
+            return Response(json.dumps("Not enough Data points"), status = 400)
 
         # Fetches the count of stat_name that exceeds the threshold for given duration
         stats = DataModel.query.order_by(constants.STAT_REQUEST[stat_name]).filter(
@@ -87,7 +87,7 @@ def average(stat_name, duration):
             stat_list.append(avg_value[0])
 
         # If expected data points count are not present then respond with error
-        if duration // sim.frequency_minutes > len(stat_list):
+        if elapsed_time > time_obj or duration // sim.frequency_minutes > len(stat_list):
             return Response(json.dumps("Not enough Data points"), status = 400)
 
         # check if any data points were collected
@@ -165,6 +165,7 @@ if __name__ == "__main__":
     sim = Simulator(cluster, data_function, configs.searches, configs.data_generation_interval_minutes)
     # generate the data points from simulator
     cluster_objects = sim.run(24 * 60)
+    elapsed_time = cluster_objects[0].date_time
     plot_data_points(cluster_objects)
     for cluster_obj in cluster_objects:
         task = DataModel(
