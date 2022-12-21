@@ -110,7 +110,6 @@ def average(stat_name, duration):
 
 # The endpoint returns request stat from the latest poll, returns error if sufficient data points are not present.
 @app.route('/stats/current/<string:stat_name>')
-# Todo - Manoj: API to return all current cluster stats when stat name is not passed
 def current(stat_name):
     try:
         if constants.STAT_REQUEST[stat_name] == constants.CLUSTER_STATE:
@@ -139,7 +138,6 @@ def add_node():
     Expects request body to specify the number of nodes added or removed
     :return: total number of resultant nodes and duration of cluster state as yellow
     """
-
     try:
         # get the number of added nodes from request body
         nodes = int(request.json['nodes'])
@@ -164,8 +162,6 @@ def add_node():
         plot_data_points(cluster_objects_post_change, skip_data_ingestion=True)
     except BadRequest as err:
         return Response(json.dumps("expected key 'nodes'"), status=404)
-    # Todo - add resultant nodes in return
-    # Todo - Reflect node count in cluster
     expiry_time = Simulator.create_provisioning_lock()
     return jsonify({
         'expiry': expiry_time,

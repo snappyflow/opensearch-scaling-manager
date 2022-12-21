@@ -73,11 +73,11 @@ class Simulator:
                 seconds=now.second,
                 microseconds=now.microsecond
             )
-        for y in data_y:
-            self.cluster._ingestion_rate = y
-            self.cluster.cpu_usage_percent = self.cpu_used_for_ingestion(y)
-            self.cluster.memory_usage_percent = self.memory_used_for_ingestion(y)
-            self.cluster.status = self.cluster_state_for_ingestion(y)
+        for instantaneous_data_ingestion_rate in data_y:
+            self.cluster._ingestion_rate = instantaneous_data_ingestion_rate
+            self.cluster.cpu_usage_percent = self.cpu_used_for_ingestion(instantaneous_data_ingestion_rate)
+            self.cluster.memory_usage_percent = self.memory_used_for_ingestion(instantaneous_data_ingestion_rate)
+            self.cluster.status = self.cluster_state_for_ingestion(instantaneous_data_ingestion_rate)
             # Todo: simulate effect on remaining cluster parameters 
             date_time = date_obj + timedelta(minutes=self.elapsed_time_minutes)
             self.cluster.date_time = date_time
