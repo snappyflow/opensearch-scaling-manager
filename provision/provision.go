@@ -20,31 +20,31 @@ var log = new(logger.LOG)
 // States can be of following types: (May change in real implementation with new stages identified)
 // At any point, the state should have either "scaleup/scaledown" to identify the current operation happening
 //
-//	* normal : This is the state when the recommnedation will be provisioned.
-//	* provisioning_scaleup/provisioning_scaledown : Once the provision module will start provisioning it will set this state.
-//	* start_scaleup_process/start_scaledown_process : Indicates start of scaleup/scaledown process
-//	* scaleup_triggered_spin_vm: Indicates trigger for spinning new vms while scaleup
-//	* scaledown_node_identified: A state to identify node identification to scaledown
-//	* provisioning_scaleup_completed/provisioning_scaledown_completed : Once the provision is completed then this state will be state.
-//	* provisioning_scaleup_failed/provisioning_scaledown_failed: If the provision is failed then this state will be set.
-//	* provisioned_scaleup_successfully/provisioned_scaledown_successfully: If the provision is completed and cluster state is green then this state will be set.
+//   - normal : This is the state when the recommnedation will be provisioned.
+//   - provisioning_scaleup/provisioning_scaledown : Once the provision module will start provisioning it will set this state.
+//   - start_scaleup_process/start_scaledown_process : Indicates start of scaleup/scaledown process
+//   - scaleup_triggered_spin_vm: Indicates trigger for spinning new vms while scaleup
+//   - scaledown_node_identified: A state to identify node identification to scaledown
+//   - provisioning_scaleup_completed/provisioning_scaledown_completed : Once the provision is completed then this state will be state.
+//   - provisioning_scaleup_failed/provisioning_scaledown_failed: If the provision is failed then this state will be set.
+//   - provisioned_scaleup_successfully/provisioned_scaledown_successfully: If the provision is completed and cluster state is green then this state will be set.
 type State struct {
 	// CurrentState indicate the current state of the scaling manager
 	CurrentState string
 	// PreviousState indicates the previous state of the scaling manager
 	PreviousState string
 	// Remark indicates the additional remarks for the state of the scaling manager
-	Remark              string
+	Remark string
 	// Last Provisioned time is when the last successful provision was completed
 	LastProvisionedTime time.Time
 	// Start time of the current provisioning in place
-	ProvisionStartTime  time.Time
+	ProvisionStartTime time.Time
 	// Rule triggered for provisioning. i.e., scale_up/scale_down
-	RuleTriggered       string
+	RuleTriggered string
 	// Number of nodes being added(scale_up) / removed(scale_down) from the cluster due to current provision
-	NumNodes            int
-	// Number of nodes remaining to be scaled up/scaled down 
-	RemainingNodes      int
+	NumNodes int
+	// Number of nodes remaining to be scaled up/scaled down
+	RemainingNodes int
 }
 
 // Initializing logger module
@@ -54,7 +54,9 @@ func init() {
 }
 
 // Input:
+//
 //	state: The current provisioning state of the system
+//
 // Caller: Object of ConfigClusterDetails
 // Description:
 //
@@ -108,6 +110,7 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, ope
 // Input:
 //
 //	state: The current provisioning state of the system
+//
 // Caller: Object of ConfigClusterDetails
 // Description:
 //
@@ -124,7 +127,7 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 	state.GetCurrentState()
 	if state.CurrentState == "provisioning_scaleup" {
 		log.Info.Println("Starting scaleUp process")
-		time.Sleep(1 * time.Second)
+		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "start_scaleup_process"
 		state.ProvisionStartTime = time.Now()
@@ -133,9 +136,9 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 	// Spin new VMs based on number of nodes and cloud type
 	if state.CurrentState == "start_scaleup_process" {
 		log.Info.Println("Spin new vms based on the cloud type")
-		time.Sleep(1 * time.Second)
+		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		log.Info.Println("Spinning new vms")
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "scaleup_triggered_spin_vm"
 		state.UpdateState()
@@ -144,13 +147,13 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 	// Configure OS on newly created VM
 	if state.CurrentState == "scaleup_triggered_spin_vm" {
 		log.Info.Println("Check if the vm creation is complete and wait till done")
-		time.Sleep(1 * time.Second)
+		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		log.Info.Println("Adding the spinned nodes into the list of vms")
-		time.Sleep(1 * time.Second)
+		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		log.Info.Println("Configure ES")
-		time.Sleep(1 * time.Second)
+		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		log.Info.Println("Configuring in progress")
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaleup_completed"
 		state.UpdateState()
@@ -159,7 +162,7 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 	if state.CurrentState == "provisioning_scaleup_completed" {
 		SimulateSharRebalancing()
 		log.Info.Println("Waiting for the cluster to become healthy")
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		CheckClusterHealth(state)
 		state.LastProvisionedTime = time.Now()
 		state.ProvisionStartTime = time.Time{}
@@ -168,7 +171,7 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 		state.RuleTriggered = ""
 		state.RemainingNodes = state.RemainingNodes - 1
 		state.UpdateState()
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		log.Info.Println("State set back to normal")
 	}
 	return true
@@ -202,7 +205,7 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 	// Identify the node which can be removed from the cluster.
 	if state.CurrentState == "start_scaledown_process" {
 		log.Info.Println("Identify the node to remove from the cluster and store the node_ip")
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "scaledown_node_identified"
 		state.UpdateState()
@@ -213,7 +216,7 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaledown_completed"
 		state.UpdateState()
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		log.Info.Println("Node removed from ES configuration")
 	}
 	// Wait for cluster to be in stable state(Shard rebalance)
@@ -223,7 +226,7 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 		log.Info.Println("Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
 		CheckClusterHealth(state)
 		log.Info.Println("Shutdown the node")
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		state.LastProvisionedTime = time.Now()
 		state.ProvisionStartTime = time.Time{}
 		state.RuleTriggered = ""
@@ -237,7 +240,8 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 }
 
 // Input:
-//      state: Pointer to the current provisioning state of the system
+//
+//	state: Pointer to the current provisioning state of the system
 //
 // Description:
 //
@@ -262,7 +266,7 @@ func CheckClusterHealth(state *State) {
 			break
 		}
 		log.Info.Println("Waiting for cluster to be healthy.......")
-		time.Sleep(15 * time.Second)
+		time.Sleep(time.Duration(config.PollingInterval*3) * time.Second)
 	}
 	state.GetCurrentState()
 	if !(strings.Contains(state.CurrentState, "success")) {
@@ -279,7 +283,6 @@ func CheckClusterHealth(state *State) {
 	// After that buffer period we should change the state to normal, which can tell trigger module to trigger
 	// the recommendation.
 }
-
 
 func SimulateSharRebalancing() {
 	// Add logic to call the simulator's end point
