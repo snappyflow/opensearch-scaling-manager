@@ -253,7 +253,7 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 func CheckClusterHealth(state *State) {
 	for i := 0; i <= 12; i++ {
 		cluster := cluster.GetClusterCurrent()
-		log.Info.Println(cluster.ClusterDynamic.ClusterStatus)
+		log.Debug.Println(cluster.ClusterDynamic.ClusterStatus)
 		if cluster.ClusterDynamic.ClusterStatus == "green" {
 			state.GetCurrentState()
 			state.PreviousState = state.CurrentState

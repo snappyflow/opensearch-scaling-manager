@@ -16,7 +16,6 @@ import (
 // A global variable which stores the document ID of the State document that will to stored and fetched frm Opensearch
 var docId = fmt.Sprint(hash(cluster.GetClusterId()))
 
-
 // Input: string
 //
 // Description: Returns a hashed value of the string passed as input
@@ -35,12 +34,12 @@ const IndexName = "monitor-stats-1"
 // Global variable for Opensearch client to avoid multiple client creations
 var client *opensearch.Client
 
-
 // Input:
-// Description: 
-//	1. Initializes the opensearch client
-//	2. Reads the mapping for the index to be created
-//	3. Calls the createNewIndex function to create the index if not already present with defined mappings
+// Description:
+//  1. Initializes the opensearch client
+//  2. Reads the mapping for the index to be created
+//  3. Calls the createNewIndex function to create the index if not already present with defined mappings
+//
 // Output:
 func init() {
 
@@ -63,8 +62,10 @@ func init() {
 }
 
 // Input: json string as mapping
-// Description: 
-//		Creates a new OS index if it doesn't exixts with the provided mapping
+// Description:
+//
+//	Creates a new OS index if it doesn't exixts with the provided mapping
+//
 // Output:
 func createNewIndexWithMappings(mapping string) {
 	ctx := context.Background()
@@ -81,9 +82,9 @@ func createNewIndexWithMappings(mapping string) {
 	if resp.Status() != "200 OK" {
 		res, err := createReq.Do(ctx, client)
 		if err != nil {
-			log.Info.Println("Create Index request error: ", err)
+			log.Error.Println("Create Index request error: ", err)
 		}
-		log.Info.Println("Index create Response: ", res)
+		log.Error.Println("Index create Response: ", res)
 	}
 }
 
@@ -109,7 +110,7 @@ func (s *State) GetCurrentState() {
 		log.Fatal.Println("failed to search document: ", err)
 	}
 	var stateInterface map[string]interface{}
-	log.Info.Println("Get resp: ", searchResponse)
+	log.Debug.Println("Get resp: ", searchResponse)
 	if searchResponse.Status() == "404 Not Found" {
 		//Setting the initial state
 		s.CurrentState = "normal"
@@ -157,5 +158,5 @@ func (s *State) UpdateState() {
 	if err != nil {
 		log.Fatal.Println("failed to update document: ", err)
 	}
-	log.Info.Println("Update resp: ", updateResponse)
+	log.Debug.Println("Update resp: ", updateResponse)
 }
