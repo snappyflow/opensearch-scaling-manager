@@ -266,7 +266,7 @@ func CheckClusterHealth(state *State) {
 			break
 		}
 		log.Info.Println("Waiting for cluster to be healthy.......")
-		time.Sleep(time.Duration(config.PollingInterval*3) * time.Second)
+		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 	}
 	state.GetCurrentState()
 	if !(strings.Contains(state.CurrentState, "success")) {
