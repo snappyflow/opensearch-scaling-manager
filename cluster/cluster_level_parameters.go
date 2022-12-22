@@ -25,10 +25,9 @@ var log logger.LOG
 //
 // Description:
 //
-//		Initialize the logger module.
-//		
-// Return:
+//	Initialize the logger module.
 //
+// Return:
 func init() {
 	log.Init("logger")
 	log.Info.Println("Main module initialized")
@@ -209,6 +208,8 @@ func GetClusterAvg(metricName string, decisionPeriod int) (MetricStats, []byte) 
 	if err != nil {
 		log.Fatal.Println(err)
 	}
+	log.Debug.Println(metricStats)
+
 	return metricStats, nil
 }
 
@@ -255,6 +256,7 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) (Metri
 	if err != nil {
 		log.Fatal.Println(err)
 	}
+	log.Debug.Println(metricViolatedCount)
 	return metricViolatedCount, nil
 }
 
@@ -287,7 +289,7 @@ func GetClusterCurrent() Cluster {
 		log.Fatal.Println(err)
 	}
 	clusterCurrent.ClusterDynamic.ClusterStatus = clusterStats["current"]
-
+	log.Debug.Println(clusterCurrent)
 	return clusterCurrent
 }
 

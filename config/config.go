@@ -13,7 +13,7 @@ import (
 )
 
 var log logger.LOG
-var PollingInterval uint16 = 5
+var PollingInterval uint16 = 10
 
 // Input:
 //
