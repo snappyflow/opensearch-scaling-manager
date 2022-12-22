@@ -2,7 +2,7 @@
     "logpath": "logs",
     "logfile": "application.log",
     "pathsep": "/",
-    "level": "trace",
+    "level": "info",
     "MaxSize": 1,
     "MaxBackups": 5,
     "MaxAge": 28
