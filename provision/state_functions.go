@@ -82,9 +82,9 @@ func createNewIndexWithMappings(mapping string) {
 	if resp.Status() != "200 OK" {
 		res, err := createReq.Do(ctx, client)
 		if err != nil {
-			log.Info.Println("Create Index request error: ", err)
+			log.Error.Println("Create Index request error: ", err)
 		}
-		log.Info.Println("Index create Response: ", res)
+		log.Error.Println("Index create Response: ", res)
 	}
 }
 
@@ -110,7 +110,7 @@ func (s *State) GetCurrentState() {
 		log.Fatal.Println("failed to search document: ", err)
 	}
 	var stateInterface map[string]interface{}
-	log.Info.Println("Get resp: ", searchResponse)
+	log.Debug.Println("Get resp: ", searchResponse)
 	if searchResponse.Status() == "404 Not Found" {
 		//Setting the initial state
 		s.CurrentState = "normal"
@@ -158,5 +158,5 @@ func (s *State) UpdateState() {
 	if err != nil {
 		log.Fatal.Println("failed to update document: ", err)
 	}
-	log.Info.Println("Update resp: ", updateResponse)
+	log.Debug.Println("Update resp: ", updateResponse)
 }

@@ -71,7 +71,7 @@ func periodicProvisionCheck() {
 				}
 				cfg := configStruct.ClusterDetails
 				if strings.Contains(state.CurrentState, "scaleup") {
-					log.Info.Println("Calling scaleOut")
+					log.Debug.Println("Calling scaleOut")
 					isScaledUp := provision.ScaleOut(cfg, state)
 					if isScaledUp {
 						log.Info.Println("Scaleup completed successfully")
@@ -80,7 +80,7 @@ func periodicProvisionCheck() {
 						log.Warn.Println("Scaleup failed")
 					}
 				} else if strings.Contains(state.CurrentState, "scaledown") {
-					log.Info.Println("Calling scaleIn")
+					log.Debug.Println("Calling scaleIn")
 					isScaledDown := provision.ScaleIn(cfg, state)
 					if isScaledDown {
 						log.Info.Println("Scaledown completed successfully")
