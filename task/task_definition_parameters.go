@@ -162,8 +162,8 @@ func (r Rule) GetNextRule(taskOperation string) (bool, []byte) {
 		return false, err
 	}
 	isRecommended := r.EvaluateRule(cluster, taskOperation)
-	log.Info.Println(r)
-	log.Info.Println(isRecommended)
+	log.Debug.Println(r)
+	log.Debug.Println(isRecommended)
 	return isRecommended, nil
 }
 
@@ -192,7 +192,7 @@ func (r Rule) GetMetrics() ([]byte, []byte) {
 			return clusterMetric, err
 		}
 		clusterMetric, jsonErr = json.MarshalIndent(clusterStats, "", "\t")
-		log.Info.Println(clusterStats)
+		log.Debug.Println(clusterStats)
 		if jsonErr != nil {
 			log.Fatal.Println("Error converting struct to json: ", jsonErr)
 		}
@@ -202,7 +202,7 @@ func (r Rule) GetMetrics() ([]byte, []byte) {
 			return clusterMetric, err
 		}
 		clusterMetric, jsonErr = json.MarshalIndent(clusterCount, "", "\t")
-		log.Info.Println(clusterCount)
+		log.Debug.Println(clusterCount)
 		if jsonErr != nil {
 			log.Fatal.Println("Error converting struct to json: ", jsonErr)
 		}
@@ -221,7 +221,7 @@ func (r Rule) GetMetrics() ([]byte, []byte) {
 //		Return whether a rule is meeting the criteria or not(bool)
 
 func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
-	log.Info.Println(taskOperation)
+	log.Debug.Println(taskOperation)
 	if r.Stat == "AVG" {
 		var clusterStats cluster.MetricStats
 		err := json.Unmarshal(clusterMetric, &clusterStats)
