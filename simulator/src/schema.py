@@ -4,7 +4,7 @@
     "cluster_ip_address": {"required": True, "type": "string"},
     "node_machine_type_identifier": {"required": True, "type": "string"},
     "total_nodes_count": {"required": True, "type": "number"},
-    "data_nodes_count": {"required": True, "type": "number"},
+    "active_data_nodes": {"required": True, "type": "number"},
     "master_eligible_nodes_count": {"required": True, "type": "number"},
     "index_count": {"required": True, "type": "number"},
     "shards_per_index": {"required": True, "type": "number"},
