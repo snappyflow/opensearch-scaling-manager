@@ -33,6 +33,28 @@ STAT_REQUEST = {
     'nodes': TOTAL_NODES_COUNT
 }  # Todo : Shrinidhi/Manoj Add remaining stats that will be queried from the recommendation engine
 
+CLUSTER_STATE = "status"
+TOTAL_NUM_NODES = "total_nodes_count"
+NUM_ACTIVE_SHARD_COUNT = "active_shards_count"
+NUM_ACTIVE_PRIMARY_SHARDS = "active_primary_shards"
+NUM_INITIALIZING_SHARDS = "initializing_shards_count"
+NUM_UNASSIGNED_SHARDS = "unassigned_shards_count"
+NUM_RELOCATING_SHARDS = "relocating_shards_count"
+NUM_MASTER_NODES = "master_eligible_nodes_count"
+NUM_ACTIVE_DATA_NODES = "active_data_nodes"
+STAT_REQUEST_CURRENT = {
+    "NumNodes": TOTAL_NUM_NODES,
+    "ClusterStatus": CLUSTER_STATE,
+    "NumActiveShards": NUM_ACTIVE_SHARD_COUNT,
+    "NumActivePrimaryShards": NUM_ACTIVE_PRIMARY_SHARDS,
+    "NumInitializingShards": NUM_INITIALIZING_SHARDS,
+    "NumUnassignedShards": NUM_UNASSIGNED_SHARDS,
+    "NumRelocatingShards": NUM_RELOCATING_SHARDS,
+    "NumMasterNodes": NUM_MASTER_NODES,
+    "NumActiveDataNodes": NUM_ACTIVE_DATA_NODES,
+}
+
+
 APP_PORT = 5000
 
 PRIMARY_SHARDS_IN_ROLLOVER_INDEX = 1

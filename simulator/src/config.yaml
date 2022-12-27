@@ -4,7 +4,7 @@ cluster_hostname: test-cluster.aws
 cluster_ip_address: 10.0.0.1
 node_machine_type_identifier: m5-12xlarge
 total_nodes_count: 5
-data_nodes_count: 4
+active_data_nodes: 4
 master_eligible_nodes_count: 1
 index_count: 1000
 shards_per_index: 5
