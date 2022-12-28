@@ -47,10 +47,53 @@ def get_first_data_point_time():
     """
     first_data_point_time = (
         DataModel.query.order_by(DataModel.date_created)
-        .with_entities(DataModel.date_created)
-        .first()
+            .with_entities(DataModel.date_created)
+            .first()
     )
     return first_data_point_time[0]
+
+
+def cluster_db_object(cluster):
+    """
+    Create a DataModel instance that can be dumped into db
+    :param cluster: cluster object
+    :return: data model
+    """
+    return DataModel(
+        cpu_usage_percent=cluster.cpu_usage_percent,
+        memory_usage_percent=cluster.memory_usage_percent,
+        date_created=cluster.date_time,
+        status=cluster.status,
+        total_nodes_count=cluster.total_nodes_count,
+        active_shards_count=cluster.active_shards,
+        active_primary_shards=cluster.active_primary_shards,
+        initializing_shards_count=cluster.initializing_shards,
+        unassigned_shards_count=cluster.unassigned_shards,
+        relocating_shards_count=cluster.relocating_shards,
+        master_eligible_nodes_count=cluster.master_eligible_nodes_count,
+        active_data_nodes=cluster.active_data_nodes
+    )
+
+
+def overwrite_after_node_count_change(cluster_objects, date_time=datetime.now()):
+    """
+    Calculate the resource utilization after node change operation
+    and overwrite the saved data points in db after node change time.
+    Also create an overlap on the png file to show new data points
+    :param cluster_objects: all cluster objects with new node configuration
+    :param date_time: date time object to overwrite date time now
+    :return: expiry time
+    """
+    cluster_objects_post_change = []
+    for cluster_obj in cluster_objects:
+        if cluster_obj.date_time >= date_time:
+            cluster_objects_post_change.append(cluster_obj)
+            task = cluster_db_object(cluster_obj)
+            db.session.merge(task)
+    db.session.commit()
+    plot_data_points(cluster_objects_post_change, skip_data_ingestion=True)
+    expiry_time = Simulator.create_provisioning_lock()
+    return expiry_time
 
 
 @app.route("/stats/violated/<string:stat_name>/<int:duration>/<float:threshold>")
@@ -72,9 +115,9 @@ def violated_count(stat_name, duration, threshold):
         # Fetching the count of data points for given duration.
         data_point_count = (
             DataModel.query.order_by(constants.STAT_REQUEST[stat_name])
-            .filter(DataModel.date_created > query_begin_time)
-            .filter(DataModel.date_created < time_now)
-            .count()
+                .filter(DataModel.date_created > query_begin_time)
+                .filter(DataModel.date_created < time_now)
+                .count()
         )
 
         # If expected data points are not present then respond with error
@@ -84,13 +127,13 @@ def violated_count(stat_name, duration, threshold):
         # Fetches the count of stat_name that exceeds the threshold for given duration
         stats = (
             DataModel.query.order_by(constants.STAT_REQUEST[stat_name])
-            .filter(
+                .filter(
                 DataModel.__getattribute__(DataModel, constants.STAT_REQUEST[stat_name])
                 > threshold
             )
-            .filter(DataModel.date_created > query_begin_time)
-            .filter(DataModel.date_created < time_now)
-            .count()
+                .filter(DataModel.date_created > query_begin_time)
+                .filter(DataModel.date_created < time_now)
+                .count()
         )
 
         return jsonify({"ViolatedCount": stats})
@@ -117,13 +160,13 @@ def average(stat_name, duration):
     first_data_point_time = get_first_data_point_time()
     stat_list = []
     try:
-        # Fetches list of rows that is filter by stat_name and are filterd by decision period
+        # Fetches list of rows that is filter by stat_name and are filtered by decision period
         avg_list = (
             DataModel.query.order_by(constants.STAT_REQUEST[stat_name])
-            .filter(DataModel.date_created > query_begin_time)
-            .filter(DataModel.date_created < time_now)
-            .with_entities(text(constants.STAT_REQUEST[stat_name]))
-            .all()
+                .filter(DataModel.date_created > query_begin_time)
+                .filter(DataModel.date_created < time_now)
+                .with_entities(text(constants.STAT_REQUEST[stat_name]))
+                .all()
         )
         for avg_value in avg_list:
             stat_list.append(avg_value[0])
@@ -165,10 +208,10 @@ def current(stat_name):
         # Fetches the stat_name for the latest poll
         current_stat = (
             DataModel.query.order_by(desc(DataModel.date_created))
-            .with_entities(
+                .with_entities(
                 DataModel.__getattribute__(DataModel, constants.STAT_REQUEST[stat_name])
             )
-            .all()
+                .all()
         )
 
         # If expected data points count are not present then respond with error
@@ -192,12 +235,12 @@ def current_all():
         for key in constants.STAT_REQUEST_CURRENT:
             value = (
                 DataModel.query.order_by(desc(DataModel.date_created))
-                .with_entities(
+                    .with_entities(
                     DataModel.__getattribute__(
                         DataModel, constants.STAT_REQUEST_CURRENT[key]
                     )
                 )
-                .all()
+                    .all()
             )
             stat_dict[key] = value[0][0]
         return jsonify(stat_dict)
@@ -209,41 +252,50 @@ def current_all():
 @app.route("/provision/addnode", methods=["POST"])
 def add_node():
     """
-    Endpoint to simulate that a cluster state change is under provision
-    Expects request body to specify the number of nodes added or removed
+    Endpoint to simulate that a node is being added to the cluster
+    Expects request body to specify the number of nodes added
     :return: total number of resultant nodes and duration of cluster state as yellow
     """
     try:
         # get the number of added nodes from request body
-        nodes = int(request.json["nodes"])
+        nodes = int(request.json['nodes'])
         sim = Simulator(
             configs.cluster,
             configs.data_function,
             configs.searches,
-            configs.simulation_frequency_minutes,
+            configs.simulation_frequency_minutes
         )
         sim.cluster.add_nodes(nodes)
         cluster_objects = sim.run(24 * 60)
-
-        cluster_objects_post_change = []
-        now = datetime.now()
-        for cluster_obj in cluster_objects:
-            if cluster_obj.date_time >= now:
-                cluster_objects_post_change.append(cluster_obj)
-                task = DataModel(
-                    cpu_usage_percent=cluster_obj.cpu_usage_percent,
-                    memory_usage_percent=cluster_obj.memory_usage_percent,
-                    date_created=cluster_obj.date_time,
-                    total_nodes_count=cluster_obj.total_nodes_count,
-                    status=cluster_obj.status,
-                )
-                db.session.merge(task)
-        db.session.commit()
-        plot_data_points(cluster_objects_post_change, skip_data_ingestion=True)
+        expiry_time = overwrite_after_node_count_change(cluster_objects)
     except BadRequest as err:
         return Response(json.dumps("expected key 'nodes'"), status=404)
-    expiry_time = Simulator.create_provisioning_lock()
-    return jsonify({"expiry": expiry_time, "nodes": sim.cluster.total_nodes_count})
+    return jsonify({
+        'expiry': expiry_time,
+        'nodes': sim.cluster.total_nodes_count
+    })
+
+
+@app.route("/provision/remnode", methods=["POST"])
+def remove_node():
+    """
+    Endpoint to simulate that a node is being removed from the cluster
+    Expects request body to specify the number of nodes added
+    :return: total number of resultant nodes and duration of cluster state as yellow
+    """
+    try:
+        # get the number of added nodes from request body
+        nodes = int(request.json['nodes'])
+        sim = Simulator(configs.cluster, configs.data_function, configs.searches, configs.simulation_frequency_minutes)
+        sim.cluster.remove_nodes(nodes)
+        cluster_objects = sim.run(24 * 60)
+        expiry_time = overwrite_after_node_count_change(cluster_objects)
+    except BadRequest as err:
+        return Response(json.dumps("expected key 'nodes'"), status=404)
+    return jsonify({
+        'expiry': expiry_time,
+        'nodes': sim.cluster.total_nodes_count
+    })
 
 
 @app.route("/all")
@@ -280,20 +332,7 @@ if __name__ == "__main__":
     plot_data_points(cluster_objects)
     # save data points inside db
     for cluster_obj in cluster_objects:
-        task = DataModel(
-            cpu_usage_percent=cluster_obj.cpu_usage_percent,
-            memory_usage_percent=cluster_obj.memory_usage_percent,
-            date_created=cluster_obj.date_time,
-            status=cluster_obj.status,
-            total_nodes_count = cluster_obj.total_nodes_count,
-            active_shards_count = cluster_obj.active_shards,
-            active_primary_shards = cluster_obj.active_primary_shards,
-            initializing_shards_count = cluster_obj.initializing_shards,
-            unassigned_shards_count =cluster_obj.unassigned_shards,
-            relocating_shards_count = cluster_obj.relocating_shards,
-            master_eligible_nodes_count = cluster_obj.master_eligible_nodes_count,
-            active_data_nodes = cluster_obj.active_data_nodes
-        )
+        task = cluster_db_object(cluster_obj)
         db.session.add(task)
     db.session.commit()
 
