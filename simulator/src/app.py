@@ -217,6 +217,11 @@ def add_node():
     try:
         # get the number of added nodes from request body
         nodes = int(request.json["nodes"])
+        # get the disk size added after adding new node
+        # disk_size_gb = int(request.json["disk_size"])
+
+        # update the total disk size for simulation
+        # configs.cluster.total_disk_size_gb =  configs.cluster.total_disk_size_gb + disk_size_gb
         sim = Simulator(
             configs.cluster,
             configs.data_function,
