@@ -94,6 +94,6 @@ class Cluster:
         # Todo - simulate effect on shards
 
     def remove_nodes(self, nodes=1):
-        self.total_nodes_count += nodes
+        self.total_nodes_count -= nodes
         self.status = constants.CLUSTER_STATE_YELLOW
         # Todo - simulate effect on shards
