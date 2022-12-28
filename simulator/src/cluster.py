@@ -21,6 +21,7 @@ class Cluster:
             master_eligible_nodes_count: int,
             index_count: int,
             shards_per_index: int,
+            replica_shard_count: int,
             index_roll_over_size_gb: int,
             index_clean_up_age_days: int,
 
@@ -28,6 +29,7 @@ class Cluster:
             cpu_usage_percent: float = 0,
             memory_usage_percent: float = 0,
             disk_usage_percent: float = 0,
+            total_disk_size_gb: int = 0,
             heap_usage_percent: float = 0,
             total_shard_count: int = 0,
             initializing_shards_count: int = 0,
@@ -69,6 +71,7 @@ class Cluster:
         self.cpu_usage_percent = cpu_usage_percent
         self.memory_usage_percent = memory_usage_percent
         self.disk_usage_percent = disk_usage_percent
+        self.total_disk_size_gb = total_disk_size_gb
         self.heap_usage_percent = heap_usage_percent
         self.total_nodes_count = total_nodes_count
         self.active_data_nodes = active_data_nodes
@@ -76,6 +79,7 @@ class Cluster:
         self.index_count = index_count
         self.index_roll_over_size_gb = index_roll_over_size_gb
         self.index_clean_up_age_in_minutes = index_clean_up_age_days
+        self.replica_shard_count = replica_shard_count
         self.total_shard_count = total_shard_count
         self.shards_per_index = shards_per_index
         self.initializing_shards = initializing_shards_count

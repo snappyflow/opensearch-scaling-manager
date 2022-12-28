@@ -1,4 +1,3 @@
-
 # file paths
 SCHEMA_FILE_NAME = 'schema.py'
 CONFIG_FILE_PATH = 'config.yaml'
@@ -11,7 +10,6 @@ DATA_INGESTION_STATES = 'states'
 SEARCHES = "searches"
 SIMULATION_FREQUENCY_MINUTES = "simulation_frequency_minutes"
 DATA_INGESTION_RANDOMNESS_PERCENTAGE = 'randomness_percentage'
-# Todo - Shrinidhi/Manoj add remaining keys from config yaml
 
 CLUSTER_STATE_GREEN = 'green'
 CLUSTER_STATE_YELLOW = 'yellow'
@@ -24,14 +22,16 @@ HIGH_INGESTION_RATE_GB_PER_HOUR = 60
 # mapping inputs for API endpoints
 CLUSTER_STATE = 'status'
 CPU_USAGE_PERCENT = 'cpu_usage_percent'
+DISK_USAGE_PERCENT = 'disk_usage_percent'
 MEMORY_USAGE_PERCENT = 'memory_usage_percent'
 TOTAL_NODES_COUNT = 'total_nodes_count'
 STAT_REQUEST = {
     'cpu': CPU_USAGE_PERCENT,
     'mem': MEMORY_USAGE_PERCENT,
     'status': CLUSTER_STATE,
-    'nodes': TOTAL_NODES_COUNT
-}  # Todo : Shrinidhi/Manoj Add remaining stats that will be queried from the recommendation engine
+    'nodes': TOTAL_NODES_COUNT,
+    'disk': DISK_USAGE_PERCENT
+}  
 
 CLUSTER_STATE = "status"
 TOTAL_NUM_NODES = "total_nodes_count"

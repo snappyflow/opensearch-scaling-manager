@@ -8,6 +8,8 @@ active_data_nodes: 4
 master_eligible_nodes_count: 1
 index_count: 1000
 shards_per_index: 5
+replica_shard_count: 2
+total_disk_size_gb: 5000
 simulation_frequency_minutes: 5
 
 data_ingestion:

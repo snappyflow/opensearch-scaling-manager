@@ -37,6 +37,7 @@ class DataModel(db.Model):
     master_eligible_nodes_count = db.Column(db.Integer, default=0)
     active_data_nodes = db.Column(db.Integer, default=0)
     date_created = db.Column(db.DateTime, default=datetime.now(), primary_key=True)
+    disk_usage_percent = db.Column(db.Integer, default = 0)
 
 
 def get_first_data_point_time():
@@ -292,7 +293,8 @@ if __name__ == "__main__":
             unassigned_shards_count =cluster_obj.unassigned_shards,
             relocating_shards_count = cluster_obj.relocating_shards,
             master_eligible_nodes_count = cluster_obj.master_eligible_nodes_count,
-            active_data_nodes = cluster_obj.active_data_nodes
+            active_data_nodes = cluster_obj.active_data_nodes,
+            disk_usage_percent = cluster_obj.disk_usage_percent
         )
         db.session.add(task)
     db.session.commit()

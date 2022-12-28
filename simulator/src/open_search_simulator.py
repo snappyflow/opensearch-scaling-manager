@@ -63,6 +63,9 @@ class Simulator:
         return random.choice(
             [constants.CLUSTER_STATE_GREEN] * 20 + [constants.CLUSTER_STATE_YELLOW] * 10 + [constants.CLUSTER_STATE_RED])
 
+    def disk_space_for_ingestion(self, ingestion):
+        return ((ingestion/60) * self.frequency_minutes) * (self.cluster.replica_shard_count + 1)
+
     def run(self, duration_minutes):
         resultant_cluster_objects = []
         data_x, data_y = self.aggregate_data(duration_minutes)
@@ -73,11 +76,14 @@ class Simulator:
                 seconds=now.second,
                 microseconds=now.microsecond
             )
+        disk_size_accumulated = self.cluster.total_disk_size_gb * 0.1
         for instantaneous_data_ingestion_rate in data_y:
             self.cluster._ingestion_rate = instantaneous_data_ingestion_rate
             self.cluster.cpu_usage_percent = self.cpu_used_for_ingestion(instantaneous_data_ingestion_rate)
             self.cluster.memory_usage_percent = self.memory_used_for_ingestion(instantaneous_data_ingestion_rate)
             self.cluster.status = self.cluster_state_for_ingestion(instantaneous_data_ingestion_rate)
+            disk_size_accumulated = disk_size_accumulated + self.disk_space_for_ingestion(instantaneous_data_ingestion_rate)
+            self.cluster.disk_usage_percent = min((disk_size_accumulated/self.cluster.total_disk_size_gb) * 100, 100)
             # Todo: simulate effect on remaining cluster parameters 
             date_time = date_obj + timedelta(minutes=self.elapsed_time_minutes)
             self.cluster.date_time = date_time

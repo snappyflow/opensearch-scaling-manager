@@ -10,6 +10,8 @@ index_count: 1000
 shards_per_index: 5
 index_roll_over_size_gb: 50
 index_clean_up_age_days: 20
+replica_shard_count: 2
+total_disk_size_gb: 5000
 simulation_frequency_minutes: 5
 
 # Specify data ingestion with respect to time of the day to represent pattern for entire day(24hrs).
