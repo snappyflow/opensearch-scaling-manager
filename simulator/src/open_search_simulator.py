@@ -7,7 +7,7 @@ import constants
 from config_parser import get_source_code_dir
 from cluster import Cluster
 from data_ingestion import DataIngestion
-from search import Search
+from search import SearchDescription, Search
 
 
 class Simulator:
@@ -21,7 +21,8 @@ class Simulator:
             self,
             cluster: Cluster,
             data_ingestion: DataIngestion,
-            searches: list[Search],
+            search_description: SearchDescription,
+            searches: Search,
             frequency_minutes: int,
             elapsed_time_minutes: int = 0,
     ):
@@ -36,9 +37,10 @@ class Simulator:
         """
         self.cluster = cluster
         self.data_ingestion = data_ingestion
-        self.searches = searches
+        self.search_description = search_description
         self.elapsed_time_minutes = elapsed_time_minutes
         self.frequency_minutes = frequency_minutes
+        self.searches = searches
 
     def aggregate_data(
             self,
@@ -49,11 +51,30 @@ class Simulator:
         x, y = self.data_ingestion.aggregate_data(start_time_hh_mm_ss, duration_minutes, self.frequency_minutes)
         return x, y
 
-    def cpu_used_for_ingestion(self, ingestion):
-        return min(ingestion / self.cluster.total_nodes_count * random.randrange(1, 15) / 100 * 100, 100)
+    def aggregate_data_searches(
+            self,
+            duration_minutes,
+            start_time_hh_mm_ss: str = '00_00_00'
+    ):
+        # first collect all data aggregation events
+        x, y = self.searches.aggregate_data(start_time_hh_mm_ss, duration_minutes, self.frequency_minutes)
+        return x, y
 
-    def memory_used_for_ingestion(self, ingestion):
-        return min(ingestion / self.cluster.total_nodes_count * random.randrange(5, 12) / 100 * 100, 100)
+    def cpu_used_for_ingestion(self, ingestion, search_count, index):
+        cpu_util = ingestion / self.cluster.total_nodes_count * random.randrange(1, 15) / 100 * 100
+        for search_type, count_array in search_count.items():
+            cpu_load_percent = self.search_description[search_type].search_stat.cpu_load_percent / 100
+            search_factor = count_array[index] * cpu_load_percent
+            cpu_util += search_factor
+        return min(cpu_util, 100)
+
+    def memory_used_for_ingestion(self, ingestion, search_count, index):
+        memory_util = ingestion / self.cluster.total_nodes_count * random.randrange(5, 12) / 100 * 100
+        for search_type, count_array in search_count.items():
+            memory_load_percent = self.search_description[search_type].search_stat.memory_load_percent / 100
+            search_factor = count_array[index] * memory_load_percent
+            memory_util += search_factor
+        return min(memory_util, 100)
 
     def cluster_state_for_ingestion(self, ingestion):
         if ingestion < constants.HIGH_INGESTION_RATE_GB_PER_HOUR:
@@ -66,6 +87,7 @@ class Simulator:
     def run(self, duration_minutes):
         resultant_cluster_objects = []
         data_x, data_y = self.aggregate_data(duration_minutes)
+        data_x1, data_y1 = self.aggregate_data_searches(duration_minutes)
         now = datetime.now()
         date_obj = now - timedelta(
                 hours=now.hour,
@@ -73,10 +95,12 @@ class Simulator:
                 seconds=now.second,
                 microseconds=now.microsecond
             )
-        for instantaneous_data_ingestion_rate in data_y:
+        for index, instantaneous_data_ingestion_rate in enumerate(data_y):
             self.cluster._ingestion_rate = instantaneous_data_ingestion_rate
-            self.cluster.cpu_usage_percent = self.cpu_used_for_ingestion(instantaneous_data_ingestion_rate)
-            self.cluster.memory_usage_percent = self.memory_used_for_ingestion(instantaneous_data_ingestion_rate)
+            self.cluster.cpu_usage_percent = self.cpu_used_for_ingestion(instantaneous_data_ingestion_rate, data_y1,
+                                                                         index)
+            self.cluster.memory_usage_percent = self.memory_used_for_ingestion(instantaneous_data_ingestion_rate,
+                                                                               data_y1, index)
             self.cluster.status = self.cluster_state_for_ingestion(instantaneous_data_ingestion_rate)
             # Todo: simulate effect on remaining cluster parameters 
             date_time = date_obj + timedelta(minutes=self.elapsed_time_minutes)

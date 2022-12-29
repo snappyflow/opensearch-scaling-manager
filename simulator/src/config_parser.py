@@ -8,7 +8,9 @@ from cerberus import Validator
 import constants
 from cluster import Cluster
 from data_ingestion import DataIngestion, State
+from search import SearchState, SearchStat
 from search import Search
+from search import SearchDescription
 from errors import ValidationError
 
 
@@ -16,26 +18,44 @@ class Config:
     """
     Class to hold all the configurations provided in config file together
     """
+
     def __init__(
-        self,
-        stats: dict,
-        data_ingestion: dict[dict],
-        searches: list[dict],
-        simulation_frequency_minutes: int,
+            self,
+            stats: dict,
+            states: list[dict],
+            search_description: dict[dict],
+            simulation_frequency_minutes: int,
+            randomness_percentage: int,
     ):
         """
         Initialise the Config object
+        :param states: Different states over a period of time.
+        :param search_description: search description list specified in config file
+        :param randomness_percentage:
         :param stats: cluster stats specified in config file
-        :param data_ingestion: data ingestion mapping specified in config file
-        :param searches: searches list specified in config file
         :param simulation_frequency_minutes: interval between two simulated points
         """
         self.cluster = Cluster(**stats)
         self.simulation_frequency_minutes = simulation_frequency_minutes
-        all_states = [State(**state) for state in data_ingestion.get(constants.DATA_INGESTION_STATES)]
-        randomness_percentage = data_ingestion.get(constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE)
+        # state_object = State(90,"time",90,{},90)
+        all_states = [
+            State(position=state["position"],
+                  time_hh_mm_ss=state["time_hh_mm_ss"],
+                  ingestion_rate_gb_per_hr=state["ingestion_rate_gb_per_hr"])
+            for state in states
+        ]
         self.data_function = DataIngestion(all_states, randomness_percentage)
-        self.searches = [Search(**specs) for specs in searches]
+        self.search_description = {search_type:
+                                       SearchDescription(search_stat=SearchStat(**specs), search_type=search_type)
+                                   for search_type, specs in search_description.items()
+                                   }
+        self.searches = Search([
+            SearchState(position=state["position"],
+                        time_hh_mm_ss=state["time_hh_mm_ss"],
+                        searches=state["searches"])
+            for state in states
+        ])
+        # print(self.searches)
 
 
 def get_source_code_dir():
@@ -80,24 +100,31 @@ def parse_config(config_file_path: str):
         all_configs = yaml.safe_load(fp.read())
     except Exception as e:
         fp.close()
-        raise ValidationError('error reading config file - ' + str(e))
+        raise ValidationError("error reading config file - " + str(e))
 
     fp.close()
-
-    source_code_dir: Path = get_source_code_dir()
 
     # Perform Validation of the config file
     is_valid, errors = validate_config(all_configs)
 
     if not is_valid:
-        raise ValidationError('Error validating config file - ' + str(errors))
+        raise ValidationError("Error validating config file - " + str(errors))
 
     # Extract the configurations from the file to form Config object
     simulation_frequency_minutes = all_configs.pop(
         constants.SIMULATION_FREQUENCY_MINUTES
     )
-    data_ingestion = all_configs.pop(constants.DATA_INGESTION)
-    searches = all_configs.pop(constants.SEARCHES)
+    randomness_percentage = all_configs.pop(
+        constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE
+    )
+    states = all_configs.pop(constants.STATES)
+    search_description = all_configs.pop(constants.SEARCH_DESCRIPTION)
     stats = all_configs
-
-    return Config(stats, data_ingestion, searches, simulation_frequency_minutes)
+    config = Config(
+        stats,
+        states,
+        search_description,
+        simulation_frequency_minutes,
+        randomness_percentage,
+    )
+    return config
