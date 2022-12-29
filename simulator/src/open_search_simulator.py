@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import constants
 from config_parser import get_source_code_dir
 from cluster import Cluster
-from data_ingestion import State
+from data_ingestion import DataIngestion
 from search import SearchDescription, Search
 
 
@@ -20,7 +20,7 @@ class Simulator:
     def __init__(
             self,
             cluster: Cluster,
-            state: State,
+            data_ingestion: DataIngestion,
             search_description: list[SearchDescription],
             searches: Search,
             frequency_minutes: int,
@@ -36,7 +36,7 @@ class Simulator:
             represents the state after the elapsed minutes
         """
         self.cluster = cluster
-        self.state = state
+        self.data_ingestion = data_ingestion
         self.search_description = search_description
         self.elapsed_time_minutes = elapsed_time_minutes
         self.frequency_minutes = frequency_minutes
@@ -48,7 +48,7 @@ class Simulator:
             start_time_hh_mm_ss: str = '00_00_00'
     ):
         # first collect all data aggregation events
-        x, y = self.state.aggregate_data(start_time_hh_mm_ss, duration_minutes, self.frequency_minutes)
+        x, y = self.data_ingestion.aggregate_data(start_time_hh_mm_ss, duration_minutes, self.frequency_minutes)
         return x, y
 
     def cpu_used_for_ingestion(self, ingestion):
