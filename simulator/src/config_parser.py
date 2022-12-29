@@ -16,13 +16,14 @@ class Config:
     """
     Class to hold all the configurations provided in config file together
     """
+
     def __init__(
         self,
         stats: dict,
         states: list[dict],
         search_description: dict[dict],
         simulation_frequency_minutes: int,
-        randomness_percentage : int
+        randomness_percentage: int,
     ):
         """
         Initialise the Config object
@@ -33,10 +34,10 @@ class Config:
         """
         self.cluster = Cluster(**stats)
         self.simulation_frequency_minutes = simulation_frequency_minutes
-        #state_object = State(90,"time",90,{},90)
+        # state_object = State(90,"time",90,{},90)
         all_states = [State(**state) for state in states.pop(constants.STATES)]
         self.randomness_percentage = randomness_percentage
-        #self.states = State(all_states, randomness_percentage)
+        # self.states = State(all_states, randomness_percentage)
         self.states = all_states
         self.searches = [Search(**specs) for specs in search_description]
 
@@ -83,7 +84,7 @@ def parse_config(config_file_path: str):
         all_configs = yaml.safe_load(fp.read())
     except Exception as e:
         fp.close()
-        raise ValidationError('error reading config file - ' + str(e))
+        raise ValidationError("error reading config file - " + str(e))
 
     fp.close()
 
@@ -91,26 +92,34 @@ def parse_config(config_file_path: str):
     is_valid, errors = validate_config(all_configs)
 
     if not is_valid:
-        raise ValidationError('Error validating config file - ' + str(errors))
+        raise ValidationError("Error validating config file - " + str(errors))
 
     # Extract the configurations from the file to form Config object
     simulation_frequency_minutes = all_configs.pop(
         constants.SIMULATION_FREQUENCY_MINUTES
     )
-    randomness_percentage = all_configs.pop(constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE)
+    randomness_percentage = all_configs.pop(
+        constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE
+    )
     states = all_configs.pop(constants.STATES)
-    #states = all_configs.pop(constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE)
-    #states = states.append(states_random)
-    #states_random = all_configs.pop(constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE)
-    #print("randomness_percentage",states_random)
-    #states = all_configs.pop(constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE)
-    print(".........states",states)
+    # states = all_configs.pop(constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE)
+    # states = states.append(states_random)
+    # states_random = all_configs.pop(constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE)
+    # print("randomness_percentage",states_random)
+    # states = all_configs.pop(constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE)
+    print(".........states", states)
     search_description = all_configs.pop(constants.SEARCH_DESCRIPTION)
     stats = all_configs
-    print("...........stats",stats)
-    config = Config(stats, states, search_description, simulation_frequency_minutes,randomness_percentage)
-    print("stats",config.stats)
-    print("stats",config.states)
-    print("stats",config.search_description)
-    print("stats",config.simulation_frequency_minutes)
+    print("...........stats", stats)
+    config = Config(
+        stats,
+        states,
+        search_description,
+        simulation_frequency_minutes,
+        randomness_percentage,
+    )
+    print("stats", config.stats)
+    print("stats", config.states)
+    print("stats", config.search_description)
+    print("stats", config.simulation_frequency_minutes)
     return config

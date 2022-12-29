@@ -285,14 +285,14 @@ if __name__ == "__main__":
             memory_usage_percent=cluster_obj.memory_usage_percent,
             date_created=cluster_obj.date_time,
             status=cluster_obj.status,
-            total_nodes_count = cluster_obj.total_nodes_count,
-            active_shards_count = cluster_obj.active_shards,
-            active_primary_shards = cluster_obj.active_primary_shards,
-            initializing_shards_count = cluster_obj.initializing_shards,
-            unassigned_shards_count =cluster_obj.unassigned_shards,
-            relocating_shards_count = cluster_obj.relocating_shards,
-            master_eligible_nodes_count = cluster_obj.master_eligible_nodes_count,
-            active_data_nodes = cluster_obj.active_data_nodes
+            total_nodes_count=cluster_obj.total_nodes_count,
+            active_shards_count=cluster_obj.active_shards,
+            active_primary_shards=cluster_obj.active_primary_shards,
+            initializing_shards_count=cluster_obj.initializing_shards,
+            unassigned_shards_count=cluster_obj.unassigned_shards,
+            relocating_shards_count=cluster_obj.relocating_shards,
+            master_eligible_nodes_count=cluster_obj.master_eligible_nodes_count,
+            active_data_nodes=cluster_obj.active_data_nodes,
         )
         db.session.add(task)
     db.session.commit()

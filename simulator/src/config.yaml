@@ -54,6 +54,7 @@ states:
     complex: 10
 randomness_percentage: 5
 
+
 # Specify searches along with their type, probability and load inflected on the cluster.
 search_description:
   simple:

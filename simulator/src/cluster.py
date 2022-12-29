@@ -11,31 +11,30 @@ class Cluster:
     """
 
     def __init__(
-            self,
-            cluster_name: str,
-            cluster_hostname: str,
-            cluster_ip_address: str,
-            node_machine_type_identifier: str,
-            total_nodes_count: int,
-            active_data_nodes: int,
-            master_eligible_nodes_count: int,
-            index_count: int,
-            index_roll_over_size_gb: int,
-            index_clean_up_age_days: int,
-            primary_shards_per_index: int,
-            replica_shards_per_index: int,
-
-            status: str = "green",
-            cpu_usage_percent: float = 0,
-            memory_usage_percent: float = 0,
-            disk_usage_percent: float = 0,
-            heap_usage_percent: float = 0,
-            total_shard_count: int = 0,
-            initializing_shards_count: int = 0,
-            relocating_shards_count: int = 0,
-            unassigned_shards_count: int = 0,
-            active_shards_count: int = 0,
-            active_primary_shards: int = 0,
+        self,
+        cluster_name: str,
+        cluster_hostname: str,
+        cluster_ip_address: str,
+        node_machine_type_identifier: str,
+        total_nodes_count: int,
+        active_data_nodes: int,
+        master_eligible_nodes_count: int,
+        index_count: int,
+        index_roll_over_size_gb: int,
+        index_clean_up_age_days: int,
+        primary_shards_per_index: int,
+        replica_shards_per_index: int,
+        status: str = "green",
+        cpu_usage_percent: float = 0,
+        memory_usage_percent: float = 0,
+        disk_usage_percent: float = 0,
+        heap_usage_percent: float = 0,
+        total_shard_count: int = 0,
+        initializing_shards_count: int = 0,
+        relocating_shards_count: int = 0,
+        unassigned_shards_count: int = 0,
+        active_shards_count: int = 0,
+        active_primary_shards: int = 0,
     ):
         """
         Initialize the cluster object
@@ -78,7 +77,9 @@ class Cluster:
         self.index_roll_over_size_gb = index_roll_over_size_gb
         self.index_clean_up_age_in_minutes = index_clean_up_age_days
         self.total_shard_count = total_shard_count
-        self.total_shards_per_index = primary_shards_per_index * (1 + replica_shards_per_index)
+        self.total_shards_per_index = primary_shards_per_index * (
+            1 + replica_shards_per_index
+        )
         self.initializing_shards = initializing_shards_count
         self.relocating_shards = relocating_shards_count
         self.unassigned_shards = unassigned_shards_count
@@ -86,7 +87,6 @@ class Cluster:
         self.date_time = datetime.now()
         self._ingestion_rate = 0
         self.active_primary_shards = active_primary_shards
-        
 
     # TODO: Define methods for controlling cluster behaviour,
     #  node addition, removal etc

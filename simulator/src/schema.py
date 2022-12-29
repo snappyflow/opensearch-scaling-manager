@@ -76,13 +76,3 @@
 #         "heap_load_percent": {"required": True, "type": "number"},
 #     },
 # },
-
-#     "schema": {
-#         "complex": {"required": False, "type": "dict",
-#         "schema":{
-#             "cpu_load_percent": {"required": True, "type": "number"},
-#             "memory_load_percent": {"required": True, "type": "number"},
-#             "heap_load_percent": {"required": True, "type": "number"},
-#         },
-#     },
-# },
