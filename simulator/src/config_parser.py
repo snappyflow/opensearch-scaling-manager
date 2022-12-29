@@ -8,7 +8,7 @@ from cerberus import Validator
 import constants
 from cluster import Cluster
 from data_ingestion import DataIngestion, State
-from search import SearchState
+from search import SearchState, SearchStat
 from search import Search
 from search import SearchDescription
 from errors import ValidationError
@@ -20,12 +20,12 @@ class Config:
     """
 
     def __init__(
-        self,
-        stats: dict,
-        states: list[dict],
-        search_description: dict[dict],
-        simulation_frequency_minutes: int,
-        randomness_percentage: int,
+            self,
+            stats: dict,
+            states: list[dict],
+            search_description: dict[dict],
+            simulation_frequency_minutes: int,
+            randomness_percentage: int,
     ):
         """
         Initialise the Config object
@@ -45,18 +45,17 @@ class Config:
             for state in states
         ]
         self.data_function = DataIngestion(all_states, randomness_percentage)
-        self.search_description = [
-            SearchDescription(**specs, search_type=search_type)
-            for search_type, specs in search_description.items()
-        ]
+        self.search_description = {search_type:
+                                       SearchDescription(search_stat=SearchStat(**specs), search_type=search_type)
+                                   for search_type, specs in search_description.items()
+                                   }
         self.searches = Search([
             SearchState(position=state["position"],
                         time_hh_mm_ss=state["time_hh_mm_ss"],
-                        search_type=search_type,
-                        count=search_count)
+                        searches=state["searches"])
             for state in states
-            for search_type, search_count in state["searches"].items()
         ])
+        # print(self.searches)
 
 
 def get_source_code_dir():
