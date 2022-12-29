@@ -7,8 +7,10 @@ from cerberus import Validator
 
 import constants
 from cluster import Cluster
-from data_ingestion import State
+from data_ingestion import DataIngestion, State
+from search import SearchState
 from search import Search
+from search import SearchDescription
 from errors import ValidationError
 
 
@@ -27,19 +29,34 @@ class Config:
     ):
         """
         Initialise the Config object
+        :param states: Different states over a period of time.
+        :param search_description: search description list specified in config file
+        :param randomness_percentage:
         :param stats: cluster stats specified in config file
-        :param data_ingestion: data ingestion mapping specified in config file
-        :param searches: searches list specified in config file
         :param simulation_frequency_minutes: interval between two simulated points
         """
         self.cluster = Cluster(**stats)
         self.simulation_frequency_minutes = simulation_frequency_minutes
         # state_object = State(90,"time",90,{},90)
-        all_states = [State(**state) for state in states.pop(constants.STATES)]
-        self.randomness_percentage = randomness_percentage
-        # self.states = State(all_states, randomness_percentage)
-        self.states = all_states
-        self.searches = [Search(**specs) for specs in search_description]
+        all_states = [
+            State(position=state["position"],
+                  time_hh_mm_ss=state["time_hh_mm_ss"],
+                  ingestion_rate_gb_per_hr=state["ingestion_rate_gb_per_hr"])
+            for state in states
+        ]
+        self.data_function = DataIngestion(all_states, randomness_percentage)
+        self.search_description = [
+            SearchDescription(**specs, search_type=search_type)
+            for search_type, specs in search_description.items()
+        ]
+        self.searches = Search([
+            SearchState(position=state["position"],
+                        time_hh_mm_ss=state["time_hh_mm_ss"],
+                        search_type=search_type,
+                        count=search_count)
+            for state in states
+            for search_type, search_count in state["searches"].items()
+        ])
 
 
 def get_source_code_dir():
@@ -102,15 +119,8 @@ def parse_config(config_file_path: str):
         constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE
     )
     states = all_configs.pop(constants.STATES)
-    # states = all_configs.pop(constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE)
-    # states = states.append(states_random)
-    # states_random = all_configs.pop(constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE)
-    # print("randomness_percentage",states_random)
-    # states = all_configs.pop(constants.DATA_INGESTION_RANDOMNESS_PERCENTAGE)
-    print(".........states", states)
     search_description = all_configs.pop(constants.SEARCH_DESCRIPTION)
     stats = all_configs
-    print("...........stats", stats)
     config = Config(
         stats,
         states,
@@ -118,8 +128,4 @@ def parse_config(config_file_path: str):
         simulation_frequency_minutes,
         randomness_percentage,
     )
-    print("stats", config.stats)
-    print("stats", config.states)
-    print("stats", config.search_description)
-    print("stats", config.simulation_frequency_minutes)
     return config

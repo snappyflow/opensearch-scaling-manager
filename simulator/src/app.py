@@ -271,6 +271,7 @@ if __name__ == "__main__":
     sim = Simulator(
         configs.cluster,
         configs.data_function,
+        configs.search_description,
         configs.searches,
         configs.simulation_frequency_minutes,
     )

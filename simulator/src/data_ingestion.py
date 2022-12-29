@@ -4,17 +4,23 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 
 class State:
     def __init__(
-        self,
-        position: int,
-        time_hh_mm_ss: str,
-        ingestion_rate_gb_per_hr: int,
-        searches: dict,
-        randomness_percentage: int,
+            self,
+            position: int,
+            time_hh_mm_ss: str,
+            ingestion_rate_gb_per_hr: int
     ):
         self.position = position
         self.time_hh_mm_ss = time_hh_mm_ss
         self.ingestion_rate_gb_per_hr = ingestion_rate_gb_per_hr
-        self.searches = searches
+
+
+class DataIngestion:
+    def __init__(
+            self,
+            states: list[State],
+            randomness_percentage: int
+    ):
+        self.states = states
         self.randomness_percentage = randomness_percentage
 
     def random_aggregation_points(self, duration_minutes: int, frequency_minutes: int):
@@ -26,7 +32,7 @@ class State:
         return x, random_set
 
     def data_aggregation_points(
-        self, start_time_hh_mm_ss: str, duration_minutes: int, frequency_minutes: int
+            self, start_time_hh_mm_ss: str, duration_minutes: int, frequency_minutes: int
     ):
         """
         Produce cumulative data points of all events and return an array of resultant aggregation
@@ -68,7 +74,7 @@ class State:
         return x, y
 
     def aggregate_data(
-        self, start_time_hh_mm_ss: str, duration_minutes: int, frequency_minutes: int
+            self, start_time_hh_mm_ss: str, duration_minutes: int, frequency_minutes: int
     ):
         x, y1 = self.data_aggregation_points(
             start_time_hh_mm_ss, duration_minutes, frequency_minutes
