@@ -27,10 +27,6 @@ class SearchDescription:
         print(self.search_stat)
         print(self.search_type)
 
-    # def __getitem__(self, item):
-    #     if self.search_type == item:
-
-
 
 class SearchState:
     def __init__(
@@ -56,14 +52,6 @@ class Search:
             print(search.time_hh_mm_ss)
             print(search.position)
             print(search.searches)
-
-    # def random_aggregation_points(self, duration_minutes: int, frequency_minutes: int):
-    #     print("aggregating random patterns")
-    #     # positions to inter/extrapolate
-    #     intervals = int(duration_minutes / frequency_minutes)
-    #     random_set = np.random.randint(0, self.randomness_percentage, size=intervals)
-    #     x = np.linspace(0, duration_minutes, intervals)
-    #     return x, random_set
 
     def data_aggregation_points(
             self, start_time_hh_mm_ss: str, duration_minutes: int, frequency_minutes: int
