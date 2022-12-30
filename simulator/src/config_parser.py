@@ -54,7 +54,6 @@ class Config:
                         searches=state["searches"])
             for state in states
         ])
-        
 
 def get_source_code_dir():
     """
@@ -80,7 +79,6 @@ def validate_config(all_configs: dict):
     # validating config file against the schema
     validator = Validator(schema)
     return validator.validate(all_configs, schema), validator.errors
-
 
 def parse_config(config_file_path: str):
     """
