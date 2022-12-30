@@ -24,8 +24,6 @@ class SearchDescription:
     ):
         self.search_type = search_type
         self.search_stat = search_stat
-        print(self.search_stat)
-        print(self.search_type)
 
 
 class SearchState:
