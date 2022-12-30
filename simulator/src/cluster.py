@@ -87,6 +87,9 @@ class Cluster:
         self.active_shards = active_shards_count
         self.date_time = datetime.now()
         self._ingestion_rate = 0
+        self._simple_query_rate = 0
+        self._medium_query_rate = 0
+        self._complex_query_rate = 0
         self.active_primary_shards = active_primary_shards
 
     # TODO: Define methods for controlling cluster behaviour,
@@ -97,6 +100,6 @@ class Cluster:
         # Todo - simulate effect on shards
 
     def remove_nodes(self, nodes=1):
-        self.total_nodes_count += nodes
+        self.total_nodes_count -= nodes
         self.status = constants.CLUSTER_STATE_YELLOW
         # Todo - simulate effect on shards

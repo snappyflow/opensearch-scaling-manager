@@ -101,7 +101,7 @@ class Search:
             s = InterpolatedUnivariateSpline(
                 time_of_day, search_count[search_type], k=order
             )
-            y[search_type] = [math.ceil(i) for i in s(x)]
+            y[search_type] = [max(math.ceil(i),0) for i in s(x)]
         return x, y
 
     def aggregate_data(
