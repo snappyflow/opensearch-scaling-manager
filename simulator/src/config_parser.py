@@ -62,7 +62,6 @@ def get_source_code_dir():
     """
     return Path(__file__).parent.resolve()
 
-
 def validate_config(all_configs: dict):
     """
     Validate dictionary of configs (read from config file) against the defined schema
