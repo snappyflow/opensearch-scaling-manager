@@ -38,6 +38,8 @@ class Cluster:
     ):
         """
         Initialize the cluster object
+        :param primary_shards_per_index:
+        :param replica_shards_per_index:
         :param cluster_name: name of the cluster
         :param cluster_hostname: name of the cluster host
         :param cluster_ip_address: ip address of the cluster
@@ -46,7 +48,6 @@ class Cluster:
         :param active_data_nodes: total number of data nodes of the cluster
         :param master_eligible_nodes_count: total number of master eligible nodes of the cluster
         :param index_count: total number of indexes in the cluster
-        :param total_shards_per_index: maximum number of shards per index
         :param index_roll_over_size_gb: size in gb after which the index will be rolled over
         :param index_clean_up_age_days: time in minutes after which the index will be cleaned up
         :param status: status of the cluster from "green", "yellow" or "red"
