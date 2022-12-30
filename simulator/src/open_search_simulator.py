@@ -97,6 +97,9 @@ class Simulator:
             )
         for index, instantaneous_data_ingestion_rate in enumerate(data_y):
             self.cluster._ingestion_rate = instantaneous_data_ingestion_rate
+            self.cluster._simple_query_rate = data_y1["simple"][index]
+            self.cluster._medium_query_rate = data_y1["medium"][index]
+            self.cluster._complex_query_rate = data_y1["complex"][index]
             self.cluster.cpu_usage_percent = self.cpu_used_for_ingestion(instantaneous_data_ingestion_rate, data_y1,
                                                                          index)
             self.cluster.memory_usage_percent = self.memory_used_for_ingestion(instantaneous_data_ingestion_rate,
