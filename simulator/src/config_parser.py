@@ -37,7 +37,6 @@ class Config:
         """
         self.cluster = Cluster(**stats)
         self.simulation_frequency_minutes = simulation_frequency_minutes
-        # state_object = State(90,"time",90,{},90)
         all_states = [
             State(position=state["position"],
                   time_hh_mm_ss=state["time_hh_mm_ss"],
@@ -55,8 +54,6 @@ class Config:
                         searches=state["searches"])
             for state in states
         ])
-        # print(self.searches)
-
 
 def get_source_code_dir():
     """
@@ -64,7 +61,6 @@ def get_source_code_dir():
     :return: parent directory of simulator code
     """
     return Path(__file__).parent.resolve()
-
 
 def validate_config(all_configs: dict):
     """
@@ -82,7 +78,6 @@ def validate_config(all_configs: dict):
     # validating config file against the schema
     validator = Validator(schema)
     return validator.validate(all_configs, schema), validator.errors
-
 
 def parse_config(config_file_path: str):
     """
