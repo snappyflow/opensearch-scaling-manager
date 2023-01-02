@@ -219,6 +219,7 @@ def add_node():
         sim = Simulator(
             configs.cluster,
             configs.data_function,
+            configs.search_description,
             configs.searches,
             configs.simulation_frequency_minutes,
         )
