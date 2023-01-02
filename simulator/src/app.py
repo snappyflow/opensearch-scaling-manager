@@ -287,28 +287,6 @@ def remove_node():
     try:
         # get the number of added nodes from request body
         nodes = int(request.json['nodes'])
-        sim = Simulator(configs.cluster, configs.data_function, configs.searches, configs.simulation_frequency_minutes)
-        sim.cluster.remove_nodes(nodes)
-        cluster_objects = sim.run(24 * 60)
-        expiry_time = overwrite_after_node_count_change(cluster_objects)
-    except BadRequest as err:
-        return Response(json.dumps("expected key 'nodes'"), status=404)
-    return jsonify({
-        'expiry': expiry_time,
-        'nodes': sim.cluster.total_nodes_count
-    })
-
-
-@app.route("/provision/remnode", methods=["POST"])
-def remove_node():
-    """
-    Endpoint to simulate that a node is being removed from the cluster
-    Expects request body to specify the number of nodes added
-    :return: total number of resultant nodes and duration of cluster state as yellow
-    """
-    try:
-        # get the number of added nodes from request body
-        nodes = int(request.json['nodes'])
         sim = Simulator(configs.cluster, 
                         configs.data_function, 
                         configs.search_description, 
