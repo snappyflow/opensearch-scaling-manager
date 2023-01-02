@@ -194,7 +194,8 @@ func (r Rule) GetMetrics() ([]byte, []byte) {
 		clusterMetric, jsonErr = json.MarshalIndent(clusterStats, "", "\t")
 		log.Debug.Println(clusterStats)
 		if jsonErr != nil {
-			log.Fatal.Println("Error converting struct to json: ", jsonErr)
+			log.Panic.Println("Error converting struct to json: ", jsonErr)
+			panic(jsonErr)
 		}
 	} else if r.Stat == "COUNT" || r.Stat == "TERM" {
 		clusterCount, err = cluster.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit)
@@ -204,7 +205,8 @@ func (r Rule) GetMetrics() ([]byte, []byte) {
 		clusterMetric, jsonErr = json.MarshalIndent(clusterCount, "", "\t")
 		log.Debug.Println(clusterCount)
 		if jsonErr != nil {
-			log.Fatal.Println("Error converting struct to json: ", jsonErr)
+			log.Panic.Println("Error converting struct to json: ", jsonErr)
+			panic(jsonErr)
 		}
 	}
 
@@ -226,7 +228,8 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 		var clusterStats cluster.MetricStats
 		err := json.Unmarshal(clusterMetric, &clusterStats)
 		if err != nil {
-			log.Fatal.Println("Error converting struct to json: ", err)
+			log.Panic.Println("Error converting struct to json: ", err)
+			panic(err)
 		}
 		if taskOperation == "scale_up" && clusterStats.Avg > r.Limit ||
 			taskOperation == "scale_down" && clusterStats.Avg < r.Limit {
@@ -238,7 +241,8 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 		var clusterStats cluster.MetricViolatedCount
 		err := json.Unmarshal(clusterMetric, &clusterStats)
 		if err != nil {
-			log.Fatal.Println("Error converting struct to json: ", err)
+			log.Panic.Println("Error converting struct to json: ", err)
+			panic(err)
 		}
 		if r.Stat == "COUNT" {
 			if taskOperation == "scale_up" && clusterStats.ViolatedCount > r.Occurences ||

@@ -71,14 +71,16 @@ type ConfigStruct struct {
 func GetConfig(path string) (ConfigStruct, error) {
 	yamlConfig, err := os.Open(path)
 	if err != nil {
-		log.Fatal.Println("Unable to read the config file: ", err)
+		log.Panic.Println("Unable to read the config file: ", err)
+		panic(err)
 	}
 	defer yamlConfig.Close()
 	configByte, _ := ioutil.ReadAll(yamlConfig)
 	var config = new(ConfigStruct)
 	err = yaml.Unmarshal(configByte, &config)
 	if err != nil {
-		log.Fatal.Println("Unmarshal: ", err)
+		log.Panic.Println("Unmarshal: ", err)
+		panic(err)
 	}
 	err = validation(*config)
 	return *config, err
