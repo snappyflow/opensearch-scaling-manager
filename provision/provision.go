@@ -164,16 +164,17 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 		log.Info.Println("Waiting for the cluster to become healthy")
 		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		CheckClusterHealth(state)
-		state.LastProvisionedTime = time.Now()
-		state.ProvisionStartTime = time.Time{}
-		state.PreviousState = state.CurrentState
-		state.CurrentState = "normal"
-		state.RuleTriggered = ""
-		state.RemainingNodes = state.RemainingNodes - 1
-		state.UpdateState()
-		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
-		log.Info.Println("State set back to normal")
 	}
+	// Setting the state back to 'normal' irrespective of successful or failed provisioning to continue further
+	state.LastProvisionedTime = time.Now()
+	state.ProvisionStartTime = time.Time{}
+	state.PreviousState = state.CurrentState
+	state.CurrentState = "normal"
+	state.RuleTriggered = ""
+	state.RemainingNodes = state.RemainingNodes - 1
+	state.UpdateState()
+	log.Info.Println("State set back to normal")
+
 	return true
 }
 
@@ -227,15 +228,17 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 		CheckClusterHealth(state)
 		log.Info.Println("Shutdown the node")
 		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
-		state.LastProvisionedTime = time.Now()
-		state.ProvisionStartTime = time.Time{}
-		state.RuleTriggered = ""
-		state.RemainingNodes = state.RemainingNodes - 1
-		state.PreviousState = state.CurrentState
-		state.CurrentState = "normal"
-		state.UpdateState()
-		log.Info.Println("State set back to normal")
 	}
+	// Setting the state back to 'normal' irrespective of successful or failed provisioning to continue further
+	state.LastProvisionedTime = time.Now()
+	state.ProvisionStartTime = time.Time{}
+	state.RuleTriggered = ""
+	state.RemainingNodes = state.RemainingNodes - 1
+	state.PreviousState = state.CurrentState
+	state.CurrentState = "normal"
+	state.UpdateState()
+	log.Info.Println("State set back to normal")
+
 	return true
 }
 
