@@ -35,14 +35,6 @@ def test_validate_config_without_searches():
         assert errors == {}
 
 
-# def test_validate_config_without_states():
-#     """Validates if config has without states field in it."""
-#     with open(os.path.join(test_path,"config_3_P.yaml"),"r") as file:
-#         is_valid,errors = validate_config(yaml.safe_load(file))
-#         assert is_valid == True
-#         assert errors == {}
-
-
 def test_validate_config_missing_parameter():
     """Validates if config has missing parameters in it"""
     with open(os.path.join(test_path, "config_4_F.yaml"), "r") as file:
