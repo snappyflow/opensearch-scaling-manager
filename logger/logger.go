@@ -24,6 +24,7 @@ var (
 	Error *log.Logger
 	Debug *log.Logger
 	Fatal *log.Logger
+	Panic *log.Logger
 )
 
 type LOG struct {
@@ -34,6 +35,7 @@ type LOG struct {
 	Error  *log.Logger
 	Debug  *log.Logger
 	Fatal  *log.Logger
+	Panic *log.Logger
 }
 
 var k = koanf.New(".")
@@ -49,6 +51,7 @@ func (l *LOG) Init(module string) {
 		ERROR   = fmt.Sprintf("%5s%15s ", "ERROR", module)
 		DEBUG   = fmt.Sprintf("%5s%15s ", "DEBUG", module)
 		FATAL   = fmt.Sprintf("%5s%15s ", "FATAL", module)
+		PANIC   = fmt.Sprintf("%5s%15s ", "PANIC", module)
 	)
 
 	if err := k.Load(file.Provider("logger/log_config.json"), json.Parser()); err != nil {
@@ -81,7 +84,8 @@ func (l *LOG) Init(module string) {
 	warningHandle := io.MultiWriter(os.Stdout, logger)
 	errorHandle := io.MultiWriter(os.Stderr, logger)
 	debugHandle := io.MultiWriter(os.Stdout, logger)
-	fatalHandle := io.MultiWriter(os.Stdout, logger)
+	fatalHandle := io.MultiWriter(os.Stderr, logger)
+	panicHandle := io.MultiWriter(os.Stderr, logger)
 
 	l.Trace = log.New(ioutil.Discard, "", log.Ldate|log.Ltime|log.Lshortfile)
 	l.Debug = log.New(ioutil.Discard, "", log.Ldate|log.Ltime|log.Lshortfile)
@@ -89,6 +93,7 @@ func (l *LOG) Init(module string) {
 	l.Warn = log.New(ioutil.Discard, "", log.Ldate|log.Ltime|log.Lshortfile)
 	l.Error = log.New(ioutil.Discard, ERROR, log.Ldate|log.Ltime|log.Lshortfile)
 	l.Fatal = log.New(ioutil.Discard, FATAL, log.Ldate|log.Ltime|log.Lshortfile)
+	l.Panic = log.New(ioutil.Discard, PANIC, log.Ldate|log.Ltime|log.Lshortfile)
 
 	//setup loging based on level
 	switch level {
@@ -99,6 +104,7 @@ func (l *LOG) Init(module string) {
 		l.Warn = log.New(warningHandle, WARNING, log.Ldate|log.Ltime|log.Lshortfile)
 		l.Error = log.New(errorHandle, ERROR, log.Ldate|log.Ltime|log.Lshortfile)
 		l.Fatal = log.New(fatalHandle, FATAL, log.Ldate|log.Ltime|log.Lshortfile)
+		l.Panic = log.New(panicHandle, PANIC, log.Ldate|log.Ltime|log.Lshortfile)
 	case "TRACE":
 		l.Trace = log.New(traceHandle, TRACE, log.Ldate|log.Ltime|log.Lshortfile)
 		fallthrough
@@ -113,7 +119,11 @@ func (l *LOG) Init(module string) {
 		fallthrough
 	case "ERROR":
 		l.Error = log.New(errorHandle, ERROR, log.Ldate|log.Ltime|log.Lshortfile)
+		fallthrough
 	case "FATAL":
 		l.Fatal = log.New(fatalHandle, FATAL, log.Ldate|log.Ltime|log.Lshortfile)
+		fallthrough
+	case "PANIC":
+		l.Panic = log.New(panicHandle, PANIC, log.Ldate|log.Ltime|log.Lshortfile)
 	}
 }
