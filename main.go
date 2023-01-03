@@ -29,8 +29,9 @@ func main() {
 	// The polling interval is set to 5 minutes and can be configured.
 	ticker := time.Tick(time.Duration(config.PollingInterval) * time.Second)
 	for range ticker {
+		state.GetCurrentState()
 		// The recommendation and provisioning should only happen on master node
-		if cluster.CheckIfMaster() {
+		if cluster.CheckIfMaster() && state.CurrentState == "normal" {
 			// This function is responsible for fetching the metrics and pushing it to the index.
 			// In starting we will call simulator to provide this details with current timestamp.
 			// fetch.FetchMetrics()
