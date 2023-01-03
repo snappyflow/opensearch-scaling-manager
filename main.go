@@ -24,17 +24,26 @@ func main() {
 	// The polling interval is set to 5 minutes and can be configured.
 	ticker := time.Tick(time.Duration(config.PollingInterval) * time.Second)
 	for range ticker {
-		// This function is responsible for fetching the metrics and pushing it to the index.
-		// In starting we will call simulator to provide this details with current timestamp.
-		// fetch.FetchMetrics()
-		// This function will be responsible for parsing the config file and fill in task_details struct.
-		var task = new(task.TaskDetails)
-		configStruct := config.GetConfig("config.yaml")
-		task.Tasks = configStruct.TaskDetails
-		// This function is responsible for evaluating the task and recommend.
-		recommendation_list := task.EvaluateTask()
-		// This function is responsible for getting the recommendation and provision.
-		provision.GetRecommendation(state, recommendation_list)
+		state.GetCurrentState()
+		// The recommendation and provisioning should only happen on master node
+		if cluster.CheckIfMaster() && state.CurrentState == "normal" {
+			// This function is responsible for fetching the metrics and pushing it to the index.
+			// In starting we will call simulator to provide this details with current timestamp.
+			// fetch.FetchMetrics()
+			// This function will be responsible for parsing the config file and fill in task_details struct.
+			var task = new(task.TaskDetails)
+			configStruct, err := config.GetConfig("config.yaml")
+			if err != nil {
+				log.Error.Println("The recommendation can not be made as there is an error in the validation of config file.")
+				log.Error.Println(err.Error())
+				continue
+			}
+			task.Tasks = configStruct.TaskDetails
+			// This function is responsible for evaluating the task and recommend.
+			recommendationList := task.EvaluateTask()
+			// This function is responsible for getting the recommendation and provision.
+			provision.GetRecommendation(state, recommendationList)
+		}
 	}
 }
 
