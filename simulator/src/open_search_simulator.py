@@ -76,6 +76,14 @@ class Simulator:
             memory_util += search_factor
         return min(memory_util, 100)
 
+    def heap_used_for_ingestion(self, ingestion, search_count, index):
+        heap_util = ingestion / self.cluster.total_nodes_count * random.randrange(5, 8) / 200 * 100
+        for search_type, count_array in search_count.items():
+            heap_load_percent = self.search_description[search_type].search_stat.memory_load_percent / 100
+            search_factor = count_array[index] * heap_load_percent
+            heap_util += search_factor
+        return min(heap_util, 100)
+
     def cluster_state_for_ingestion(self, ingestion):
         if ingestion < constants.HIGH_INGESTION_RATE_GB_PER_HOUR:
             return random.choice([constants.CLUSTER_STATE_GREEN] * 20 + [constants.CLUSTER_STATE_YELLOW])
@@ -103,6 +111,8 @@ class Simulator:
             self.cluster.cpu_usage_percent = self.cpu_used_for_ingestion(instantaneous_data_ingestion_rate, data_y1,
                                                                          index)
             self.cluster.memory_usage_percent = self.memory_used_for_ingestion(instantaneous_data_ingestion_rate,
+                                                                               data_y1, index)
+            self.cluster.heap_usage_percent = self.heap_used_for_ingestion(instantaneous_data_ingestion_rate,
                                                                                data_y1, index)
             self.cluster.status = self.cluster_state_for_ingestion(instantaneous_data_ingestion_rate)
             # Todo: simulate effect on remaining cluster parameters 

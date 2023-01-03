@@ -24,10 +24,12 @@ HIGH_INGESTION_RATE_GB_PER_HOUR = 60
 CLUSTER_STATE = 'status'
 CPU_USAGE_PERCENT = 'cpu_usage_percent'
 MEMORY_USAGE_PERCENT = 'memory_usage_percent'
+HEAP_USAGE_PERCENT = 'heap_usage_percent'
 TOTAL_NODES_COUNT = 'total_nodes_count'
 STAT_REQUEST = {
     'cpu': CPU_USAGE_PERCENT,
     'mem': MEMORY_USAGE_PERCENT,
+    'heap': HEAP_USAGE_PERCENT,
     'status': CLUSTER_STATE,
     'nodes': TOTAL_NODES_COUNT
 }  # Todo : Shrinidhi/Manoj Add remaining stats that will be queried from the recommendation engine

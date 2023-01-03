@@ -27,6 +27,7 @@ class DataModel(db.Model):
     status = db.Column(db.String(200))
     cpu_usage_percent = db.Column(db.Float, default=0)
     memory_usage_percent = db.Column(db.Float, default=0)
+    heap_usage_percent = db.Column(db.Float, default=0)
     shards_count = db.Column(db.Integer, default=0)
     total_nodes_count = db.Column(db.Integer, default=0)
     active_shards_count = db.Column(db.Integer, default=0)
@@ -62,6 +63,7 @@ def cluster_db_object(cluster):
     return DataModel(
         cpu_usage_percent=cluster.cpu_usage_percent,
         memory_usage_percent=cluster.memory_usage_percent,
+        heap_usage_percent=cluster.heap_usage_percent,
         date_created=cluster.date_time,
         status=cluster.status,
         total_nodes_count=cluster.total_nodes_count,
