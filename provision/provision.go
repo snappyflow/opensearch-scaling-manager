@@ -5,6 +5,7 @@ package provision
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"scaling_manager/cluster"
 	"scaling_manager/config"
@@ -289,7 +290,7 @@ func CheckClusterHealth(state *State) {
 
 func SimulateSharRebalancing(operation string, numNode int) {
 	// Add logic to call the simulator's end point
-	byteStr := fmt.Sprintf("{'nodes':%d}", numNode)
+	byteStr := fmt.Sprintf("{\"nodes\":%d}", numNode)
 	var jsonStr = []byte(byteStr)
 	var urlLink string
 	if operation == "scaleOut" {
@@ -308,6 +309,13 @@ func SimulateSharRebalancing(operation string, numNode int) {
 	if err != nil {
 		log.Panic.Println(err)
 		panic(err)
+	}
+
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 404 {
+			response, _ := ioutil.ReadAll(resp.Body)
+			log.Error.Println(string(response))
+		}
 	}
 
 	defer resp.Body.Close()
