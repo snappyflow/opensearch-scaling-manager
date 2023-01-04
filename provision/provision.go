@@ -160,7 +160,7 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 	}
 	// Check cluster status after the configuration
 	if state.CurrentState == "provisioning_scaleup_completed" {
-		SimulateSharRebalancing()
+		SimulateSharRebalancing("scaleOut", state.NumNodes)
 		log.Info.Println("Waiting for the cluster to become healthy")
 		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		CheckClusterHealth(state)
@@ -223,7 +223,7 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 	// Wait for cluster to be in stable state(Shard rebalance)
 	// Shut down the node
 	if state.CurrentState == "provisioning_scaledown_completed" {
-		SimulateSharRebalancing()
+		SimulateSharRebalancing("scaleIn", state.NumNodes)
 		log.Info.Println("Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
 		CheckClusterHealth(state)
 		log.Info.Println("Shutdown the node")
@@ -287,10 +287,17 @@ func CheckClusterHealth(state *State) {
 	// the recommendation.
 }
 
-func SimulateSharRebalancing() {
+func SimulateSharRebalancing(operation string, numNode int) {
 	// Add logic to call the simulator's end point
-	var jsonStr = []byte(`{"nodes":1}`)
-	urlLink := fmt.Sprintf("http://localhost:5000/provision/addnode")
+	byteStr := fmt.Sprintf("{'nodes':%d}", numNode)
+	var jsonStr = []byte(byteStr)
+	var urlLink string
+	if operation == "scaleOut" {
+		urlLink = fmt.Sprintf("http://localhost:5000/provision/addnode")
+	} else {
+		urlLink = fmt.Sprintf("http://localhost:5000/provision/remnode")
+	}
+
 	req, err := http.NewRequest("POST", urlLink, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
 	client := http.Client{
