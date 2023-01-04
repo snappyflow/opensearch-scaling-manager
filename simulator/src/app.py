@@ -74,7 +74,8 @@ def cluster_db_object(cluster):
         unassigned_shards_count=cluster.unassigned_shards,
         relocating_shards_count=cluster.relocating_shards,
         master_eligible_nodes_count=cluster.master_eligible_nodes_count,
-        active_data_nodes=cluster.active_data_nodes
+        active_data_nodes=cluster.active_data_nodes,
+        disk_usage_percent = cluster_obj.disk_usage_percent
     )
 
 

@@ -23,8 +23,8 @@ HIGH_INGESTION_RATE_GB_PER_HOUR = 60
 # mapping inputs for API endpoints
 CLUSTER_STATE = 'status'
 CPU_USAGE_PERCENT = 'cpu_usage_percent'
-DISK_USAGE_PERCENT = 'disk_usage_percent'
 MEMORY_USAGE_PERCENT = 'memory_usage_percent'
+DISK_USAGE_PERCENT = 'disk_usage_percent'
 HEAP_USAGE_PERCENT = 'heap_usage_percent'
 TOTAL_NODES_COUNT = 'total_nodes_count'
 STAT_REQUEST = {
@@ -34,7 +34,7 @@ STAT_REQUEST = {
     'status': CLUSTER_STATE,
     'nodes': TOTAL_NODES_COUNT,
     'disk': DISK_USAGE_PERCENT
-}  
+}  # Todo : Shrinidhi/Manoj Add remaining stats that will be queried from the recommendation engine
 
 CLUSTER_STATE = "status"
 TOTAL_NUM_NODES = "total_nodes_count"

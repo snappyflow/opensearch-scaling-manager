@@ -1,5 +1,7 @@
 from datetime import datetime
-
+from node import Node
+from index import Index
+import random
 import constants
 
 
@@ -28,6 +30,7 @@ class Cluster:
         cpu_usage_percent: float = 0,
         memory_usage_percent: float = 0,
         disk_usage_percent: float = 0,
+        total_disk_size_gb: int = 0,
         heap_usage_percent: float = 0,
         total_shard_count: int = 0,
         initializing_shards_count: int = 0,
@@ -71,6 +74,7 @@ class Cluster:
         self.memory_usage_percent = memory_usage_percent
         self.disk_usage_percent = disk_usage_percent
         self.total_disk_size_gb = total_disk_size_gb
+        self.cluster_disk_size_used = 0
         self.heap_usage_percent = heap_usage_percent
         self.total_nodes_count = total_nodes_count
         self.active_data_nodes = active_data_nodes
@@ -78,8 +82,10 @@ class Cluster:
         self.index_count = index_count
         self.index_roll_over_size_gb = index_roll_over_size_gb
         self.index_clean_up_age_in_minutes = index_clean_up_age_days
-        self.replica_shard_count = replica_shard_count
         self.total_shard_count = total_shard_count
+        self.primary_shards_per_index = primary_shards_per_index
+        self.replica_shards_per_index = replica_shards_per_index
+        self.rolled_over_index_id = -1
         self.total_shards_per_index = primary_shards_per_index * (
             1 + replica_shards_per_index
         )
@@ -93,6 +99,15 @@ class Cluster:
         self._medium_query_rate = 0
         self._complex_query_rate = 0
         self.active_primary_shards = active_primary_shards
+        self.nodes = self.initialize_nodes(
+                                            total_nodes_count, 
+                                            index_count, 
+                                            primary_shards_per_index,
+                                            replica_shards_per_index
+                                            )
+        self.indices = self.initialize_indices(index_count,primary_shards_per_index,replica_shards_per_index)
+        self.allocate_shards_to_node()
+
 
     # TODO: Define methods for controlling cluster behaviour,
     #  node addition, removal etc
@@ -105,3 +120,93 @@ class Cluster:
         self.total_nodes_count -= nodes
         self.status = constants.CLUSTER_STATE_YELLOW
         # Todo - simulate effect on shards
+    
+    def initialize_nodes(
+        self, 
+        total_nodes_count,
+        index_count,
+        primary_shards_count,
+        replica_shards_count 
+        ):
+            """
+            Function takes the count of nodes in the cluster and creates a
+            list of node objects. Each node object will have arbitrary count
+            of indexes and each index will have the primary and replica shards
+            as per the parameter.
+            :return nodes: A list of node objects
+            """
+            nodes = []
+
+            for i in range(total_nodes_count):
+                # To-do: Add mechanism to distribute the index count randomnly across nodes 
+                node = Node(index_count, primary_shards_count, replica_shards_count,i)
+                nodes.append(node)
+            
+            return nodes
+
+    def get_node_id(self):
+        """
+        Function fetches the node id and returns a list of node id's
+        in a cluster object
+        """
+        node_id = []
+
+        for node in self.nodes:
+            node_id.append(node.node_id)
+
+        return node_id
+
+    def initialize_indices(self, index_count, primary_count, replica_count):
+        """
+        The function will create index objects of the specified count
+        Each index will have primary and replica shards of specified
+        count
+        :return index: A list of index objects
+        """
+        indices = []
+
+        for i in range(index_count):
+            index = Index(primary_count, replica_count, i)
+            indices.append(index)
+        
+        return indices
+
+    def create_index(self, primary_count,replica_count):
+        """
+        Creates an index object with specified number
+        of primary and replica shards
+        """
+        index = Index(primary_count, replica_count, len(self.indices))
+        self.indices.append(index)
+
+
+    def allocate_shards_to_node(self):
+        """
+        Allocates shards arbitrarily to nodes,
+        This creates shards to node mapping
+        """
+        node_id = self.get_node_id()
+        
+        for node in self.nodes:
+            node.shards_on_node.clear()
+
+        for index in self.indices:
+            for shard in index.shards: 
+                id = random.choice(node_id)
+                shard.node_id = id
+                shard.state = "started"
+                self.nodes[id].shards_on_node.append(shard)
+
+    def calculate_cluster_disk_size(self):
+        """
+        Evaluates the disk space occupied in the cluster 
+        Returns the total size used in GB for the cluster 
+        object
+        """
+        # To-Do: Total size must be taken from initial size of the cluster before ingestion
+        total_size = 0
+
+        for index in self.indices:
+           total_size+= index.get_index_size()
+
+        return total_size
