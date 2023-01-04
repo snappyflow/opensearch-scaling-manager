@@ -191,7 +191,8 @@ func GetClusterAvg(metricName string, decisionPeriod int) (MetricStats, []byte) 
 	resp, err := client.Get(url)
 
 	if err != nil {
-		log.Fatal.Println(err)
+		log.Panic.Println(err)
+		panic(err)
 	}
 
 	if resp.StatusCode != 200 {
@@ -206,7 +207,8 @@ func GetClusterAvg(metricName string, decisionPeriod int) (MetricStats, []byte) 
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(&metricStats)
 	if err != nil {
-		log.Fatal.Println(err)
+		log.Panic.Println(err)
+		panic(err)
 	}
 	log.Debug.Println(metricStats)
 
@@ -238,7 +240,8 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) (Metri
 	resp, err := client.Get(url)
 
 	if err != nil {
-		log.Fatal.Println(err)
+		log.Panic.Println(err)
+		panic(err)
 	}
 
 	if resp.StatusCode != 200 {
@@ -254,7 +257,8 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) (Metri
 	err = decoder.Decode(&metricViolatedCount)
 
 	if err != nil {
-		log.Fatal.Println(err)
+		log.Panic.Println(err)
+		panic(err)
 	}
 	log.Debug.Println(metricViolatedCount)
 	return metricViolatedCount, nil
@@ -280,13 +284,15 @@ func GetClusterCurrent() Cluster {
 	}
 	resp, err := client.Get(url)
 	if err != nil {
-		log.Fatal.Println(err)
+		log.Panic.Println(err)
+		panic(err)
 	}
 	defer resp.Body.Close()
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(&clusterStats)
 	if err != nil {
-		log.Fatal.Println(err)
+		log.Panic.Println(err)
+		panic(err)
 	}
 	clusterCurrent.ClusterDynamic.ClusterStatus = clusterStats["current"]
 	log.Debug.Println(clusterCurrent)

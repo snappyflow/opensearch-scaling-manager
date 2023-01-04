@@ -5,6 +5,7 @@ package provision
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"scaling_manager/cluster"
 	"scaling_manager/config"
@@ -160,20 +161,21 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 	}
 	// Check cluster status after the configuration
 	if state.CurrentState == "provisioning_scaleup_completed" {
-		SimulateSharRebalancing()
+		SimulateSharRebalancing("scaleOut", state.NumNodes)
 		log.Info.Println("Waiting for the cluster to become healthy")
 		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		CheckClusterHealth(state)
-		state.LastProvisionedTime = time.Now()
-		state.ProvisionStartTime = time.Time{}
-		state.PreviousState = state.CurrentState
-		state.CurrentState = "normal"
-		state.RuleTriggered = ""
-		state.RemainingNodes = state.RemainingNodes - 1
-		state.UpdateState()
-		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
-		log.Info.Println("State set back to normal")
 	}
+	// Setting the state back to 'normal' irrespective of successful or failed provisioning to continue further
+	state.LastProvisionedTime = time.Now()
+	state.ProvisionStartTime = time.Time{}
+	state.PreviousState = state.CurrentState
+	state.CurrentState = "normal"
+	state.RuleTriggered = ""
+	state.RemainingNodes = state.RemainingNodes - 1
+	state.UpdateState()
+	log.Info.Println("State set back to normal")
+
 	return true
 }
 
@@ -222,20 +224,22 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 	// Wait for cluster to be in stable state(Shard rebalance)
 	// Shut down the node
 	if state.CurrentState == "provisioning_scaledown_completed" {
-		SimulateSharRebalancing()
+		SimulateSharRebalancing("scaleIn", state.NumNodes)
 		log.Info.Println("Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
 		CheckClusterHealth(state)
 		log.Info.Println("Shutdown the node")
 		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
-		state.LastProvisionedTime = time.Now()
-		state.ProvisionStartTime = time.Time{}
-		state.RuleTriggered = ""
-		state.RemainingNodes = state.RemainingNodes - 1
-		state.PreviousState = state.CurrentState
-		state.CurrentState = "normal"
-		state.UpdateState()
-		log.Info.Println("State set back to normal")
 	}
+	// Setting the state back to 'normal' irrespective of successful or failed provisioning to continue further
+	state.LastProvisionedTime = time.Now()
+	state.ProvisionStartTime = time.Time{}
+	state.RuleTriggered = ""
+	state.RemainingNodes = state.RemainingNodes - 1
+	state.PreviousState = state.CurrentState
+	state.CurrentState = "normal"
+	state.UpdateState()
+	log.Info.Println("State set back to normal")
+
 	return true
 }
 
@@ -284,10 +288,17 @@ func CheckClusterHealth(state *State) {
 	// the recommendation.
 }
 
-func SimulateSharRebalancing() {
+func SimulateSharRebalancing(operation string, numNode int) {
 	// Add logic to call the simulator's end point
-	var jsonStr = []byte(`{"nodes":1}`)
-	urlLink := fmt.Sprintf("http://localhost:5000/provision/addnode")
+	byteStr := fmt.Sprintf("{\"nodes\":%d}", numNode)
+	var jsonStr = []byte(byteStr)
+	var urlLink string
+	if operation == "scaleOut" {
+		urlLink = fmt.Sprintf("http://localhost:5000/provision/addnode")
+	} else {
+		urlLink = fmt.Sprintf("http://localhost:5000/provision/remnode")
+	}
+
 	req, err := http.NewRequest("POST", urlLink, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
 	client := http.Client{
@@ -296,7 +307,15 @@ func SimulateSharRebalancing() {
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Fatal.Println(err)
+		log.Panic.Println(err)
+		panic(err)
+	}
+
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 404 {
+			response, _ := ioutil.ReadAll(resp.Body)
+			log.Error.Println(string(response))
+		}
 	}
 
 	defer resp.Body.Close()

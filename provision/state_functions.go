@@ -52,6 +52,14 @@ func init() {
 		os.Exit(1)
 	}
 
+	res, err := client.Ping()
+	if err != nil {
+		log.Fatal.Println("Unable to ping OpenSearch: ", err)
+		os.Exit(1)
+	}
+
+	log.Info.Println("OpenSearch connection successful: ", res)
+
 	mappingFile, err := os.ReadFile("provision/mappings.json") // just pass the file name
 	if err != nil {
 		log.Error.Println(err)
@@ -76,7 +84,8 @@ func createNewIndexWithMappings(mapping string) {
 	req.Index = []string{IndexName}
 	resp, err := req.Do(ctx, client)
 	if err != nil {
-		log.Fatal.Println("Index exists check failed: ", err)
+		log.Panic.Println("Index exists check failed: ", err)
+		panic(err)
 	}
 	log.Info.Println("Index already exists")
 	if resp.Status() != "200 OK" {
@@ -107,7 +116,8 @@ func (s *State) GetCurrentState() {
 
 	searchResponse, err := search.Do(context.Background(), client)
 	if err != nil {
-		log.Fatal.Println("failed to search document: ", err)
+		log.Panic.Println("failed to search document: ", err)
+		panic(err)
 	}
 	var stateInterface map[string]interface{}
 	log.Debug.Println("Get resp: ", searchResponse)
@@ -119,12 +129,14 @@ func (s *State) GetCurrentState() {
 	}
 	jsonErr := json.NewDecoder(searchResponse.Body).Decode(&stateInterface)
 	if jsonErr != nil {
-		log.Fatal.Println("Unable to decode the response into interface: ", jsonErr)
+		log.Panic.Println("Unable to decode the response into interface: ", jsonErr)
+		panic(jsonErr)
 	}
 	// convert map to json
 	jsonString, errr := json.Marshal(stateInterface["_source"].(map[string]interface{}))
 	if errr != nil {
-		log.Fatal.Println("Unable to unmarshal interface: ", errr)
+		log.Panic.Println("Unable to unmarshal interface: ", errr)
+		panic(errr)
 	}
 
 	// convert json to struct
@@ -144,7 +156,8 @@ func (s *State) UpdateState() {
 
 	state, err := json.Marshal(s)
 	if err != nil {
-		log.Fatal.Println("json.Marshal ERROR: ", err)
+		log.Panic.Println("json.Marshal ERROR: ", err)
+		panic(err)
 	}
 	content := string(state)
 
@@ -156,7 +169,8 @@ func (s *State) UpdateState() {
 
 	updateResponse, err := updateReq.Do(context.Background(), client)
 	if err != nil {
-		log.Fatal.Println("failed to update document: ", err)
+		log.Panic.Println("failed to update document: ", err)
+		panic(err)
 	}
 	log.Debug.Println("Update resp: ", updateResponse)
 }

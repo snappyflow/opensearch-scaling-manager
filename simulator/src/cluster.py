@@ -11,35 +11,35 @@ class Cluster:
     """
 
     def __init__(
-            self,
-            cluster_name: str,
-            cluster_hostname: str,
-            cluster_ip_address: str,
-            node_machine_type_identifier: str,
-            total_nodes_count: int,
-            active_data_nodes: int,
-            master_eligible_nodes_count: int,
-            index_count: int,
-            shards_per_index: int,
-            replica_shard_count: int,
-            index_roll_over_size_gb: int,
-            index_clean_up_age_days: int,
-
-            status: str = "green",
-            cpu_usage_percent: float = 0,
-            memory_usage_percent: float = 0,
-            disk_usage_percent: float = 0,
-            total_disk_size_gb: int = 0,
-            heap_usage_percent: float = 0,
-            total_shard_count: int = 0,
-            initializing_shards_count: int = 0,
-            relocating_shards_count: int = 0,
-            unassigned_shards_count: int = 0,
-            active_shards_count: int = 0,
-            active_primary_shards: int = 0,
+        self,
+        cluster_name: str,
+        cluster_hostname: str,
+        cluster_ip_address: str,
+        node_machine_type_identifier: str,
+        total_nodes_count: int,
+        active_data_nodes: int,
+        master_eligible_nodes_count: int,
+        index_count: int,
+        index_roll_over_size_gb: int,
+        index_clean_up_age_days: int,
+        primary_shards_per_index: int,
+        replica_shards_per_index: int,
+        status: str = "green",
+        cpu_usage_percent: float = 0,
+        memory_usage_percent: float = 0,
+        disk_usage_percent: float = 0,
+        heap_usage_percent: float = 0,
+        total_shard_count: int = 0,
+        initializing_shards_count: int = 0,
+        relocating_shards_count: int = 0,
+        unassigned_shards_count: int = 0,
+        active_shards_count: int = 0,
+        active_primary_shards: int = 0,
     ):
         """
         Initialize the cluster object
+        :param primary_shards_per_index:
+        :param replica_shards_per_index:
         :param cluster_name: name of the cluster
         :param cluster_hostname: name of the cluster host
         :param cluster_ip_address: ip address of the cluster
@@ -48,7 +48,6 @@ class Cluster:
         :param active_data_nodes: total number of data nodes of the cluster
         :param master_eligible_nodes_count: total number of master eligible nodes of the cluster
         :param index_count: total number of indexes in the cluster
-        :param shards_per_index: maximum number of shards per index
         :param index_roll_over_size_gb: size in gb after which the index will be rolled over
         :param index_clean_up_age_days: time in minutes after which the index will be cleaned up
         :param status: status of the cluster from "green", "yellow" or "red"
@@ -81,13 +80,18 @@ class Cluster:
         self.index_clean_up_age_in_minutes = index_clean_up_age_days
         self.replica_shard_count = replica_shard_count
         self.total_shard_count = total_shard_count
-        self.shards_per_index = shards_per_index
+        self.total_shards_per_index = primary_shards_per_index * (
+            1 + replica_shards_per_index
+        )
         self.initializing_shards = initializing_shards_count
         self.relocating_shards = relocating_shards_count
         self.unassigned_shards = unassigned_shards_count
         self.active_shards = active_shards_count
         self.date_time = datetime.now()
         self._ingestion_rate = 0
+        self._simple_query_rate = 0
+        self._medium_query_rate = 0
+        self._complex_query_rate = 0
         self.active_primary_shards = active_primary_shards
 
     # TODO: Define methods for controlling cluster behaviour,
@@ -98,6 +102,6 @@ class Cluster:
         # Todo - simulate effect on shards
 
     def remove_nodes(self, nodes=1):
-        self.total_nodes_count += nodes
+        self.total_nodes_count -= nodes
         self.status = constants.CLUSTER_STATE_YELLOW
         # Todo - simulate effect on shards
