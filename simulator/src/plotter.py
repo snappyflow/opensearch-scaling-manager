@@ -7,8 +7,10 @@ import matplotlib.pyplot as plt
 from config_parser import get_source_code_dir
 from constants import SIMULATION_GRAPH_FILE_NAME
 
-font1 = {'family': 'serif', 'color': 'red', 'size': 15}
-font2 = {'family': 'serif', 'color': 'darkred', 'size': 5}
+font1 = {'family': 'serif', 'color': 'red', 'size': 12}
+font2 = {'family': 'serif', 'color': 'darkred', 'size': 10}
+
+fig, axes = plt.subplots(1, 7, figsize=(20, 15), dpi=350)
 
 
 def plot_data_points(cluster_objects, skip_data_ingestion=False, skip_search_query=False):
@@ -39,14 +41,13 @@ def plot_data_points(cluster_objects, skip_data_ingestion=False, skip_search_que
         plt.subplot(graph_count, 1, 1)
         plt.ylabel('Ingestion Rate (in GB/hr)', font2)
         plt.plot(date_time_points, data_ingestion_over_time)
-    
     if not skip_search_query:
         plt.subplot(graph_count, 1, 2)
         plt.ylabel('Search query rate', font2)
         plt.plot(date_time_points, simple_search_query_over_time)
         plt.plot(date_time_points, medium_search_query_over_time)
         plt.plot(date_time_points, complex_search_query_over_time)
-        plt.legend(["simple", "medium", "complex"], loc ="upper right",prop={'size': 5})
+        plt.legend(["simple", "medium", "complex"], loc="upper right", prop={'size': 5})
 
     plt.subplot(graph_count, 1, 3)
     plt.ylabel('Used CPU %', font2)
@@ -70,6 +71,8 @@ def plot_data_points(cluster_objects, skip_data_ingestion=False, skip_search_que
 
     plt.subplots_adjust(hspace=0.1)
     plt.xlabel('Datetime -->', font2)
+    fig.tight_layout()
+    plt.gcf().autofmt_xdate()
 
     # save the figure
     print('saving graph')

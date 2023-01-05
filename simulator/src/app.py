@@ -77,7 +77,7 @@ def cluster_db_object(cluster):
     )
 
 
-def overwrite_after_node_count_change(cluster_objects, date_time=datetime.now()):
+def overwrite_after_node_count_change(cluster_objects):
     """
     Calculate the resource utilization after node change operation
     and overwrite the saved data points in db after node change time.
@@ -86,6 +86,7 @@ def overwrite_after_node_count_change(cluster_objects, date_time=datetime.now())
     :param date_time: date time object to overwrite date time now
     :return: expiry time
     """
+    date_time = datetime.now()
     cluster_objects_post_change = []
     for cluster_obj in cluster_objects:
         if cluster_obj.date_time >= date_time:
@@ -93,7 +94,7 @@ def overwrite_after_node_count_change(cluster_objects, date_time=datetime.now())
             task = cluster_db_object(cluster_obj)
             db.session.merge(task)
     db.session.commit()
-    plot_data_points(cluster_objects_post_change, skip_data_ingestion=True)
+    plot_data_points(cluster_objects_post_change, skip_data_ingestion=True, skip_search_query=True)
     expiry_time = Simulator.create_provisioning_lock()
     return expiry_time
 
