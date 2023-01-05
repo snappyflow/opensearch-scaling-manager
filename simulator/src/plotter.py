@@ -1,16 +1,17 @@
 import os.path
 
 import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from config_parser import get_source_code_dir
 from constants import SIMULATION_GRAPH_FILE_NAME
 
-font1 = {'family': 'serif', 'color': 'red', 'size': 15}
-font2 = {'family': 'serif', 'color': 'darkred', 'size': 5}
+font1 = {'family': 'serif', 'color': 'red', 'size': 12}
+font2 = {'family': 'serif', 'color': 'darkred', 'size': 10}
 
-fig, axes = plt.subplots(1, 7, figsize=(15, 8), dpi=200)
+fig, axes = plt.subplots(1, 7, figsize=(20, 15), dpi=350)
 
 
 def plot_data_points(cluster_objects, skip_data_ingestion=False, skip_search_query=False):
@@ -71,10 +72,9 @@ def plot_data_points(cluster_objects, skip_data_ingestion=False, skip_search_que
     plt.plot(date_time_points, nodes_over_time)
 
     plt.subplots_adjust(hspace=0.1)
-
-    plt.gcf().autofmt_xdate()
-
     plt.xlabel('Datetime -->', font2)
+    fig.tight_layout()
+    plt.gcf().autofmt_xdate()
 
     # save the figure
     print('saving graph')
