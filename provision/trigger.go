@@ -19,7 +19,7 @@ import (
 //	Triggers the provisioning
 //
 // Return:
-func GetRecommendation(state *State, recommendationQueue []string) {
+func GetRecommendation(state *State, recommendationQueue []string, rulesResponsibleMap map[string]string) {
 	scaleRegexString := `(scale_up|scale_down)_by_([0-9]+)`
 	scaleRegex := regexp.MustCompile(scaleRegexString)
 	if len(recommendationQueue) > 0 {
@@ -36,7 +36,7 @@ func GetRecommendation(state *State, recommendationQueue []string) {
 				return
 			}
 			cfg := configStruct.ClusterDetails
-			TriggerProvision(cfg, state, numNodes, operation)
+			TriggerProvision(cfg, state, numNodes, operation, rulesResponsibleMap[recommendationQueue[0]])
 		} else {
 			log.Warn.Println("Recommendation can not be provisioned as open search cluster is already in provisioning phase or the cluster isn't healthy yet")
 		}
