@@ -290,5 +290,5 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 // Return:
 
 func (task Task) PushToRecommendationQueue() {
-	log.Info.Println(fmt.Sprintf("The %s task is recommended due to %s utilization and will be pushed to the queue", task.TaskName))
+	log.Info.Println(fmt.Sprintf("The %s task is recommended and will be pushed to the queue", task.TaskName))
 }
