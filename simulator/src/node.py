@@ -26,6 +26,7 @@ class Node:
         self.primary_shard_count = primary_shard_count
         self.replica_shard_count = replica_shard_count
         self.node_id = node_id
+        self.node_available = True
         self.shards_on_node = []
         
 
@@ -53,8 +54,9 @@ class Node:
         """
         size = 0
 
-        for shard in self.shards_on_node:
-            size+=shard.shard_size
+        if self.node_available:
+            for shard in self.shards_on_node:
+                size+=shard.shard_size
 
         return size 
 

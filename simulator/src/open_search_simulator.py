@@ -218,21 +218,21 @@ class Simulator:
             resultant_cluster_objects.append(copy.deepcopy(self.cluster))
             self.elapsed_time_minutes += self.frequency_minutes
         
-        # print("======== Size of nodes ===========")
-        # for node in range(len(self.cluster.nodes)):
-        #     print("Size of Node "+str(node)+" : ",self.cluster.nodes[node].calculate_total_node_size())
-        # print("========= Number of Shards in nodes ========= ")
-        # for node in range(len(self.cluster.nodes)):
-        #             print("node "+str(node)+": ",len(self.cluster.nodes[node].shards_on_node))
+        print("======== Size of nodes ===========")
+        for node in range(len(self.cluster.nodes)):
+            print("Size of Node "+str(node)+" : ",self.cluster.nodes[node].calculate_total_node_size())
+        print("========= Number of Shards in nodes ========= ")
+        for node in range(len(self.cluster.nodes)):
+                    print("node "+str(node)+": ",len(self.cluster.nodes[node].shards_on_node))
 
-        # print("======= Size of Indexes ========")
-        # for index in range(len(self.cluster.indices)):
-        #     print("Size of index "+str(index)+" : ",self.cluster.indices[index].get_index_primary_size())
+        print("======= Size of Indexes ========")
+        for index in range(len(self.cluster.indices)):
+            print("Size of index "+str(index)+" : ",self.cluster.indices[index].get_index_primary_size())
         
-        # print("========= Size of Cluster ========")
-        # print(self.cluster.cluster_disk_size_used)
+        print("========= Size of Cluster ========")
+        print(self.cluster.cluster_disk_size_used)
 
-        # print("")
+        print("")
         return resultant_cluster_objects
 
     @staticmethod
