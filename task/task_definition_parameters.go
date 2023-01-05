@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"scaling_manager/cluster"
 	"scaling_manager/logger"
+	"strings"
 )
 
 var log logger.LOG
@@ -83,18 +84,20 @@ type TaskDetails struct {
 // Return:
 //		Returns an array of the recommendations.
 
-func (t TaskDetails) EvaluateTask() []string {
+func (t TaskDetails) EvaluateTask() ([]string, string) {
 	var recommendationArray []string
+	var rulesResponsible string
+	var isRecommendedTask bool
 	for _, v := range t.Tasks {
-		isRecommendeTask := v.GetNextTask()
-		if isRecommendeTask {
+		isRecommendedTask, rulesResponsible = v.GetNextTask()
+		if isRecommendedTask {
 			v.PushToRecommendationQueue()
 			recommendationArray = append(recommendationArray, v.TaskName)
 		} else {
 			log.Warn.Println(fmt.Sprintf("The %s task is not recommended as rules are not satisfied", v.TaskName))
 		}
 	}
-	return recommendationArray
+	return recommendationArray, rulesResponsible
 }
 
 // Inputs:
@@ -110,9 +113,10 @@ func (t TaskDetails) EvaluateTask() []string {
 //
 //		Return if a task can be recommended or not(bool)
 
-func (t Task) GetNextTask() bool {
+func (t Task) GetNextTask() (bool, string) {
 	var isRecommendedTask bool = true
 	var isRecommendedRule bool
+	var rulesResponsible string
 	var err []byte
 
 	scaleRegexString := `(scale_up|scale_down)_by_([0-9]+)`
@@ -127,6 +131,7 @@ func (t Task) GetNextTask() bool {
 	// In case of AND condition if we do not have enough data point for even one rule then the for
 	// loop should be broken.
 	// This can be considered while implementation.
+	var rules []string
 	for _, v := range t.Rules {
 		// Here we can add go routine.
 		// So that all the rules getMetrics will be fetched in concurrent way
@@ -137,13 +142,26 @@ func (t Task) GetNextTask() bool {
 		if err != nil {
 			log.Warn.Println(fmt.Sprintf("%s for the rule: %v", string(err), v))
 		}
+		if isRecommendedRule {
+			if v.Stat == "AVG" {
+				rules = append(rules, fmt.Sprintf("%s-%s-%f", v.Metric, v.Stat, v.Limit))
+			} else {
+				rules = append(rules, fmt.Sprintf("%s-%s-%f-%d", v.Metric, v.Stat, v.Limit, v.Occurences))
+			}
+
+		}
 		if t.Operator == "OR" && isRecommendedRule ||
 			t.Operator == "AND" && !isRecommendedRule {
 			break
 		}
 	}
 	isRecommendedTask = isRecommendedRule
-	return isRecommendedTask
+	if len(rules) > 1 {
+		rulesResponsible = strings.Join(rules, "_and_")
+	} else if len(rules) == 1 {
+		rulesResponsible = rules[0]
+	}
+	return isRecommendedTask, rulesResponsible
 }
 
 // Input:

@@ -42,6 +42,8 @@ type State struct {
 	ProvisionStartTime time.Time
 	// Rule triggered for provisioning. i.e., scale_up/scale_down
 	RuleTriggered string
+	// Rule Responsible for provisioning. i.e., cpu, mem, heap, shard, disk.
+	RuleResponsible string
 	// Number of nodes being added(scale_up) / removed(scale_down) from the cluster due to current provision
 	NumNodes int
 	// Number of nodes remaining to be scaled up/scaled down
