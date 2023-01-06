@@ -84,20 +84,20 @@ type TaskDetails struct {
 // Return:
 //		Returns an array of the recommendations.
 
-func (t TaskDetails) EvaluateTask() ([]string, map[string]string) {
-	var recommendationArray []string
+func (t TaskDetails) EvaluateTask() []map[string]string {
+	var recommendationArray []map[string]string
 	var rulesResponsibleMap map[string]string
 	var isRecommendedTask bool
 	for _, v := range t.Tasks {
 		isRecommendedTask, rulesResponsibleMap[v.TaskName] = v.GetNextTask()
 		if isRecommendedTask {
 			v.PushToRecommendationQueue()
-			recommendationArray = append(recommendationArray, v.TaskName)
+			recommendationArray = append(recommendationArray, rulesResponsibleMap)
 		} else {
 			log.Warn.Println(fmt.Sprintf("The %s task is not recommended as rules are not satisfied", v.TaskName))
 		}
 	}
-	return recommendationArray, rulesResponsibleMap
+	return recommendationArray
 }
 
 // Inputs:
