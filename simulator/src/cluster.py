@@ -141,6 +141,7 @@ class Cluster:
         for shard in self.nodes[node_id].shards_on_node:
             if shard.type == 'Replica':
                 shard.state = 'unassigned'
+            self.unassigned_shards_list.append(shard)
 
         self.nodes[node_id].shards_on_node.clear()
         
@@ -158,10 +159,6 @@ class Cluster:
             return
 
         # If sufficient nodes not present 
-            # Add the shards to unassigned list
-        for shard in self.nodes[node_id].shards_on_node:
-            self.unassigned_shards_list.append(shard) 
-
         # Make the cluster state as yellow
         self.status = constants.CLUSTER_STATE_YELLOW
         # Todo - simulate effect on shards
@@ -264,8 +261,11 @@ class Cluster:
         # To-Do: Total size must be taken from initial size of the cluster before ingestion
         total_size = 0
 
-        for index in self.indices:
-           total_size+= index.get_index_size()
+        # for index in self.indices:
+        #    total_size+= index.get_index_size()
+
+        for node in self.nodes:
+            total_size+= node.calculate_total_node_size()
 
         return total_size
     
@@ -300,15 +300,15 @@ class Cluster:
         # Assign the shards to the available nodes on the cluster
         for shard in self.unassigned_shards_list:
             # Choose node to place the shard
-            node_id = random.randint(0,len(self.nodes))
+            node_id = random.randint(0,len(self.nodes) - 1)
 
             # If the chosen node is not available then pick different node
             while not self.nodes[node_id].node_available:
-                node_id = random.randint(0,len(self.nodes))
+                node_id = random.randint(0,len(self.nodes) - 1)
 
             # Update the shard state and its node id
             shard.state = 'started'
             shard.node_id = node_id
 
             # Add the shard to the node
-            self.nodes[node_id].shards_on_node = shard
+            self.nodes[node_id].shards_on_node.append(shard)
