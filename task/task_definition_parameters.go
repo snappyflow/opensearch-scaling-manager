@@ -86,10 +86,11 @@ type TaskDetails struct {
 
 func (t TaskDetails) EvaluateTask() []map[string]string {
 	var recommendationArray []map[string]string
-	var rulesResponsibleMap map[string]string
 	var isRecommendedTask bool
 	for _, v := range t.Tasks {
+		var rulesResponsibleMap = make(map[string]string)
 		isRecommendedTask, rulesResponsibleMap[v.TaskName] = v.GetNextTask()
+		log.Debug.Println(rulesResponsibleMap)
 		if isRecommendedTask {
 			v.PushToRecommendationQueue()
 			recommendationArray = append(recommendationArray, rulesResponsibleMap)

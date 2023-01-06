@@ -276,9 +276,9 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) (Metri
 
 func GetClusterCurrent() Cluster {
 	var clusterCurrent Cluster
-	var clusterStats map[string]string
+	var clusterStats ClusterDynamic
 
-	url := fmt.Sprintf("http://localhost:5000/stats/current/status")
+	url := fmt.Sprintf("http://localhost:5000/stats/current")
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -294,7 +294,7 @@ func GetClusterCurrent() Cluster {
 		log.Panic.Println(err)
 		panic(err)
 	}
-	clusterCurrent.ClusterDynamic.ClusterStatus = clusterStats["current"]
+	clusterCurrent.ClusterDynamic = clusterStats
 	log.Debug.Println(clusterCurrent)
 	return clusterCurrent
 }

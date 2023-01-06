@@ -45,9 +45,9 @@ func main() {
 			}
 			task.Tasks = configStruct.TaskDetails
 			// This function is responsible for evaluating the task and recommend.
-			recommendationList, rulesResponsibleMap := task.EvaluateTask()
+			recommendationList := task.EvaluateTask()
 			// This function is responsible for getting the recommendation and provision.
-			provision.GetRecommendation(state, recommendationList, rulesResponsibleMap)
+			provision.GetRecommendation(state, recommendationList)
 		}
 	}
 }
@@ -59,6 +59,7 @@ func main() {
 func periodicProvisionCheck() {
 	tick := time.Tick(time.Duration(config.PollingInterval) * time.Second)
 	previousMaster := cluster.CheckIfMaster()
+	previousMaster = false
 	for range tick {
 		state.GetCurrentState()
 		// Call a function which returns the current master node
