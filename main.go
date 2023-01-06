@@ -45,9 +45,9 @@ func main() {
 			}
 			task.Tasks = configStruct.TaskDetails
 			// This function is responsible for evaluating the task and recommend.
-			recommendationList, rulesResponsibleMap := task.EvaluateTask()
+			recommendationList := task.EvaluateTask()
 			// This function is responsible for getting the recommendation and provision.
-			provision.GetRecommendation(state, recommendationList, rulesResponsibleMap)
+			provision.GetRecommendation(state, recommendationList)
 		}
 	}
 }
