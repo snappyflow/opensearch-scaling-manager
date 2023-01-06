@@ -5,15 +5,17 @@ cluster_ip_address: 10.0.0.1
 node_machine_type_identifier: m5-12xlarge
 total_nodes_count: 5
 active_data_nodes: 4
+min_nodes_in_cluster: 3
 master_eligible_nodes_count: 1
 index_count: 100
 #shards_per_index: 5 
-primary_shards_per_index: 5
-replica_shards_per_index: 5
+primary_shards_per_index: 2
+replica_shards_per_index: 2
 #total_shards_per_index: primary_shards_per_index * (1 + replica_shards_per_index)
 index_roll_over_size_gb: 50
 index_clean_up_age_days: 20
 #node_disk_volume_gb: 100 # discuss effect of node addition/removal
+total_disk_size_gb: 5000
 simulation_frequency_minutes: 5
 
 # Specify data ingestion with respect to time of the day to represent pattern for entire day(24hrs).
@@ -68,4 +70,3 @@ search_description:
     cpu_load_percent: 5
     memory_load_percent: 6
     heap_load_percent: 6
- 
