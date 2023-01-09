@@ -97,6 +97,7 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, ope
 		state.NumNodes = numNodes
 		state.RemainingNodes = numNodes
 		state.RuleTriggered = "scale_down"
+		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
 		isScaledDown := ScaleIn(cfg, state)
 		if isScaledDown {
