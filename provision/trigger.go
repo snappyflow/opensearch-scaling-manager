@@ -25,7 +25,7 @@ func GetRecommendation(state *State, recommendationQueue []map[string]string) {
 	if len(recommendationQueue) > 0 {
 		clusterCurrent := cluster.GetClusterCurrent()
 		state.GetCurrentState()
-		if clusterCurrent.ClusterDynamic.ClusterStatus == "green" && state.CurrentState == "normal" {
+		if clusterCurrent.ClusterStatus == "green" && state.CurrentState == "normal" {
 			// Fill in the command struct with the recommendation queue and config file and trigger the recommendation.
 			var subMatch []string
 			var task string
