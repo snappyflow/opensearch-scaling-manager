@@ -59,7 +59,6 @@ func main() {
 func periodicProvisionCheck() {
 	tick := time.Tick(time.Duration(config.PollingInterval) * time.Second)
 	previousMaster := cluster.CheckIfMaster()
-	previousMaster = false
 	for range tick {
 		state.GetCurrentState()
 		// Call a function which returns the current master node
