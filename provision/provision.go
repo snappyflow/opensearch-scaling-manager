@@ -42,6 +42,8 @@ type State struct {
 	ProvisionStartTime time.Time
 	// Rule triggered for provisioning. i.e., scale_up/scale_down
 	RuleTriggered string
+	// Rule Responsible for provisioning. i.e., cpu, mem, heap, shard, disk.
+	RulesResponsible string
 	// Number of nodes being added(scale_up) / removed(scale_down) from the cluster due to current provision
 	NumNodes int
 	// Number of nodes remaining to be scaled up/scaled down
@@ -69,7 +71,7 @@ func init() {
 //	        May be we can keep a concept of minimum number of nodes as a configuration input.
 //
 // Return:
-func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, operation string) {
+func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, operation string, RulesResponsible string) {
 	state.GetCurrentState()
 	if operation == "scale_up" {
 		state.PreviousState = state.CurrentState
@@ -77,6 +79,7 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, ope
 		state.NumNodes = numNodes
 		state.RemainingNodes = numNodes
 		state.RuleTriggered = "scale_up"
+		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
 		isScaledUp := ScaleOut(cfg, state)
 		if isScaledUp {
@@ -94,6 +97,7 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, ope
 		state.NumNodes = numNodes
 		state.RemainingNodes = numNodes
 		state.RuleTriggered = "scale_down"
+		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
 		isScaledDown := ScaleIn(cfg, state)
 		if isScaledDown {
@@ -256,9 +260,9 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 // Return:
 func CheckClusterHealth(state *State) {
 	for i := 0; i <= 12; i++ {
-		cluster := cluster.GetClusterCurrent()
-		log.Debug.Println(cluster.ClusterDynamic.ClusterStatus)
-		if cluster.ClusterDynamic.ClusterStatus == "green" {
+		clusterDynamic := cluster.GetClusterCurrent()
+		log.Debug.Println(clusterDynamic.ClusterStatus)
+		if clusterDynamic.ClusterStatus == "green" {
 			state.GetCurrentState()
 			state.PreviousState = state.CurrentState
 			if strings.Contains(state.PreviousState, "scaleup") {
