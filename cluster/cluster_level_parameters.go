@@ -272,10 +272,9 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) (Metri
 //		It will return the current cluster status.
 //
 // Return:
-//		Return populated Cluster struct.
+//		Return populated ClusterDynamic struct.
 
-func GetClusterCurrent() Cluster {
-	var clusterCurrent Cluster
+func GetClusterCurrent() ClusterDynamic {
 	var clusterStats ClusterDynamic
 
 	url := fmt.Sprintf("http://localhost:5000/stats/current")
@@ -294,9 +293,8 @@ func GetClusterCurrent() Cluster {
 		log.Panic.Println(err)
 		panic(err)
 	}
-	clusterCurrent.ClusterDynamic = clusterStats
-	log.Debug.Println(clusterCurrent)
-	return clusterCurrent
+	log.Debug.Println(clusterStats)
+	return clusterStats
 }
 
 // Input:
