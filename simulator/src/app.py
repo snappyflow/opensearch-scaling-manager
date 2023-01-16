@@ -322,6 +322,7 @@ def add_node():
 
     try:
         nodes = int(request.json['nodes'])
+        node_count = sim.cluster.total_nodes_count + nodes
     except BadRequest as err:
         is_provisioning = False
         set_provision_status(is_provisioning)
@@ -329,7 +330,7 @@ def add_node():
     add_node_thread = Thread(target = add_node_and_rebalance, args = (nodes, ))
     add_node_thread.start()
     return jsonify({
-        'nodes': sim.cluster.total_nodes_count + nodes
+        'nodes': node_count
     })
 
 
@@ -348,6 +349,9 @@ def remove_node():
 
     try:
         nodes = int(request.json['nodes'])
+        node_count = sim.cluster.total_nodes_count - nodes
+        if sim.cluster.total_nodes_count - nodes < sim.cluster.min_nodes_in_cluster:
+            return Response(json.dumps("Cannot remove more node(s), Minum nodes required: ", sim.cluster.min_nodes_in_cluster), status=404)
     except BadRequest as err:
         is_provisioning = False
         set_provision_status(is_provisioning)
@@ -355,7 +359,7 @@ def remove_node():
     rem_node_thread = Thread(target = rem_node_and_rebalance, args = (nodes, ))
     rem_node_thread.start()
     return jsonify({
-        'nodes': sim.cluster.total_nodes_count - nodes
+        'nodes': node_count
     })
 
 @app.route("/all")
