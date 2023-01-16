@@ -39,15 +39,17 @@ class DataModel(db.Model):
     master_eligible_nodes_count = db.Column(db.Integer, default=0)
     active_data_nodes = db.Column(db.Integer, default=0)
     date_created = db.Column(db.DateTime, default=datetime.now(), primary_key=True)
-    disk_usage_percent = db.Column(db.Integer, default = 0)
+    disk_usage_percent = db.Column(db.Integer, default=0)
+
 
 def get_provision_status():
-   return is_provisioning
+    return is_provisioning
+
 
 def set_provision_status(bool_val):
-    global is_provisioning 
+    global is_provisioning
     is_provisioning = bool_val
- 
+
 
 def get_first_data_point_time():
     """
@@ -57,8 +59,8 @@ def get_first_data_point_time():
     """
     first_data_point_time = (
         DataModel.query.order_by(DataModel.date_created)
-            .with_entities(DataModel.date_created)
-            .first()
+        .with_entities(DataModel.date_created)
+        .first()
     )
     return first_data_point_time[0]
 
@@ -83,7 +85,7 @@ def cluster_db_object(cluster):
         relocating_shards_count=cluster.relocating_shards,
         master_eligible_nodes_count=cluster.master_eligible_nodes_count,
         active_data_nodes=cluster.active_data_nodes,
-        disk_usage_percent = cluster_obj.disk_usage_percent
+        disk_usage_percent=cluster_obj.disk_usage_percent,
     )
 
 
@@ -104,44 +106,50 @@ def overwrite_after_node_count_change(cluster_objects):
             task = cluster_db_object(cluster_obj)
             db.session.merge(task)
     db.session.commit()
-    plot_data_points(cluster_objects_post_change, skip_data_ingestion=True, skip_search_query=True)
+    plot_data_points(
+        cluster_objects_post_change, skip_data_ingestion=True, skip_search_query=True
+    )
     # expiry_time = Simulator.create_provisioning_lock()
     return
+
 
 def add_node_and_rebalance(nodes):
     """
     Increments node count in cluster object and rebalances the shards
-    among the available nodes. Re-Simulates the data once the node is 
+    among the available nodes. Re-Simulates the data once the node is
     added and shards are distributed
     """
     app.app_context().push()
     sim = Simulator(
-            configs.cluster,
-            configs.data_function,
-            configs.search_description,
-            configs.searches,
-            configs.simulation_frequency_minutes
-        )
+        configs.cluster,
+        configs.data_function,
+        configs.search_description,
+        configs.searches,
+        configs.simulation_frequency_minutes,
+    )
     sim.cluster.add_nodes(nodes)
     cluster_objects = sim.run(24 * 60)
     # expiry_time = overwrite_after_node_count_change(cluster_objects)
     overwrite_after_node_count_change(cluster_objects)
     is_provisioning = get_provision_status()
     is_provisioning = False
-    set_provision_status(is_provisioning) 
+    set_provision_status(is_provisioning)
+
 
 def rem_node_and_rebalance(nodes):
     """
     Decrements node count in cluster object and rebalances the shards
-    among the available nodes. Re-Simulates the data once the node is 
+    among the available nodes. Re-Simulates the data once the node is
     removed and shards are distributed
     """
     app.app_context().push()
-    sim = Simulator(configs.cluster, 
-                    configs.data_function, 
-                    configs.search_description, 
-                    configs.searches, 
-                    configs.simulation_frequency_minutes)
+    sim = Simulator(
+        configs.cluster,
+        configs.data_function,
+        configs.search_description,
+        configs.searches,
+        configs.simulation_frequency_minutes,
+    )
     sim.cluster.remove_nodes(nodes)
     cluster_objects = sim.run(24 * 60)
     # expiry_time = overwrite_after_node_count_change(cluster_objects)
@@ -170,9 +178,9 @@ def violated_count(stat_name, duration, threshold):
         # Fetching the count of data points for given duration.
         data_point_count = (
             DataModel.query.order_by(constants.STAT_REQUEST[stat_name])
-                .filter(DataModel.date_created > query_begin_time)
-                .filter(DataModel.date_created < time_now)
-                .count()
+            .filter(DataModel.date_created > query_begin_time)
+            .filter(DataModel.date_created < time_now)
+            .count()
         )
 
         # If expected data points are not present then respond with error
@@ -182,13 +190,13 @@ def violated_count(stat_name, duration, threshold):
         # Fetches the count of stat_name that exceeds the threshold for given duration
         stats = (
             DataModel.query.order_by(constants.STAT_REQUEST[stat_name])
-                .filter(
+            .filter(
                 DataModel.__getattribute__(DataModel, constants.STAT_REQUEST[stat_name])
                 > threshold
             )
-                .filter(DataModel.date_created > query_begin_time)
-                .filter(DataModel.date_created < time_now)
-                .count()
+            .filter(DataModel.date_created > query_begin_time)
+            .filter(DataModel.date_created < time_now)
+            .count()
         )
 
         return jsonify({"ViolatedCount": stats})
@@ -218,10 +226,10 @@ def average(stat_name, duration):
         # Fetches list of rows that is filter by stat_name and are filtered by decision period
         avg_list = (
             DataModel.query.order_by(constants.STAT_REQUEST[stat_name])
-                .filter(DataModel.date_created > query_begin_time)
-                .filter(DataModel.date_created < time_now)
-                .with_entities(text(constants.STAT_REQUEST[stat_name]))
-                .all()
+            .filter(DataModel.date_created > query_begin_time)
+            .filter(DataModel.date_created < time_now)
+            .with_entities(text(constants.STAT_REQUEST[stat_name]))
+            .all()
         )
         for avg_value in avg_list:
             stat_list.append(avg_value[0])
@@ -263,10 +271,10 @@ def current(stat_name):
         # Fetches the stat_name for the latest poll
         current_stat = (
             DataModel.query.order_by(desc(DataModel.date_created))
-                .with_entities(
+            .with_entities(
                 DataModel.__getattribute__(DataModel, constants.STAT_REQUEST[stat_name])
             )
-                .all()
+            .all()
         )
 
         # If expected data points count are not present then respond with error
@@ -293,12 +301,12 @@ def current_all():
         for key in constants.STAT_REQUEST_CURRENT:
             value = (
                 DataModel.query.order_by(desc(DataModel.date_created))
-                    .with_entities(
+                .with_entities(
                     DataModel.__getattribute__(
                         DataModel, constants.STAT_REQUEST_CURRENT[key]
                     )
                 )
-                    .all()
+                .all()
             )
             stat_dict[key] = value[0][0]
         return jsonify(stat_dict)
@@ -316,22 +324,25 @@ def add_node():
     """
     is_provisioning = get_provision_status()
     if is_provisioning:
-        return Response(json.dumps("Cannot perform requested operation as Provisioning is in progress"),status=404)
+        return Response(
+            json.dumps(
+                "Cannot perform requested operation as Provisioning is in progress"
+            ),
+            status=404,
+        )
     is_provisioning = True
     set_provision_status(is_provisioning)
 
     try:
-        nodes = int(request.json['nodes'])
+        nodes = int(request.json["nodes"])
         node_count = sim.cluster.total_nodes_count + nodes
     except BadRequest as err:
         is_provisioning = False
         set_provision_status(is_provisioning)
         return Response(json.dumps("expected key 'nodes'"), status=404)
-    add_node_thread = Thread(target = add_node_and_rebalance, args = (nodes, ))
+    add_node_thread = Thread(target=add_node_and_rebalance, args=(nodes,))
     add_node_thread.start()
-    return jsonify({
-        'nodes': node_count
-    })
+    return jsonify({"nodes": node_count})
 
 
 @app.route("/provision/remnode", methods=["POST"])
@@ -343,24 +354,34 @@ def remove_node():
     """
     is_provisioning = get_provision_status()
     if is_provisioning:
-        return Response(json.dumps("Cannot perform requested operation as Provisioning is in progress"),status=404)
+        return Response(
+            json.dumps(
+                "Cannot perform requested operation as Provisioning is in progress"
+            ),
+            status=404,
+        )
     is_provisioning = True
     set_provision_status(is_provisioning)
 
     try:
-        nodes = int(request.json['nodes'])
+        nodes = int(request.json["nodes"])
         node_count = sim.cluster.total_nodes_count - nodes
         if sim.cluster.total_nodes_count - nodes < sim.cluster.min_nodes_in_cluster:
-            return Response(json.dumps("Cannot remove more node(s), Minum nodes required: ", sim.cluster.min_nodes_in_cluster), status=404)
+            return Response(
+                json.dumps(
+                    "Cannot remove more node(s), Minimum nodes required: ",
+                    sim.cluster.min_nodes_in_cluster,
+                ),
+                status=404,
+            )
     except BadRequest as err:
         is_provisioning = False
         set_provision_status(is_provisioning)
         return Response(json.dumps("expected key 'nodes'"), status=404)
-    rem_node_thread = Thread(target = rem_node_and_rebalance, args = (nodes, ))
+    rem_node_thread = Thread(target=rem_node_and_rebalance, args=(nodes,))
     rem_node_thread.start()
-    return jsonify({
-        'nodes': node_count
-    })
+    return jsonify({"nodes": node_count})
+
 
 @app.route("/all")
 def all_data():
