@@ -2,6 +2,7 @@ import os
 import shutil
 import json
 from datetime import datetime, timedelta
+from threading import Thread
 
 from flask import Flask, jsonify, Response, request
 from flask_sqlalchemy import SQLAlchemy
@@ -11,6 +12,7 @@ from werkzeug.exceptions import BadRequest
 import constants
 from config_parser import parse_config, get_source_code_dir
 from open_search_simulator import Simulator
+from cluster_dynamic import ClusterDynamic
 from plotter import plot_data_points
 
 
@@ -20,7 +22,6 @@ app.app_context().push()
 if os.path.exists("instance"):
     shutil.rmtree("instance")
 db = SQLAlchemy(app)
-
 
 # Database model to store the datapoints
 class DataModel(db.Model):
@@ -40,6 +41,13 @@ class DataModel(db.Model):
     date_created = db.Column(db.DateTime, default=datetime.now(), primary_key=True)
     disk_usage_percent = db.Column(db.Integer, default = 0)
 
+def get_provision_status():
+   return is_provisioning
+
+def set_provision_status(bool_val):
+    global is_provisioning 
+    is_provisioning = bool_val
+ 
 
 def get_first_data_point_time():
     """
@@ -97,8 +105,50 @@ def overwrite_after_node_count_change(cluster_objects):
             db.session.merge(task)
     db.session.commit()
     plot_data_points(cluster_objects_post_change, skip_data_ingestion=True, skip_search_query=True)
-    expiry_time = Simulator.create_provisioning_lock()
-    return expiry_time
+    # expiry_time = Simulator.create_provisioning_lock()
+    return
+
+def add_node_and_rebalance(nodes):
+    """
+    Increments node count in cluster object and rebalances the shards
+    among the available nodes. Re-Simulates the data once the node is 
+    added and shards are distributed
+    """
+    app.app_context().push()
+    sim = Simulator(
+            configs.cluster,
+            configs.data_function,
+            configs.search_description,
+            configs.searches,
+            configs.simulation_frequency_minutes
+        )
+    sim.cluster.add_nodes(nodes)
+    cluster_objects = sim.run(24 * 60)
+    # expiry_time = overwrite_after_node_count_change(cluster_objects)
+    overwrite_after_node_count_change(cluster_objects)
+    is_provisioning = get_provision_status()
+    is_provisioning = False
+    set_provision_status(is_provisioning) 
+
+def rem_node_and_rebalance(nodes):
+    """
+    Decrements node count in cluster object and rebalances the shards
+    among the available nodes. Re-Simulates the data once the node is 
+    removed and shards are distributed
+    """
+    app.app_context().push()
+    sim = Simulator(configs.cluster, 
+                    configs.data_function, 
+                    configs.search_description, 
+                    configs.searches, 
+                    configs.simulation_frequency_minutes)
+    sim.cluster.remove_nodes(nodes)
+    cluster_objects = sim.run(24 * 60)
+    # expiry_time = overwrite_after_node_count_change(cluster_objects)
+    overwrite_after_node_count_change(cluster_objects)
+    is_provisioning = get_provision_status()
+    is_provisioning = False
+    set_provision_status(is_provisioning)
 
 
 @app.route("/stats/violated/<string:stat_name>/<int:duration>/<float:threshold>")
@@ -235,6 +285,9 @@ def current(stat_name):
 def current_all():
     """The endpoint returns all the stats from the latest poll,
     Returns error if sufficient data points are not present."""
+    is_provisioning = get_provision_status()
+    if is_provisioning:
+        return jsonify(cluster_dynamic.__dict__)
     try:
         stat_dict = {}
         for key in constants.STAT_REQUEST_CURRENT:
@@ -261,24 +314,22 @@ def add_node():
     Expects request body to specify the number of nodes added
     :return: total number of resultant nodes and duration of cluster state as yellow
     """
+    is_provisioning = get_provision_status()
+    if is_provisioning:
+        return Response(json.dumps("Cannot perform requested operation as Provisioning is in progress"),status=404)
+    is_provisioning = True
+    set_provision_status(is_provisioning)
+
     try:
-        # get the number of added nodes from request body
         nodes = int(request.json['nodes'])
-        sim = Simulator(
-            configs.cluster,
-            configs.data_function,
-            configs.search_description,
-            configs.searches,
-            configs.simulation_frequency_minutes
-        )
-        sim.cluster.add_nodes(nodes)
-        cluster_objects = sim.run(24 * 60)
-        expiry_time = overwrite_after_node_count_change(cluster_objects)
     except BadRequest as err:
+        is_provisioning = False
+        set_provision_status(is_provisioning)
         return Response(json.dumps("expected key 'nodes'"), status=404)
+    add_node_thread = Thread(target = add_node_and_rebalance, args = (nodes, ))
+    add_node_thread.start()
     return jsonify({
-        'expiry': expiry_time,
-        'nodes': sim.cluster.total_nodes_count
+        'nodes': sim.cluster.total_nodes_count + nodes
     })
 
 
@@ -289,22 +340,22 @@ def remove_node():
     Expects request body to specify the number of nodes added
     :return: total number of resultant nodes and duration of cluster state as yellow
     """
+    is_provisioning = get_provision_status()
+    if is_provisioning:
+        return Response(json.dumps("Cannot perform requested operation as Provisioning is in progress"),status=404)
+    is_provisioning = True
+    set_provision_status(is_provisioning)
+
     try:
-        # get the number of added nodes from request body
         nodes = int(request.json['nodes'])
-        sim = Simulator(configs.cluster, 
-                        configs.data_function, 
-                        configs.search_description, 
-                        configs.searches, 
-                        configs.simulation_frequency_minutes)
-        sim.cluster.remove_nodes(nodes)
-        cluster_objects = sim.run(24 * 60)
-        expiry_time = overwrite_after_node_count_change(cluster_objects)
     except BadRequest as err:
+        is_provisioning = False
+        set_provision_status(is_provisioning)
         return Response(json.dumps("expected key 'nodes'"), status=404)
+    rem_node_thread = Thread(target = rem_node_and_rebalance, args = (nodes, ))
+    rem_node_thread.start()
     return jsonify({
-        'expiry': expiry_time,
-        'nodes': sim.cluster.total_nodes_count
+        'nodes': sim.cluster.total_nodes_count - nodes
     })
 
 @app.route("/all")
@@ -321,8 +372,9 @@ def all_data():
 
 if __name__ == "__main__":
     db.create_all()
-
+    cluster_dynamic = ClusterDynamic()
     # remove any existing provision lock
+    is_provisioning = False
     Simulator.remove_provisioning_lock()
     # get configs from config yaml
     configs = parse_config(
@@ -336,6 +388,7 @@ if __name__ == "__main__":
         configs.searches,
         configs.simulation_frequency_minutes,
     )
+    sim.cluster.cluster_dynamic = cluster_dynamic
     # generate the data points from simulator
     cluster_objects = sim.run(24 * 60)
     # save the generated data points to png
@@ -347,4 +400,4 @@ if __name__ == "__main__":
     db.session.commit()
 
     # start serving the apis
-    app.run(port=constants.APP_PORT, debug=True)
+    app.run(port=constants.APP_PORT)

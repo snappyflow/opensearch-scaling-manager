@@ -78,6 +78,6 @@ def plot_data_points(cluster_objects, skip_data_ingestion=False, skip_search_que
     print('saving graph')
     file_path = os.path.join(get_source_code_dir(), SIMULATION_GRAPH_FILE_NAME)
     plt.savefig(file_path)
-
+    
     # display the graph
     # plt.show()

@@ -1,6 +1,7 @@
 from datetime import datetime
 from node import Node
 from index import Index
+from cluster_dynamic import ClusterDynamic
 import random
 import time
 import constants
@@ -28,7 +29,9 @@ class Cluster:
         primary_shards_per_index: int,
         replica_shards_per_index: int,
         min_nodes_in_cluster: int,
-        status: str = "green",
+        heap_memory_factor: float,
+        cluster_dynamic: ClusterDynamic = None,
+        status: str = "Green",
         cpu_usage_percent: float = 0,
         memory_usage_percent: float = 0,
         disk_usage_percent: float = 0,
@@ -76,10 +79,12 @@ class Cluster:
         self.memory_usage_percent = memory_usage_percent
         self.disk_usage_percent = disk_usage_percent
         self.total_disk_size_gb = total_disk_size_gb
+        self.heap_memory_factor = heap_memory_factor
         self.cluster_disk_size_used = 0
         self.heap_usage_percent = heap_usage_percent
         self.total_nodes_count = total_nodes_count
         self.active_data_nodes = active_data_nodes
+        self.unavailable_nodes = []
         self.master_eligible_nodes_count = master_eligible_nodes_count
         self.index_count = index_count
         self.index_roll_over_size_gb = index_roll_over_size_gb
@@ -88,6 +93,7 @@ class Cluster:
         self.primary_shards_per_index = primary_shards_per_index
         self.replica_shards_per_index = replica_shards_per_index
         self.rolled_over_index_id = -1
+        self.cluster_dynamic = cluster_dynamic
         self.min_nodes_in_cluster = min_nodes_in_cluster
         self.total_shards_per_index = primary_shards_per_index * (
             1 + replica_shards_per_index
@@ -117,30 +123,81 @@ class Cluster:
     #  node addition, removal etc
     def add_nodes(self, nodes=1):
         self.total_nodes_count += nodes
+
+        # Update the total node count in cluster dynamic
+        self.cluster_dynamic.total_nodes = self.total_nodes_count
+        self.cluster_dynamic.active_primary_shards = self.primary_shards_per_index * self.index_count
+        self.cluster_dynamic.cluster_status = constants.CLUSTER_STATE_YELLOW
+        self.cluster_dynamic.active_shards_count = (self.primary_shards_per_index* (self.replica_shards_per_index + 1)) * self.index_count 
+
+        # Add the node
+        #  Check if there is any unavailable node in the list
+        if len(self.unavailable_nodes)!= 0:
+            popped_node = self.unavailable_nodes.pop()        
+            if not popped_node.node_available:
+                # If node status is not available, update it 
+                node_id = popped_node.node_id
+                self.nodes[node_id].node_available = True
+                # Perform the rebalancing of shards
+                rebalancing_size = self.cluster_disk_size_used / self.total_nodes_count
+                rebalance_time = self.time_function_for_rebalancing(rebalancing_size)
+                self.clear_index_size()
+                self.allocate_shards_to_node()
+                time.sleep(rebalance_time)
+                self.status = constants.CLUSTER_STATE_GREEN
+                self.cluster_dynamic.cluster_status = constants.CLUSTER_STATE_GREEN
+                return
+    
+        new_node = Node(0,0,0,len(self.nodes))
+        self.nodes.append(new_node)
+        rebalancing_size = self.cluster_disk_size_used / self.total_nodes_count
+        rebalance_time = self.time_function_for_rebalancing(rebalancing_size)
+        self.clear_index_size()
+        self.allocate_shards_to_node()
+        time.sleep(rebalance_time)
+        self.status = constants.CLUSTER_STATE_GREEN
+        self.cluster_dynamic.cluster_status = constants.CLUSTER_STATE_GREEN
+        return
+
+                
+        # Perform rebalancing
         self.status = constants.CLUSTER_STATE_YELLOW
         # Todo - simulate effect on shards
 
     def remove_nodes(self, nodes=1):
         self.total_nodes_count -= nodes
-
         if self.min_nodes_in_cluster > self.total_nodes_count:
             print("Cannot remove more nodes, minimum nodes required")
             self.total_nodes_count += nodes
             return
-            
+        # Update the total node count in cluster dynamic
+        self.cluster_dynamic.total_nodes = self.total_nodes_count 
+
         # Choose a node from cluster and remove it
         node_id = random.randint(0,len(self.nodes) - 1)
 
         while not self.nodes[node_id].node_available:
             node_id = random.randint(0,len(self.nodes) - 1)
 
-        self.nodes[node_id].node_available = False
         unassigned_shard_size = self.nodes[node_id].calculate_total_node_size()
+        self.nodes[node_id].node_available = False
+
+        # Add the removed node to unavailable node list 
+        self.unavailable_nodes.append(self.nodes[node_id])
+       
+        self.cluster_dynamic.active_primary_shards = self.primary_shards_per_index * self.index_count
+
+        # Update the unassigned shard count and cluster status in the cluster dynamic 
+        self.cluster_dynamic.unassigned_shards = len(self.nodes[node_id].shards_on_node)
+        self.cluster_dynamic.cluster_status = constants.CLUSTER_STATE_YELLOW
+        self.cluster_dynamic.active_shards_count = (self.primary_shards_per_index* (self.replica_shards_per_index + 1)) * self.index_count 
 
         # shards present on that node will be un-assigned
         for shard in self.nodes[node_id].shards_on_node:
             if shard.type == 'Replica':
                 shard.state = 'unassigned'
+                self.unassigned_shards+=1
+
             self.unassigned_shards_list.append(shard)
 
         self.nodes[node_id].shards_on_node.clear()
@@ -148,19 +205,25 @@ class Cluster:
         # If sufficient nodes are present
         if self.total_nodes_count >= self.replica_shards_per_index + 1:
             # Perform shard re-balanching
-            self.rebalance_shards(unassigned_shard_size)
+            self.cluster_dynamic.relocating_shards = self.cluster_dynamic.unassigned_shards
+            self.rebalance_unassigned_shards(unassigned_shard_size)
 
             # After rebalancing clear the unassigned shards list from cluster
             self.unassigned_shards_list.clear()
+            self.unassigned_shards = 0
 
+            self.cluster_dynamic.relocating_shards = 0 
+            self.cluster_dynamic.unassigned_shards = 0
+            self.clear_index_size()
             # make the cluster state green after re-balancing
             self.status = constants.CLUSTER_STATE_GREEN
-
+            self.cluster_dynamic.cluster_status = constants.CLUSTER_STATE_GREEN
             return
 
         # If sufficient nodes not present 
         # Make the cluster state as yellow
         self.status = constants.CLUSTER_STATE_YELLOW
+        self.cluster_dynamic.cluster_status = "Yellow"
         # Todo - simulate effect on shards
     
     def initialize_nodes(
@@ -230,6 +293,11 @@ class Cluster:
         index = Index(primary_count, replica_count, len(self.indices))
         self.indices.append(index)
 
+    def clear_index_size(self):
+        for index in self.indices:
+                for shard in index.shards:
+                    shard.shard_size = 0
+
 
     def allocate_shards_to_node(self):
         """
@@ -261,9 +329,6 @@ class Cluster:
         # To-Do: Total size must be taken from initial size of the cluster before ingestion
         total_size = 0
 
-        # for index in self.indices:
-        #    total_size+= index.get_index_size()
-
         for node in self.nodes:
             total_size+= node.calculate_total_node_size()
 
@@ -290,12 +355,12 @@ class Cluster:
         The time to rebalance is evaluated for unassigned shards size.
         """
         rebalancing_time = unassigned_shard_size * (1/12)
-        time.sleep(rebalancing_time)
+        return rebalancing_time
 
-    def rebalance_shards(self, unassigned_shard_size):
+    def rebalance_unassigned_shards(self, unassigned_shard_size):
 
         # Add time function to simulate the time taken for rebalancing 
-        self.time_function_for_rebalancing(unassigned_shard_size)
+        rebalance_time = self.time_function_for_rebalancing(unassigned_shard_size)
 
         # Assign the shards to the available nodes on the cluster
         for shard in self.unassigned_shards_list:
@@ -312,3 +377,8 @@ class Cluster:
 
             # Add the shard to the node
             self.nodes[node_id].shards_on_node.append(shard)
+
+            if rebalance_time!=0:
+                sleep_time = random.uniform(0,rebalance_time)
+                rebalance_time-=sleep_time
+                time.sleep(sleep_time)

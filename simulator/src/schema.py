@@ -12,6 +12,7 @@
     "index_roll_over_size_gb": {"required": True, "type": "number"},
     "index_clean_up_age_days": {"required": True, "type": "number"},
     "min_nodes_in_cluster":{"required": True, "type": "number"},
+    "heap_memory_factor":{"required": True, "type": "number"},
     "total_disk_size_gb": {"required": True, "type": "number"},
     "simulation_frequency_minutes": {"required": True, "type": "number"},
     "states": {
