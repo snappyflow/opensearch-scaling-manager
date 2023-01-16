@@ -97,6 +97,7 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, ope
 		state.NumNodes = numNodes
 		state.RemainingNodes = numNodes
 		state.RuleTriggered = "scale_down"
+		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
 		isScaledDown := ScaleIn(cfg, state)
 		if isScaledDown {
@@ -259,9 +260,9 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 // Return:
 func CheckClusterHealth(state *State) {
 	for i := 0; i <= 12; i++ {
-		cluster := cluster.GetClusterCurrent()
-		log.Debug.Println(cluster.ClusterDynamic.ClusterStatus)
-		if cluster.ClusterDynamic.ClusterStatus == "green" {
+		clusterDynamic := cluster.GetClusterCurrent()
+		log.Debug.Println(clusterDynamic.ClusterStatus)
+		if clusterDynamic.ClusterStatus == "green" {
 			state.GetCurrentState()
 			state.PreviousState = state.CurrentState
 			if strings.Contains(state.PreviousState, "scaleup") {
