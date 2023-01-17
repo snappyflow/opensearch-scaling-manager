@@ -19,18 +19,18 @@ task_details:
   operator: OR
   rules:
   - metric: cpu
-    limit: 2
+    limit: 55
     stat: AVG
-    decision_period: 9
+    decision_period: 300
   - metric: cpu
-    limit: 1
+    limit: 50
     stat: COUNT
-    occurences: 10
-    decision_period: 9
+    occurrences: 10
+    decision_period: 300
   - metric: mem
-    limit: 59
+    limit: 90
     stat: AVG
-    decision_period: 9
+    decision_period: 300
   #- metric: shard
   #  stat: TERM
   #  limit: 900
@@ -39,18 +39,18 @@ task_details:
   operator: AND
   rules:
   - metric: cpu
-    limit: 0.5
+    limit: 90
     stat: AVG
-    decision_period: 9
+    decision_period: 300
   - metric: cpu
-    limit: 1
+    limit: 90
     stat: COUNT
-    occurences: 6
-    decision_period: 9
+    occurrences: 6
+    decision_period: 300
   - metric: mem
-    limit: 59
+    limit: 99
     stat: AVG
-    decision_period: 9
+    decision_period: 300
   #- metric: shard
   #  stat: TERM
   #  limit: 800
