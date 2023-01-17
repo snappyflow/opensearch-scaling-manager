@@ -52,8 +52,8 @@ class DataIngestion:
 
         time_of_day = [int(i.split("_")[0]) * 60 for i in time_of_day]
 
-        print("ingestion_rate_gb_per_hour", ingestion_rate_gb_per_hour)
-        print("time_of_day", time_of_day)
+        # print("ingestion_rate_gb_per_hour", ingestion_rate_gb_per_hour)
+        # print("time_of_day", time_of_day)
 
         # add missing value of 0th hour
         if time_of_day[0] != 0:

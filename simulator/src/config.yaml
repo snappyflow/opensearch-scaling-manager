@@ -8,10 +8,10 @@ active_data_nodes: 7
 min_nodes_in_cluster: 3
 master_eligible_nodes_count: 7
 heap_memory_factor: 0.5
-index_count: 10
+index_count: 100
 primary_shards_per_index: 2
 replica_shards_per_index: 1
-index_roll_over_size_gb: 100
+index_roll_over_size_gb: 10
 index_clean_up_age_days: 20
 total_disk_size_gb: 5000
 simulation_frequency_minutes: 5
