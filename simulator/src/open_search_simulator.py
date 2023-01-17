@@ -74,7 +74,7 @@ class Simulator:
             return  round(cpu_rate,2)
 
         if data_rate in range(80,200):
-            cpu_rate = random.uniform(70,80)
+            cpu_rate = random.uniform(60,80)
             return  round(cpu_rate,2)
         
         if data_rate > 200:
@@ -87,10 +87,12 @@ class Simulator:
     def cpu_used_for_ingestion(self, ingestion, search_count, index):
         # cpu_util = ingestion / self.cluster.total_nodes_count * random.randrange(1, 15) / 100 * 100
         cpu_util = self.compute_cpu(int(ingestion))
-        cpu_util = (self.cluster.total_nodes_count * cpu_util)/7
+        cpu_util = cpu_util * (7/self.cluster.total_nodes_count)
+        # cpu_util = cpu_util * (self.cluster.total_nodes_count/7)
         for search_type, count_array in search_count.items():
             cpu_load_percent = self.search_description[search_type].search_stat.cpu_load_percent / 100
             search_factor = count_array[index] * cpu_load_percent
+            search_factor = search_factor * (7/self.cluster.total_nodes_count)
             cpu_util += search_factor
         return min(cpu_util, 100)
 
@@ -99,6 +101,7 @@ class Simulator:
         for search_type, count_array in search_count.items():
             memory_load_percent = self.search_description[search_type].search_stat.memory_load_percent / 100
             search_factor = count_array[index] * memory_load_percent
+            search_factor = search_factor * (7/self.cluster.total_nodes_count)
             memory_util += search_factor
         return min(memory_util, 98)
 
@@ -108,6 +111,7 @@ class Simulator:
         for search_type, count_array in search_count.items():
             heap_load_percent = self.search_description[search_type].search_stat.heap_load_percent / 100
             search_factor = count_array[index] * heap_load_percent
+            search_factor = search_factor * (7/self.cluster.total_nodes_count)
             heap_util += search_factor
         return min(heap_util, 100)
 
@@ -240,6 +244,7 @@ class Simulator:
             # Todo: simulate effect on remaining cluster parameters
             self.cluster.cluster_disk_size_used+= self.disk_utilization_for_ingestion()
             self.cluster.cluster_disk_size_used = self.disk_util_for_index_roll_over()
+            self.cluster.cluster_disk_size_used+= (constants.INITIAL_DISK_SPACE_FACTOR * self.cluster.total_disk_size_gb) 
             self.cluster.disk_usage_percent = min((self.cluster.cluster_disk_size_used/self.cluster.total_disk_size_gb) * 100, 100)   
             date_time = date_obj + timedelta(minutes=self.elapsed_time_minutes)
             self.cluster.date_time = date_time

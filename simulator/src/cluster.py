@@ -123,13 +123,12 @@ class Cluster:
     # TODO: Define methods for controlling cluster behaviour,
     #  node addition, removal etc
     def add_nodes(self, nodes=1):
+        self.total_disk_size_gb+= (self.total_disk_size_gb/self.total_nodes_count)
         self.total_nodes_count += nodes
 
         # Update the total node count in cluster dynamic
-        self.cluster_dynamic.NumMasterNodes = self.master_eligible_nodes_count
-        self.cluster_dynamic.NumActiveDataNodes = (
-            self.total_nodes_count - self.master_eligible_nodes_count
-        )
+        self.cluster_dynamic.NumMasterNodes = self.master_eligible_nodes_count + 1
+        self.cluster_dynamic.NumActiveDataNodes = self.active_data_nodes + 1
         self.cluster_dynamic.NumNodes = self.total_nodes_count
         self.cluster_dynamic.NumActivePrimaryShards = (
             self.primary_shards_per_index * self.index_count
@@ -155,6 +154,8 @@ class Cluster:
                 time.sleep(rebalance_time)
                 self.cluster_dynamic.NumRelocatingShards = 0
                 self.status = constants.CLUSTER_STATE_GREEN
+                self.active_data_nodes+=nodes
+                self.master_eligible_nodes_count+=nodes
                 self.cluster_dynamic.ClusterStatus = constants.CLUSTER_STATE_GREEN
                 return
 
@@ -167,6 +168,8 @@ class Cluster:
         time.sleep(rebalance_time)
         self.cluster_dynamic.NumRelocatingShards = 0
         self.status = constants.CLUSTER_STATE_GREEN
+        self.active_data_nodes+=nodes
+        self.master_eligible_nodes_count+=nodes
         self.cluster_dynamic.ClusterStatus = constants.CLUSTER_STATE_GREEN
         return
 
@@ -175,6 +178,7 @@ class Cluster:
         # Todo - simulate effect on shards
 
     def remove_nodes(self, nodes=1):
+        self.total_disk_size_gb-= (self.total_disk_size_gb/self.total_nodes_count)
         self.total_nodes_count -= nodes
         if self.min_nodes_in_cluster > self.total_nodes_count:
             print("Cannot remove more nodes, minimum nodes required")
@@ -186,7 +190,8 @@ class Cluster:
         self.cluster_dynamic.NumActiveDataNodes = (
             self.total_nodes_count - self.master_eligible_nodes_count
         )
-
+        self.cluster_dynamic.NumMasterNodes = self.master_eligible_nodes_count - 1
+        self.cluster_dynamic.NumActiveDataNodes = self.active_data_nodes - 1
         # Choose a node from cluster and remove it
         node_id = random.randint(0, len(self.nodes) - 1)
 
@@ -236,6 +241,8 @@ class Cluster:
             self.clear_index_size()
             # make the cluster state green after re-balancing
             self.status = constants.CLUSTER_STATE_GREEN
+            self.active_data_nodes-=nodes
+            self.master_eligible_nodes_count-=nodes
             self.cluster_dynamic.ClusterStatus = constants.CLUSTER_STATE_GREEN
             return
 
