@@ -57,9 +57,9 @@ type Rule struct {
 	Stat string `yaml:"stat" validate:"required,oneof=AVG COUNT TERM"`
 	// DecisionPeriod indicates the time in minutes for which a rule is evalated.
 	DecisionPeriod int `yaml:"decision_period" validate:"required,min=1"`
-	// Occurences indicate the number of time a rule reached the threshold limit for a give decision period.
+	// Occurrences indicate the number of time a rule reached the threshold limit for a give decision period.
 	// It will be applicable only when the Stat is set to Count.
-	Occurences int `yaml:"occurences" validate:"required_if=Stat COUNT"`
+	Occurrences int `yaml:"occurrences" validate:"required_if=Stat COUNT"`
 }
 
 // This struct contains the task details which is set of actions.
@@ -147,7 +147,7 @@ func (t Task) GetNextTask() (bool, string) {
 			if v.Stat == "AVG" {
 				rules = append(rules, fmt.Sprintf("%s-%s-%f", v.Metric, v.Stat, v.Limit))
 			} else {
-				rules = append(rules, fmt.Sprintf("%s-%s-%f-%d", v.Metric, v.Stat, v.Limit, v.Occurences))
+				rules = append(rules, fmt.Sprintf("%s-%s-%f-%d", v.Metric, v.Stat, v.Limit, v.Occurrences))
 			}
 
 		}
@@ -264,8 +264,8 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 			panic(err)
 		}
 		if r.Stat == "COUNT" {
-			if taskOperation == "scale_up" && clusterStats.ViolatedCount > r.Occurences ||
-				taskOperation == "scale_down" && clusterStats.ViolatedCount < r.Occurences {
+			if taskOperation == "scale_up" && clusterStats.ViolatedCount > r.Occurrences ||
+				taskOperation == "scale_down" && clusterStats.ViolatedCount < r.Occurrences {
 				return true
 			} else {
 				return false
