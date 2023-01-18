@@ -122,7 +122,7 @@ class Cluster:
 
     # TODO: Define methods for controlling cluster behaviour,
     #  node addition, removal etc
-    def add_nodes(self, nodes=1):
+    def add_nodes(self, nodes):
         self.total_disk_size_gb+= (self.total_disk_size_gb/self.total_nodes_count)
         self.total_nodes_count += nodes
 
@@ -140,24 +140,24 @@ class Cluster:
         self.cluster_dynamic.NumRelocatingShards = len(self.nodes[0].shards_on_node)
         # Add the node
         #  Check if there is any unavailable node in the list
-        if len(self.unavailable_nodes) != 0:
-            popped_node = self.unavailable_nodes.pop()
-            if not popped_node.node_available:
-                # If node status is not available, update it
-                node_id = popped_node.node_id
-                self.nodes[node_id].node_available = True
-                # Perform the rebalancing of shards
-                rebalancing_size = self.cluster_disk_size_used / self.total_nodes_count
-                rebalance_time = self.time_function_for_rebalancing(rebalancing_size)
-                self.clear_index_size()
-                self.allocate_shards_to_node()
-                time.sleep(rebalance_time)
-                self.cluster_dynamic.NumRelocatingShards = 0
-                self.status = constants.CLUSTER_STATE_GREEN
-                self.active_data_nodes+=nodes
-                self.master_eligible_nodes_count+=nodes
-                self.cluster_dynamic.ClusterStatus = constants.CLUSTER_STATE_GREEN
-                return
+        # if len(self.unavailable_nodes) != 0:
+        #     popped_node = self.unavailable_nodes.pop()
+        #     if not popped_node.node_available:
+        #         # If node status is not available, update it
+        #         node_id = popped_node.node_id
+        #         self.nodes[node_id].node_available = True
+        #         # Perform the rebalancing of shards
+        #         rebalancing_size = self.cluster_disk_size_used / self.total_nodes_count
+        #         rebalance_time = self.time_function_for_rebalancing(rebalancing_size)
+        #         self.clear_index_size()
+        #         self.allocate_shards_to_node()
+        #         time.sleep(rebalance_time)
+        #         self.cluster_dynamic.NumRelocatingShards = 0
+        #         self.status = constants.CLUSTER_STATE_GREEN
+        #         self.active_data_nodes+=nodes
+        #         self.master_eligible_nodes_count+=nodes
+        #         self.cluster_dynamic.ClusterStatus = constants.CLUSTER_STATE_GREEN
+        #         return
 
         new_node = Node(0, 0, 0, len(self.nodes))
         self.nodes.append(new_node)
@@ -179,7 +179,7 @@ class Cluster:
 
     def remove_nodes(self, nodes=1):
         self.total_disk_size_gb-= (self.total_disk_size_gb/self.total_nodes_count)
-        self.total_nodes_count -= nodes
+        self.total_nodes_count-= nodes
         if self.min_nodes_in_cluster > self.total_nodes_count:
             print("Cannot remove more nodes, minimum nodes required")
             self.total_nodes_count += nodes
@@ -202,7 +202,7 @@ class Cluster:
         self.nodes[node_id].node_available = False
 
         # Add the removed node to unavailable node list
-        self.unavailable_nodes.append(self.nodes[node_id])
+        # self.unavailable_nodes.append(self.nodes[node_id])
 
         self.cluster_dynamic.NumActivePrimaryShards = (
             self.primary_shards_per_index * self.index_count
@@ -227,7 +227,8 @@ class Cluster:
             self.unassigned_shards_list.append(shard)
 
         self.nodes[node_id].shards_on_node.clear()
-
+        del self.nodes[node_id]
+        self.update_node_id()
         # If sufficient nodes are present
         if self.total_nodes_count >= self.replica_shards_per_index + 1:
             # Perform shard re-balanching
@@ -282,6 +283,10 @@ class Cluster:
             node_id.append(node.node_id)
 
         return node_id
+
+    def update_node_id(self):
+        for node_id in range(len(self.nodes)):
+            self.nodes[node_id].node_id = node_id
 
     def get_available_node_id(self):
         node_id = []
