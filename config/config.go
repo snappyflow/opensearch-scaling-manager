@@ -53,8 +53,9 @@ type ClusterDetails struct {
 
 // This struct contains the data structure to parse the configuration file.
 type ConfigStruct struct {
-	ClusterDetails ClusterDetails `yaml:"cluster_details"`
-	TaskDetails    []task.Task    `yaml:"task_details" validate:"gt=0,dive"`
+	MonitorWithLogs	bool		`yaml:"monitor_with_logs"`
+	ClusterDetails	ClusterDetails	`yaml:"cluster_details"`
+	TaskDetails	[]task.Task	`yaml:"task_details" validate:"gt=0,dive"`
 }
 
 // Inputs:
