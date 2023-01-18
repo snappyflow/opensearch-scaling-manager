@@ -42,7 +42,7 @@ func main() {
 			// This function is responsible for evaluating the task and recommend.
 			recommendationList := task.EvaluateTask()
 			// This function is responsible for getting the recommendation and provision.
-			provision.GetRecommendation(state, recommendationList)
+			provision.GetRecommendation(state, recommendationList, configStruct.MonitorWithLogs)
 		}
 	}
 }
@@ -68,7 +68,7 @@ func periodicProvisionCheck() {
 				cfg := configStruct.ClusterDetails
 				if strings.Contains(state.CurrentState, "scaleup") {
 					log.Debug.Println("Calling scaleOut")
-					isScaledUp := provision.ScaleOut(cfg, state)
+					isScaledUp := provision.ScaleOut(cfg, state, configStruct.MonitorWithLogs)
 					if isScaledUp {
 						log.Info.Println("Scaleup completed successfully")
 					} else {
@@ -77,7 +77,7 @@ func periodicProvisionCheck() {
 					}
 				} else if strings.Contains(state.CurrentState, "scaledown") {
 					log.Debug.Println("Calling scaleIn")
-					isScaledDown := provision.ScaleIn(cfg, state)
+					isScaledDown := provision.ScaleIn(cfg, state, configStruct.MonitorWithLogs)
 					if isScaledDown {
 						log.Info.Println("Scaledown completed successfully")
 					} else {
