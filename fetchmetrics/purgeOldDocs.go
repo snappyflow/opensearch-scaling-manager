@@ -5,13 +5,13 @@ import (
 	"context"
 	"fmt"
 	"log"
-	elasticsearch "github.com/opensearch-project/opensearch-go"
-	esapi "github.com/opensearch-project/opensearch-go/opensearchapi"
-	utils "fetchMetrics/utils"
+	opensearch "github.com/opensearch-project/opensearch-go"
+	osapi "github.com/opensearch-project/opensearch-go/opensearchapi"
+	"scaling_manager/utils"
 )
 //Input: opensearch client and context
 //Description: Deletes documents that older than 72 hours 
-func DeleteOldDocs(esClient *elasticsearch.Client, ctx context.Context) {
+func DeleteOldDocs(esClient *opensearch.Client, ctx context.Context) {
 	var jsonQuery = []byte(`{
 		"query": {
 		  "bool": {
@@ -26,7 +26,7 @@ func DeleteOldDocs(esClient *elasticsearch.Client, ctx context.Context) {
 		  }
 	  }`)
 	  var indexName = []string{utils.IndexName}
-		  deleteByQueryRequest,err:=esapi.DeleteByQueryRequest{
+		  deleteByQueryRequest,err:=osapi.DeleteByQueryRequest{
 				Index: indexName,
 				Body: bytes.NewReader(jsonQuery),
 		  }.Do(ctx,esClient)

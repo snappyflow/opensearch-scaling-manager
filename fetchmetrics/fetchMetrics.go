@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	elasticsearch "github.com/opensearch-project/opensearch-go"
-	utils "fetchMetrics/utils"
+	opensearch "github.com/opensearch-project/opensearch-go"
+	"scaling_manager/utils"
 )
 
 //Descriptions: Fetch metrics will create an opensearch client and fetches the node and cluster level details and 
@@ -15,14 +15,14 @@ func FetchMetrics() {
 	ctx := context.Background()
 
 	//create a configuration that is to be passed while creating the client 
-	cfg := elasticsearch.Config{
+	cfg := opensearch.Config{
 		Addresses: []string{
 			"http://localhost:9200",
 		},
 	}
 
 	//create the client using the configuration
-	esClient, err := elasticsearch.NewClient(cfg)
+	esClient, err := opensearch.NewClient(cfg)
 	if err != nil {
 		fmt.Println("Elasticsearch connection error:", err)
 	}

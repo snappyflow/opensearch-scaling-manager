@@ -5,15 +5,15 @@ import (
 	"encoding/json"
 	"log"
 
-	utils "fetchMetrics/utils"
-
-	elasticsearch "github.com/opensearch-project/opensearch-go"
-	esapi "github.com/opensearch-project/opensearch-go/opensearchapi"
+	"scaling_manager/utils"
+	"scaling_manager/cluster"
+	opensearch "github.com/opensearch-project/opensearch-go"
+	osapi "github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
 // Description: ClusterMetrics holds the cluster level information that are to be populated and indexed into elasticsearch
 type ClusterMetrics struct {
-	utils.ClusterDynamic
+	cluster.ClusterDynamic
 	Timestamp   int64
 	StatTag     string
 	ClusterName string
@@ -22,7 +22,7 @@ type ClusterMetrics struct {
 // Input: opensearch client and context.
 // Description: Fetches cluster level info and populates ClusterMetrics struct
 // Output: Returns the populated ClusterMetrics struct
-func FetchClusterHealthMetrics(esClient *elasticsearch.Client, ctx context.Context) ClusterMetrics {
+func FetchClusterHealthMetrics(esClient *opensearch.Client, ctx context.Context) ClusterMetrics {
 
 	//Create an interface to capture the response from cluster health and cluster stats API
 	var clusterStatsInterface map[string]interface{}
@@ -31,7 +31,7 @@ func FetchClusterHealthMetrics(esClient *elasticsearch.Client, ctx context.Conte
 	clusterStats := new(ClusterMetrics)
 
 	//Create a cluster stats request and fetch the response
-	clusterStatsRequest, err := esapi.ClusterStatsRequest{}.Do(ctx, esClient)
+	clusterStatsRequest, err := osapi.ClusterStatsRequest{}.Do(ctx, esClient)
 	if err != nil {
 		log.Fatalf("cluster stats fetch ERROR:", err)
 	}
@@ -48,7 +48,7 @@ func FetchClusterHealthMetrics(esClient *elasticsearch.Client, ctx context.Conte
 	clusterStats.Timestamp = int64(clusterStatsInterface["timestamp"].(float64))
 
 	//create a cluster health request and fetch cluster health
-	clusterHealthRequest, err := esapi.ClusterHealthRequest{}.Do(ctx, esClient)
+	clusterHealthRequest, err := osapi.ClusterHealthRequest{}.Do(ctx, esClient)
 	if err != nil {
 		log.Fatalf("cluster Health fetch ERROR:", err)
 	}
@@ -74,7 +74,7 @@ func FetchClusterHealthMetrics(esClient *elasticsearch.Client, ctx context.Conte
 
 // Input: opensearch client and context
 // Description: Fetches the cluster level info and indexes into the elasticsearch
-func IndexClusterHealth(esClient *elasticsearch.Client, ctx context.Context) {
+func IndexClusterHealth(esClient *opensearch.Client, ctx context.Context) {
 	var clusterHealth = ClusterMetrics{}
 
 	//fetch the cluster stats

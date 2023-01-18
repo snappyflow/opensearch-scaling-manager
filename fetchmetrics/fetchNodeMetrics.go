@@ -3,19 +3,19 @@ package fetchmetrics
 import (
 	"context"
 	"encoding/json"
-	utils "fetchMetrics/utils"
 	"log"
 	"os/exec"
 	"strconv"
 	"strings"
-
-	elasticsearch "github.com/opensearch-project/opensearch-go"
-	esapi "github.com/opensearch-project/opensearch-go/opensearchapi"
+	"scaling_manager/utils"
+	"scaling_manager/cluster"
+	opensearch "github.com/opensearch-project/opensearch-go"
+	osapi "github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
 // Description: NodeMetrics struct holds the node level metrics that are to be populated and indexed to elasticsearch
 type NodeMetrics struct {
-	utils.Node
+	cluster.Node
 	Timestamp int64
 	StatTag   string
 }
@@ -82,14 +82,14 @@ func getRamUtil() float32 {
 
 // Input: opensearch client and context
 // Description: The function fetches and indexes the node stats
-func IndexNodeStats(esClient *elasticsearch.Client, ctx context.Context) {
+func IndexNodeStats(esClient *opensearch.Client, ctx context.Context) {
 
 	nodeMetrics := new(NodeMetrics)
 
 	//creating a node stats requests with filter to reduce the response to requirement
 	nodes := []string{"_local"}
 	metric := []string{"jvm", "os", "fs", "indices"}
-	nodeStatReq, err := esapi.NodesStatsRequest{
+	nodeStatReq, err := osapi.NodesStatsRequest{
 		Pretty: true,
 		NodeID: nodes,
 		Metric: metric,
