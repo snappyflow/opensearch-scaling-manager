@@ -50,7 +50,7 @@ func init() {
 
 func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, []byte) {
 	var metricStats cluster.MetricStats
-	url := fmt.Sprintf("http://localhost:5000/stats/avg/%s/%d", metricName, decisionPeriod)
+	url := fmt.Sprintf("http://localhost:5000/stats/avg?metric=%s&duration=%d", metricName, decisionPeriod)
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -98,7 +98,7 @@ func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, 
 
 func GetClusterCount(metricName string, decisonPeriod int, limit float32) (cluster.MetricViolatedCount, []byte) {
 	var metricViolatedCount cluster.MetricViolatedCount
-	url := fmt.Sprintf("http://localhost:5000/stats/violated/%s/%d/%f", metricName, decisonPeriod, limit)
+	url := fmt.Sprintf("http://localhost:5000/stats/violated?metric=%s&duration=%d&threshold=%f", metricName, decisonPeriod, limit)
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
