@@ -262,7 +262,7 @@ func ScaleIn(cfg config.ClusterDetails, state *State, osClient *opensearch.Clien
 //
 // Return:
 func CheckClusterHealth(state *State, osClient *opensearch.Client, simFlag bool) {
-	var clusterDynamic cluster.clusterDynamic
+	var clusterDynamic cluster.ClusterDynamic
 	for i := 0; i <= 12; i++ {
 		if simFlag {
 			clusterDynamic = cluster_sim.GetClusterCurrent()

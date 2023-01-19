@@ -26,7 +26,7 @@ var ctx = context.Background()
 //
 // Return:
 func GetRecommendation(state *State, recommendationQueue []map[string]string, osClient *opensearch.Client, simFlag, monitorWithLogs bool) {
-	var clusterCurrent cluster.clusterDynamic
+	var clusterCurrent cluster.ClusterDynamic
 	scaleRegexString := `(scale_up|scale_down)_by_([0-9]+)`
 	scaleRegex := regexp.MustCompile(scaleRegexString)
 	if len(recommendationQueue) > 0 {
