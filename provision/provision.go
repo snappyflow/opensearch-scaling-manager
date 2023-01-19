@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"scaling_manager/logger"
+
+	"github.com/opensearch-project/opensearch-go"
 )
 
 var log = new(logger.LOG)
@@ -71,7 +73,7 @@ func init() {
 //	        May be we can keep a concept of minimum number of nodes as a configuration input.
 //
 // Return:
-func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, operation string, RulesResponsible string) {
+func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, osClient *opensearch.Client, operation, RulesResponsible string) {
 	state.GetCurrentState()
 	if operation == "scale_up" {
 		state.PreviousState = state.CurrentState
@@ -81,7 +83,7 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, ope
 		state.RuleTriggered = "scale_up"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledUp := ScaleOut(cfg, state)
+		isScaledUp := ScaleOut(cfg, state, osClient)
 		if isScaledUp {
 			log.Info.Println("Scaleup successful")
 		} else {
@@ -99,7 +101,7 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, ope
 		state.RuleTriggered = "scale_down"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledDown := ScaleIn(cfg, state)
+		isScaledDown := ScaleIn(cfg, state, osClient)
 		if isScaledDown {
 			log.Info.Println("Scaledown successful")
 		} else {
@@ -126,7 +128,7 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, ope
 // Return:
 //
 //	Return the status of scale out of the nodes.
-func ScaleOut(cfg config.ClusterDetails, state *State) bool {
+func ScaleOut(cfg config.ClusterDetails, state *State, osClient *opensearch.Client) bool {
 	// Read the current state of scaleup process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaleup process
 	state.GetCurrentState()
@@ -168,7 +170,7 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 		SimulateSharRebalancing("scaleOut", state.NumNodes)
 		log.Info.Println("Waiting for the cluster to become healthy")
 		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
-		CheckClusterHealth(state)
+		CheckClusterHealth(state, osClient)
 	}
 	// Setting the state back to 'normal' irrespective of successful or failed provisioning to continue further
 	state.LastProvisionedTime = time.Now()
@@ -196,7 +198,7 @@ func ScaleOut(cfg config.ClusterDetails, state *State) bool {
 // Return:
 //
 //	Return the status of scale in of the nodes.
-func ScaleIn(cfg config.ClusterDetails, state *State) bool {
+func ScaleIn(cfg config.ClusterDetails, state *State, osClient *opensearch.Client) bool {
 	// Read the current state of scaledown process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaledown process
 	state.GetCurrentState()
@@ -230,7 +232,7 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 	if state.CurrentState == "provisioning_scaledown_completed" {
 		SimulateSharRebalancing("scaleIn", state.NumNodes)
 		log.Info.Println("Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
-		CheckClusterHealth(state)
+		CheckClusterHealth(state, osClient)
 		log.Info.Println("Shutdown the node")
 		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 	}
@@ -258,9 +260,9 @@ func ScaleIn(cfg config.ClusterDetails, state *State) bool {
 //	to provisioned_successfully. Else, we will wait for 3 minutes and perform this check again for 3 times.
 //
 // Return:
-func CheckClusterHealth(state *State) {
+func CheckClusterHealth(state *State, osClient *opensearch.Client) {
 	for i := 0; i <= 12; i++ {
-		clusterDynamic := cluster.GetClusterCurrent()
+		clusterDynamic := cluster.GetClusterCurrent(ctx, osClient)
 		log.Debug.Println(clusterDynamic.ClusterStatus)
 		if clusterDynamic.ClusterStatus == "green" {
 			state.GetCurrentState()
