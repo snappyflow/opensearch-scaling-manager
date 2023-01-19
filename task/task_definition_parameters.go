@@ -6,15 +6,19 @@
 package task
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"regexp"
 	"scaling_manager/cluster"
 	"scaling_manager/logger"
 	"strings"
+
+	"github.com/opensearch-project/opensearch-go"
 )
 
 var log logger.LOG
+var ctx = context.Background()
 
 // Input:
 //
@@ -84,12 +88,12 @@ type TaskDetails struct {
 // Return:
 //		Returns an array of the recommendations.
 
-func (t TaskDetails) EvaluateTask() []map[string]string {
+func (t TaskDetails) EvaluateTask(osClient *opensearch.Client) []map[string]string {
 	var recommendationArray []map[string]string
 	var isRecommendedTask bool
 	for _, v := range t.Tasks {
 		var rulesResponsibleMap = make(map[string]string)
-		isRecommendedTask, rulesResponsibleMap[v.TaskName] = v.GetNextTask()
+		isRecommendedTask, rulesResponsibleMap[v.TaskName] = v.GetNextTask(osClient)
 		log.Debug.Println(rulesResponsibleMap)
 		if isRecommendedTask {
 			v.PushToRecommendationQueue()
@@ -114,7 +118,7 @@ func (t TaskDetails) EvaluateTask() []map[string]string {
 //
 //		Return if a task can be recommended or not(bool)
 
-func (t Task) GetNextTask() (bool, string) {
+func (t Task) GetNextTask(osClient *opensearch.Client) (bool, string) {
 	var isRecommendedTask bool = true
 	var isRecommendedRule bool
 	var rulesResponsible string
@@ -139,7 +143,7 @@ func (t Task) GetNextTask() (bool, string) {
 		// There is a possibility that each rule is taking time.
 		// What if in the case of AND the non matching rule is present at the last.
 		// What if in the case of OR the matching rule is present at the last.
-		isRecommendedRule, err = v.GetNextRule(taskOperation)
+		isRecommendedRule, err = v.GetNextRule(taskOperation, osClient)
 		if err != nil {
 			log.Warn.Println(fmt.Sprintf("%s for the rule: %v", string(err), v))
 		}
@@ -175,8 +179,8 @@ func (t Task) GetNextTask() (bool, string) {
 // Return:
 //		Return if a rule is meeting the criteria or not(bool)
 
-func (r Rule) GetNextRule(taskOperation string) (bool, []byte) {
-	cluster, err := r.GetMetrics()
+func (r Rule) GetNextRule(taskOperation string, osClient *opensearch.Client) (bool, []byte) {
+	cluster, err := r.GetMetrics(osClient)
 	if err != nil {
 		return false, err
 	}
@@ -198,7 +202,7 @@ func (r Rule) GetNextRule(taskOperation string) (bool, []byte) {
 // Return:
 //		Return marshal form of either MetricStatsCluster or MetricViolatedCountCluster struct([]byte)
 
-func (r Rule) GetMetrics() ([]byte, []byte) {
+func (r Rule) GetMetrics(osClient *opensearch.Client) ([]byte, []byte) {
 	var clusterStats cluster.MetricStats
 	var clusterCount cluster.MetricViolatedCount
 	var clusterMetric []byte
@@ -206,7 +210,7 @@ func (r Rule) GetMetrics() ([]byte, []byte) {
 	var err []byte
 
 	if r.Stat == "AVG" {
-		clusterStats, err = cluster.GetClusterAvg(r.Metric, r.DecisionPeriod)
+		clusterStats, err = cluster.GetClusterAvg(r.Metric, r.DecisionPeriod, ctx, osClient)
 		if err != nil {
 			return clusterMetric, err
 		}
@@ -217,7 +221,7 @@ func (r Rule) GetMetrics() ([]byte, []byte) {
 			panic(jsonErr)
 		}
 	} else if r.Stat == "COUNT" || r.Stat == "TERM" {
-		clusterCount, err = cluster.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit)
+		clusterCount, err = cluster.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit, ctx, osClient)
 		if err != nil {
 			return clusterMetric, err
 		}
