@@ -47,30 +47,32 @@ class DataIngestion:
         ingestion_rate_gb_per_hour = []
 
         for state in self.states:
-            time_of_day.append(state.time_hh_mm_ss)
-            ingestion_rate_gb_per_hour.append(state.ingestion_rate_gb_per_hr)
-
-        time_of_day = [int(i.split("_")[0]) * 60 for i in time_of_day]
-
-        # print("ingestion_rate_gb_per_hour", ingestion_rate_gb_per_hour)
-        # print("time_of_day", time_of_day)
+            if int(state.time_hh_mm_ss.split("_")[0]) >= int(start_time_hh_mm_ss.split("_")[0]):
+                time_of_day.append(
+                    (int(state.time_hh_mm_ss.split("_")[0]) - int(start_time_hh_mm_ss.split("_")[0])) * 60
+                )
+                ingestion_rate_gb_per_hour.append(state.ingestion_rate_gb_per_hr)
 
         # add missing value of 0th hour
-        if time_of_day[0] != 0:
+        if start_time_hh_mm_ss == "00_00_00" and time_of_day[0] != 0:
             time_of_day.insert(0, 0)
             ingestion_rate_gb_per_hour.insert(0, 5)
 
         # positions to inter/extrapolate
         intervals = int(duration_minutes / frequency_minutes)
 
-        x = np.linspace(0, duration_minutes, intervals)
+        if start_time_hh_mm_ss == "00_00_00":
+            x = np.linspace(0, duration_minutes, intervals)
+        else:
+            start = int(start_time_hh_mm_ss.split("_")[0])
+            x = np.linspace(start, duration_minutes, intervals)
         # spline order: 1 linear, 2 quadratic, 3 cubic ...
         order = 1
         # do inter/extrapolation
         s = InterpolatedUnivariateSpline(
             time_of_day, ingestion_rate_gb_per_hour, k=order
         )
-        y = s(x)
+        y = [max(i, 0) for i in s(x)]
         return x, y
 
     def aggregate_data(

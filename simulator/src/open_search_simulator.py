@@ -216,17 +216,20 @@ class Simulator:
                 self.cluster.indices[index_id].shards[shard].shard_size+= data_per_shard_gb
 
 
-    def run(self, duration_minutes):
+    def run(self, duration_minutes, start_time="00_00_00"):
         resultant_cluster_objects = []
         data_x, data_y = self.aggregate_data(duration_minutes)
         data_x1, data_y1 = self.aggregate_data_searches(duration_minutes)
         now = datetime.now()
-        date_obj = now - timedelta(
+        if start_time == "00_00_00":
+            date_obj = now - timedelta(
                 hours=now.hour,
                 minutes=now.minute,
                 seconds=now.second,
                 microseconds=now.microsecond
             )
+        else:
+            date_obj = now
         for index, instantaneous_data_ingestion_rate in enumerate(data_y):
             self.cluster._ingestion_rate = instantaneous_data_ingestion_rate
             self.cluster._simple_query_rate = data_y1["simple"][index]
