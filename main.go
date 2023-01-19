@@ -52,7 +52,7 @@ func main() {
 			}
 			task.Tasks = configStruct.TaskDetails
 			// This function is responsible for evaluating the task and recommend.
-			recommendationList := task.EvaluateTask()
+			recommendationList := task.EvaluateTask(osClient, configStruct.MonitorWithSimulator)
 			// This function is responsible for getting the recommendation and provision.
 			provision.GetRecommendation(state, recommendationList, osClient, configStruct.MonitorWithSimulator, configStruct.MonitorWithLogs)
 		}
