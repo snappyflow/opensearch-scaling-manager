@@ -8,7 +8,18 @@ from config_parser import get_source_code_dir
 from cluster import Cluster
 from data_ingestion import DataIngestion
 from search import SearchDescription, Search
+import time
 
+
+def timeit(func):
+    def inner(*args, **kwargs):
+        time_start = time.time()
+        ret = func(*args, **kwargs)
+        time_end = time.time()
+        total_time = time_end - time_start
+        print("time taken for the function :", func.__name__, " is: ", total_time)
+        return ret
+    return inner
 
 class Simulator:
     """
@@ -215,7 +226,7 @@ class Simulator:
             for shard in range(len(self.cluster.indices[index_id].shards)):
                 self.cluster.indices[index_id].shards[shard].shard_size+= data_per_shard_gb
 
-
+    @timeit
     def run(self, duration_minutes, start_time="00_00_00"):
         resultant_cluster_objects = []
         data_x, data_y = self.aggregate_data(duration_minutes)
