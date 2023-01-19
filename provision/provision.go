@@ -84,7 +84,7 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, osC
 		state.RuleTriggered = "scale_up"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledUp := ScaleOut(cfg, state, osClient)
+		isScaledUp := ScaleOut(cfg, state, osClient, simFlag)
 		if isScaledUp {
 			log.Info.Println("Scaleup successful")
 		} else {
@@ -102,7 +102,7 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, osC
 		state.RuleTriggered = "scale_down"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledDown := ScaleIn(cfg, state, osClient)
+		isScaledDown := ScaleIn(cfg, state, osClient, simFlag)
 		if isScaledDown {
 			log.Info.Println("Scaledown successful")
 		} else {
