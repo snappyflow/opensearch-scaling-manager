@@ -3,9 +3,11 @@ package main
 import (
 	"scaling_manager/cluster"
 	"scaling_manager/config"
+	fetch "scaling_manager/fetchmetrics"
 	"scaling_manager/logger"
 	"scaling_manager/provision"
 	"scaling_manager/task"
+	"scaling_manager/utils"
 	"strings"
 	"time"
 
@@ -32,9 +34,6 @@ func main() {
 		state.GetCurrentState()
 		// The recommendation and provisioning should only happen on master node
 		if cluster.CheckIfMaster() && state.CurrentState == "normal" {
-			// This function is responsible for fetching the metrics and pushing it to the index.
-			// In starting we will call simulator to provide this details with current timestamp.
-			// fetch.FetchMetrics()
 			// This function will be responsible for parsing the config file and fill in task_details struct.
 			var task = new(task.TaskDetails)
 			configStruct, err := config.GetConfig("config.yaml")
@@ -42,6 +41,14 @@ func main() {
 				log.Error.Println("The recommendation can not be made as there is an error in the validation of config file.")
 				log.Error.Println(err.Error())
 				continue
+			}
+			cfg := configStruct.ClusterDetails
+			osClient := utils.CreateOsClient(cfg.OsCredentials.OsAdminUsername,
+				cfg.OsCredentials.OsAdminPassword)
+			// This function is responsible for fetching the metrics and pushing it to the index.
+			// In starting we will call simulator to provide this details with current timestamp.
+			if !configStruct.MonitorWithSimulator {
+				fetch.FetchMetrics(osClient)
 			}
 			task.Tasks = configStruct.TaskDetails
 			// This function is responsible for evaluating the task and recommend.
@@ -71,9 +78,11 @@ func periodicProvisionCheck() {
 					return
 				}
 				cfg := configStruct.ClusterDetails
+				osClient := utils.CreateOsClient(cfg.OsCredentials.OsAdminUsername,
+					cfg.OsCredentials.OsAdminPassword)
 				if strings.Contains(state.CurrentState, "scaleup") {
 					log.Debug.Println("Calling scaleOut")
-					isScaledUp := provision.ScaleOut(cfg, state, configStruct.MonitorWithLogs)
+					isScaledUp := provision.ScaleOut(cfg, state, osClient, configStruct.MonitorWithSimulator, configStruct.MonitorWithLogs)
 					if isScaledUp {
 						log.Info.Println("Scaleup completed successfully")
 					} else {
@@ -82,7 +91,7 @@ func periodicProvisionCheck() {
 					}
 				} else if strings.Contains(state.CurrentState, "scaledown") {
 					log.Debug.Println("Calling scaleIn")
-					isScaledDown := provision.ScaleIn(cfg, state, configStruct.MonitorWithLogs)
+					isScaledDown := provision.ScaleIn(cfg, state, osClient, configStruct.MonitorWithSimulator, configStruct.MonitorWithLogs)
 					if isScaledDown {
 						log.Info.Println("Scaledown completed successfully")
 					} else {
