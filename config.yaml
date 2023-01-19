@@ -1,5 +1,6 @@
 ---
 monitor_with_logs: true
+monitor_with_simulator: true
 cluster_details:
   ip_address: 10.81.1.250
   cluster_name: cluster.1
