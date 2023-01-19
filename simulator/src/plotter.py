@@ -22,6 +22,7 @@ def plot_data_points(cluster_objects, skip_data_ingestion=False, skip_search_que
     cpu_usage_over_time = []
     mem_usage_over_time = []
     heap_usage_over_time = []
+    disk_util_over_time = []
     cluster_status_over_time = []
     nodes_over_time = []
     date_time_points = []
@@ -34,6 +35,7 @@ def plot_data_points(cluster_objects, skip_data_ingestion=False, skip_search_que
         cpu_usage_over_time.append(cluster_obj.cpu_usage_percent)
         mem_usage_over_time.append(cluster_obj.memory_usage_percent)
         heap_usage_over_time.append(cluster_obj.heap_usage_percent)
+        disk_util_over_time.append(cluster_obj.disk_usage_percent)
         cluster_status_over_time.append(cluster_obj.status)
         nodes_over_time.append(cluster_obj.total_nodes_count)
 
@@ -62,8 +64,12 @@ def plot_data_points(cluster_objects, skip_data_ingestion=False, skip_search_que
     plt.plot(date_time_points, heap_usage_over_time)
 
     plt.subplot(graph_count, 1, 6)
-    plt.ylabel('Cluster State', font2)
-    plt.plot(date_time_points, cluster_status_over_time)
+    plt.ylabel('Used Disk %', font2)
+    plt.plot(date_time_points, disk_util_over_time)
+
+    # plt.subplot(graph_count, 1, 7)
+    # plt.ylabel('Cluster State', font2)
+    # plt.plot(date_time_points, cluster_status_over_time)
 
     plt.subplot(graph_count, 1, 7)
     plt.ylabel('Node Count', font2)
