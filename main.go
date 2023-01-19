@@ -47,7 +47,7 @@ func main() {
 			// This function is responsible for evaluating the task and recommend.
 			recommendationList := task.EvaluateTask()
 			// This function is responsible for getting the recommendation and provision.
-			provision.GetRecommendation(state, recommendationList, configStruct.MonitorWithLogs)
+			provision.GetRecommendation(state, recommendationList, osClient, configStruct.MonitorWithSimulator, configStruct.MonitorWithLogs)
 		}
 	}
 }
