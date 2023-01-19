@@ -415,3 +415,8 @@ func GetClusterId() string {
 	var clusterId = "vcPboLtxQXyPhJMe8bn44A"
 	return clusterId
 }
+
+func GetClusterDetails(ctx context.Context, osClient *opensearch.Client) Cluster {
+	var cluster Cluster
+	return cluster
+}
