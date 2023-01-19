@@ -128,7 +128,10 @@ def add_node_and_rebalance(nodes):
         configs.simulation_frequency_minutes,
     )
     sim.cluster.add_nodes(nodes)
-    cluster_objects = sim.run(24 * 60)
+    hour = datetime.now().hour
+    minutes = str(datetime.now().minute) if datetime.now().minute > 9 else "0" + str(datetime.now().minute)
+    duration = (24 - hour) * 60 - datetime.now().minute
+    cluster_objects = sim.run(duration, str(hour) + "_" + minutes + "_00")
     # expiry_time = overwrite_after_node_count_change(cluster_objects)
     overwrite_after_node_count_change(cluster_objects)
     is_provisioning = get_provision_status()
@@ -151,7 +154,10 @@ def rem_node_and_rebalance(nodes):
         configs.simulation_frequency_minutes,
     )
     sim.cluster.remove_nodes(nodes)
-    cluster_objects = sim.run(24 * 60)
+    hour = datetime.now().hour
+    minutes = str(datetime.now().minute) if datetime.now().minute > 9 else "0" + str(datetime.now().minute)
+    duration = (24 - hour) * 60 - datetime.now().minute
+    cluster_objects = sim.run(duration, str(hour) + "_" + minutes + "_00")
     # expiry_time = overwrite_after_node_count_change(cluster_objects)
     overwrite_after_node_count_change(cluster_objects)
     is_provisioning = get_provision_status()
