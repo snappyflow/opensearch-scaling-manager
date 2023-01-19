@@ -159,15 +159,25 @@ def rem_node_and_rebalance(nodes):
     set_provision_status(is_provisioning)
 
 
-@app.route("/stats/violated/<string:stat_name>/<int:duration>/<float:threshold>")
-def violated_count(stat_name, duration, threshold):
+@app.route("/stats/violated")
+def violated_count():
     """
     Endpoint fetches the violated count for a requested metric, threshold and duration,
-    :param stat_name: represents the stat that is being queried.
+    The metric,duration and threshold will be sent as query parameter.
+    :param metric: represents the metric that is being queried.
     :param duration: represents the time period for fetching the average
     :param threshold: represents the limit considered for evaluating violated count
     :return: count of stat exceeding the threshold for a given duration
     """
+    args = request.args
+    args.to_dict()
+    metric = args.get('metric', type=str)
+    duration = args.get('duration', type=int)
+    threshold = args.get('threshold', type=float)
+
+    if metric == None or duration == None or threshold == None or len(args)!=constants.QUERY_ARG_LENGTH_THREE:
+        return Response(json.dumps("Invalid query parameters"), status=400)
+
     # calculate time to query for data
     time_now = datetime.now()
 
@@ -177,7 +187,7 @@ def violated_count(stat_name, duration, threshold):
     try:
         # Fetching the count of data points for given duration.
         data_point_count = (
-            DataModel.query.order_by(constants.STAT_REQUEST[stat_name])
+            DataModel.query.order_by(constants.STAT_REQUEST[metric])
             .filter(DataModel.date_created > query_begin_time)
             .filter(DataModel.date_created < time_now)
             .count()
@@ -189,9 +199,9 @@ def violated_count(stat_name, duration, threshold):
 
         # Fetches the count of stat_name that exceeds the threshold for given duration
         stats = (
-            DataModel.query.order_by(constants.STAT_REQUEST[stat_name])
+            DataModel.query.order_by(constants.STAT_REQUEST[metric])
             .filter(
-                DataModel.__getattribute__(DataModel, constants.STAT_REQUEST[stat_name])
+                DataModel.__getattribute__(DataModel, constants.STAT_REQUEST[metric])
                 > threshold
             )
             .filter(DataModel.date_created > query_begin_time)
@@ -202,20 +212,29 @@ def violated_count(stat_name, duration, threshold):
         return jsonify({"ViolatedCount": stats})
 
     except KeyError:
-        return Response(f"stat not found - {stat_name}", status=404)
+        return Response(f"stat not found - {metric}", status=404)
     except Exception as e:
         return Response(e, status=404)
 
 
-@app.route("/stats/avg/<string:stat_name>/<int:duration>")
-def average(stat_name, duration):
+@app.route("/stats/avg/", methods=['GET'])
+def average():
     """
     The endpoint evaluates average of requested stat for a duration
     returns error if sufficient data points are not present.
-    :param stat_name: represents the stat that is being queried.
+    The metric and duration will be sent as query parameter.
+    :param metric: represents the stat that is being queried.
     :param duration: represents the time period for fetching the average
-    :return: average of the provided stat name for the decision period.
+    :return: average of the provided metric for the decision period.
     """
+    args = request.args
+    args.to_dict()
+    metric = args.get('metric',type=str) 
+    duration = args.get('duration',type=int)
+
+    if metric == None or duration == None or len(args)!= constants.QUERY_ARG_LENGTH_TWO:
+        return Response(json.dumps("Invalid query parameters"), status=400)
+
     # calculate time to query for data
     time_now = datetime.now()
     # Convert the minutes to time object to compare and query for required data points
@@ -225,10 +244,10 @@ def average(stat_name, duration):
     try:
         # Fetches list of rows that is filter by stat_name and are filtered by decision period
         avg_list = (
-            DataModel.query.order_by(constants.STAT_REQUEST[stat_name])
+            DataModel.query.order_by(constants.STAT_REQUEST[metric])
             .filter(DataModel.date_created > query_begin_time)
             .filter(DataModel.date_created < time_now)
-            .with_entities(text(constants.STAT_REQUEST[stat_name]))
+            .with_entities(text(constants.STAT_REQUEST[metric]))
             .all()
         )
         for avg_value in avg_list:
@@ -252,47 +271,49 @@ def average(stat_name, duration):
         )
 
     except KeyError:
-        return Response(f"stat not found - {stat_name}", status=404)
+        return Response(f"stat not found - {metric}", status=404)
     except Exception as e:
         return Response(e, status=404)
 
 
-@app.route("/stats/current/<string:stat_name>")
-def current(stat_name):
-    """
-    The endpoint to fetch stat from the latest poll,
-    Returns error if sufficient data points are not present.
-    :return: Stat generated by the most recent poll
-    """
-    try:
-        if constants.STAT_REQUEST[stat_name] == constants.CLUSTER_STATE:
-            if Simulator.is_provision_in_progress():
-                return jsonify({"current": constants.CLUSTER_STATE_YELLOW})
-        # Fetches the stat_name for the latest poll
-        current_stat = (
-            DataModel.query.order_by(desc(DataModel.date_created))
-            .with_entities(
-                DataModel.__getattribute__(DataModel, constants.STAT_REQUEST[stat_name])
-            )
-            .all()
-        )
-
-        # If expected data points count are not present then respond with error
-        if len(current_stat) == 0:
-            return Response(json.dumps("Not enough Data points"), status=400)
-
-        return jsonify({"current": current_stat[0][constants.STAT_REQUEST[stat_name]]})
-
-    except KeyError:
-        return Response(f"stat not found - {stat_name}", status=404)
-    except Exception as e:
-        return Response(e, status=404)
-
-
-@app.route("/stats/current")
+@app.route("/stats/current", methods=['GET'])
 def current_all():
-    """The endpoint returns all the stats from the latest poll,
-    Returns error if sufficient data points are not present."""
+    """
+    The endpoint returns all the stats from the latest poll,
+    Returns error if sufficient data points are not present.
+    """
+    args = request.args
+    args.to_dict()
+    metric = args.get('metric', type=str)
+
+    if len(args) > constants.QUERY_ARG_LENGTH_ONE or (len(args) == constants.QUERY_ARG_LENGTH_ONE and metric == None):
+        return Response(json.dumps("Invalid query parameters"), status=400)
+
+    if len(args) == constants.QUERY_ARG_LENGTH_ONE and metric!=None:
+        try:
+            if constants.STAT_REQUEST[metric] == constants.CLUSTER_STATE:
+                if Simulator.is_provision_in_progress():
+                    return jsonify({"current": constants.CLUSTER_STATE_YELLOW})
+            # Fetches the stat_name for the latest poll
+            current_stat = (
+                DataModel.query.order_by(desc(DataModel.date_created))
+                .with_entities(
+                    DataModel.__getattribute__(DataModel, constants.STAT_REQUEST[metric])
+                )
+                .all()
+            )
+
+            # If expected data points count are not present then respond with error
+            if len(current_stat) == 0:
+                return Response(json.dumps("Not enough Data points"), status=400)
+
+            return jsonify({"current": current_stat[0][constants.STAT_REQUEST[metric]]})
+
+        except KeyError:
+            return Response(f"stat not found - {metric}", status=404)
+        except Exception as e:
+            return Response(e, status=404)
+
     is_provisioning = get_provision_status()
     if is_provisioning:
         return jsonify(cluster_dynamic.__dict__)
