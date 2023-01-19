@@ -5,7 +5,6 @@ package provision
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -193,7 +192,7 @@ func ScaleOut(cfg config.ClusterDetails, state *State, osClient *opensearch.Clie
 				return false
 			}
 			defer f.Close()
-			clusterDetails := cluster.GetClusterDetails(context.Background())
+			clusterDetails := cluster.GetClusterDetails(ctx, osClient)
 			dataWriter := bufio.NewWriter(f)
 			dataWriter.WriteString("[current-nodes]\n")
 			for _, node := range clusterDetails.NodeList {
@@ -269,7 +268,7 @@ func ScaleIn(cfg config.ClusterDetails, state *State, osClient *opensearch.Clien
 		if monitorWithLogs {
 			time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 		} else {
-			clusterDetails = cluster.GetClusterDetails(context.Background())
+			clusterDetails = cluster.GetClusterDetails(ctx, osClient)
 			for _, node := range clusterDetails.NodeList {
 				if !(node.IsMaster) {
 					remove_node = node.HostIp
