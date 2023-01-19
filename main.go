@@ -47,10 +47,12 @@ func main() {
 				cfg.OsCredentials.OsAdminPassword)
 			// This function is responsible for fetching the metrics and pushing it to the index.
 			// In starting we will call simulator to provide this details with current timestamp.
-			fetch.FetchMetrics(osClient)
+			if !configStruct.MonitorWithSimulator {
+				fetch.FetchMetrics(osClient)
+			}
 			task.Tasks = configStruct.TaskDetails
 			// This function is responsible for evaluating the task and recommend.
-			recommendationList := task.EvaluateTask(osClient)
+			recommendationList := task.EvaluateTask(osClient, configStruct.MonitorWithSimulator)
 			// This function is responsible for getting the recommendation and provision.
 			provision.GetRecommendation(state, recommendationList, osClient)
 		}
