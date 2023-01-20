@@ -7,6 +7,7 @@ git clone https://github.com/maplelabs/opensearch-scaling-manager.git -b release
 ```
 Run the following commands to build and install the scaling manager
 ```bash
+cd opensearch-scaling-manager/
 # Build the scaling_manager module.
 sudo make build
 # Package the scaling_manager module and create a tarball.
