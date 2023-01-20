@@ -36,10 +36,12 @@ clean:
 	mv sm.service scaling_manager.service
 
 cleaninstall:
-	systemctl stop scaling_manager
-	systemctl disable scaling_manager
-	rm -rf /usr/local/$(SCALING_MANAGER_LIB)
-	rm -f /etc/systemd/system/scaling_manager.service
+    ifeq ($(PLATFORM),linux)
+		systemctl stop scaling_manager
+		systemctl disable scaling_manager
+		rm -rf /usr/local/$(SCALING_MANAGER_LIB)
+		rm -f /etc/systemd/system/scaling_manager.service
+    endif
 
 init:
 	go mod init scaling_manager
