@@ -3,19 +3,21 @@
 package provision
 
 import (
+	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"scaling_manager/cluster"
 	"scaling_manager/cluster_sim"
 	"scaling_manager/config"
+	utils "scaling_manager/utilities"
 	"strings"
 	"time"
 
 	"scaling_manager/logger"
-
-	"github.com/opensearch-project/opensearch-go"
 )
 
 var log = new(logger.LOG)
@@ -74,7 +76,7 @@ func init() {
 //	        May be we can keep a concept of minimum number of nodes as a configuration input.
 //
 // Return:
-func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, osClient *opensearch.Client, operation, RulesResponsible string, simFlag, monitorWithLogs bool) {
+func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, operation, RulesResponsible string, simFlag, monitorWithLogs bool) {
 	state.GetCurrentState()
 	if operation == "scale_up" {
 		state.PreviousState = state.CurrentState
@@ -84,7 +86,7 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, osC
 		state.RuleTriggered = "scale_up"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledUp := ScaleOut(cfg, state, osClient, simFlag)
+		isScaledUp := ScaleOut(cfg, state, simFlag, monitorWithLogs)
 		if isScaledUp {
 			log.Info.Println("Scaleup successful")
 		} else {
@@ -102,7 +104,7 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, osC
 		state.RuleTriggered = "scale_down"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledDown := ScaleIn(cfg, state, osClient, simFlag)
+		isScaledDown := ScaleIn(cfg, state, simFlag, monitorWithLogs)
 		if isScaledDown {
 			log.Info.Println("Scaledown successful")
 		} else {
@@ -129,10 +131,11 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, osC
 // Return:
 //
 //	Return the status of scale out of the nodes.
-func ScaleOut(cfg config.ClusterDetails, state *State, osClient *opensearch.Client, simFlag bool) bool {
+func ScaleOut(cfg config.ClusterDetails, state *State, simFlag, monitorWithLogs bool) bool {
 	// Read the current state of scaleup process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaleup process
 	state.GetCurrentState()
+	var newNodeIp string
 	if state.CurrentState == "provisioning_scaleup" {
 		log.Info.Println("Starting scaleUp process")
 		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
@@ -143,10 +146,24 @@ func ScaleOut(cfg config.ClusterDetails, state *State, osClient *opensearch.Clie
 	}
 	// Spin new VMs based on number of nodes and cloud type
 	if state.CurrentState == "start_scaleup_process" {
-		log.Info.Println("Spin new vms based on the cloud type")
-		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
-		log.Info.Println("Spinning new vms")
-		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
+		if monitorWithLogs {
+			log.Info.Println("Spin new vms based on the cloud type")
+			time.Sleep(time.Duration(config.PollingInterval) * time.Second)
+			log.Info.Println("Spinning AWS instance")
+			time.Sleep(time.Duration(config.PollingInterval) * time.Second)
+		} else {
+			var err error
+			newNodeIp, err = SpinNewVm()
+			if err != nil {
+				state.LastProvisionedTime = time.Now()
+				state.ProvisionStartTime = time.Time{}
+				state.PreviousState = state.CurrentState
+				state.CurrentState = "normal"
+				state.UpdateState()
+				return false
+			}
+		}
+		log.Info.Println("Spinned a new node: ", newNodeIp)
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "scaleup_triggered_spin_vm"
 		state.UpdateState()
@@ -154,24 +171,59 @@ func ScaleOut(cfg config.ClusterDetails, state *State, osClient *opensearch.Clie
 	// Add the newly added VM to the list of VMs
 	// Configure OS on newly created VM
 	if state.CurrentState == "scaleup_triggered_spin_vm" {
-		log.Info.Println("Check if the vm creation is complete and wait till done")
-		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
-		log.Info.Println("Adding the spinned nodes into the list of vms")
-		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
-		log.Info.Println("Configure ES")
-		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
-		log.Info.Println("Configuring in progress")
-		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
+		if monitorWithLogs {
+			log.Info.Println("Adding the spinned nodes into the list of vms")
+			time.Sleep(time.Duration(config.PollingInterval) * time.Second)
+			log.Info.Println("Configure ES")
+			time.Sleep(time.Duration(config.PollingInterval) * time.Second)
+			log.Info.Println("Configuring in progress")
+			time.Sleep(time.Duration(config.PollingInterval) * time.Second)
+		} else {
+			hostsFileName := "provision/ansible_scripts/hosts"
+			username := "ubuntu"
+			f, err := os.OpenFile(hostsFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+			if err != nil {
+				log.Fatal.Println(err)
+				state.LastProvisionedTime = time.Now()
+				state.ProvisionStartTime = time.Time{}
+				state.PreviousState = state.CurrentState
+				state.CurrentState = "normal"
+				state.UpdateState()
+				return false
+			}
+			defer f.Close()
+			nodes := utils.GetNodes()
+			dataWriter := bufio.NewWriter(f)
+			dataWriter.WriteString("[current-nodes]\n")
+			for _, nodeIdMap := range nodes {
+				_, _ = dataWriter.WriteString(nodeIdMap.(map[string]interface{})["name"].(string) + " " + "ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + nodeIdMap.(map[string]interface{})["hostIp"].(string) + " ansible_ssh_private_key_file=./testing-scaling-manager.pem\n")
+			}
+			dataWriter.WriteString("[new-node]\n")
+			dataWriter.WriteString("new-node-" + fmt.Sprint(len(nodes)+1) + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + newNodeIp + " ansible_ssh_private_key_file=./testing-scaling-manager.pem\n")
+			dataWriter.Flush()
+			ansibleErr := CallScaleUp(username, hostsFileName)
+			if ansibleErr != nil {
+				log.Fatal.Println(err)
+				state.LastProvisionedTime = time.Now()
+				state.ProvisionStartTime = time.Time{}
+				state.PreviousState = state.CurrentState
+				state.CurrentState = "normal"
+				state.UpdateState()
+				return false
+			}
+		}
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaleup_completed"
 		state.UpdateState()
 	}
 	// Check cluster status after the configuration
 	if state.CurrentState == "provisioning_scaleup_completed" {
-		SimulateSharRebalancing("scaleOut", state.NumNodes)
+		if simFlag {
+			SimulateSharRebalancing("scaleOut", state.NumNodes)
+		}
 		log.Info.Println("Waiting for the cluster to become healthy")
 		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
-		CheckClusterHealth(state, osClient, simFlag)
+		CheckClusterHealth(state, simFlag)
 	}
 	// Setting the state back to 'normal' irrespective of successful or failed provisioning to continue further
 	state.LastProvisionedTime = time.Now()
@@ -182,7 +234,6 @@ func ScaleOut(cfg config.ClusterDetails, state *State, osClient *opensearch.Clie
 	state.RemainingNodes = state.RemainingNodes - 1
 	state.UpdateState()
 	log.Info.Println("State set back to normal")
-
 	return true
 }
 
@@ -199,10 +250,12 @@ func ScaleOut(cfg config.ClusterDetails, state *State, osClient *opensearch.Clie
 // Return:
 //
 //	Return the status of scale in of the nodes.
-func ScaleIn(cfg config.ClusterDetails, state *State, osClient *opensearch.Client, simFlag bool) bool {
+func ScaleIn(cfg config.ClusterDetails, state *State, simFlag, monitorWithLogs bool) bool {
 	// Read the current state of scaledown process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaledown process
 	state.GetCurrentState()
+	var removeNodeIp, removeNodeName string
+	var nodes map[string]interface{}
 	if state.CurrentState == "provisioning_scaledown" {
 		log.Info.Println("Staring scaleDown process")
 		state.PreviousState = state.CurrentState
@@ -214,26 +267,71 @@ func ScaleIn(cfg config.ClusterDetails, state *State, osClient *opensearch.Clien
 	// Identify the node which can be removed from the cluster.
 	if state.CurrentState == "start_scaledown_process" {
 		log.Info.Println("Identify the node to remove from the cluster and store the node_ip")
-		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
+		if monitorWithLogs {
+			time.Sleep(time.Duration(config.PollingInterval) * time.Second)
+		} else {
+			nodes = utils.GetNodes()
+			for nodeId, nodeIdInfo := range nodes {
+				if !(utils.CheckIfMaster(context.Background(), nodeId)) {
+					removeNodeIp = nodeIdInfo.(map[string]interface{})["hostIp"].(string)
+					removeNodeName = nodeIdInfo.(map[string]interface{})["name"].(string)
+					break
+				}
+			}
+		}
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "scaledown_node_identified"
 		state.UpdateState()
 	}
 	// Configure OS to tell master node that the present node is going to be removed
 	if state.CurrentState == "scaledown_node_identified" {
-		log.Info.Println("Configure ES to remove the node ip from cluster")
+		if monitorWithLogs {
+			log.Info.Println("Configure ES to remove the node ip from cluster")
+			time.Sleep(time.Duration(config.PollingInterval) * time.Second)
+			log.Info.Println("Shutdown the node by ssh")
+			time.Sleep(time.Duration(config.PollingInterval) * time.Second)
+		} else {
+			hostsFileName := "provision/ansible_scripts/hosts"
+			username := "ubuntu"
+			f, err := os.OpenFile(hostsFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+			if err != nil {
+				log.Fatal.Println(err)
+			}
+			defer f.Close()
+			dataWriter := bufio.NewWriter(f)
+			dataWriter.WriteString("[current-nodes]\n")
+			for _, nodeIdInfo := range nodes {
+				if nodeIdInfo.(map[string]interface{})["hostIp"].(string) != removeNodeIp {
+					_, _ = dataWriter.WriteString(nodeIdInfo.(map[string]interface{})["name"].(string) + " " + "ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + nodeIdInfo.(map[string]interface{})["hostIp"].(string) + " ansible_ssh_private_key_file=./testing-scaling-manager.pem\n")
+				}
+			}
+			dataWriter.WriteString("[remove-node]\n")
+			dataWriter.WriteString(removeNodeName + " " + "ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + removeNodeIp + " ansible_ssh_private_key_file=./testing-scaling-manager.pem\n")
+			dataWriter.Flush()
+			log.Info.Println("Removing node ***********************************:", removeNodeName)
+			ansibleErr := CallScaleDown(username, hostsFileName)
+			if ansibleErr != nil {
+				log.Fatal.Println(err)
+				state.LastProvisionedTime = time.Now()
+				state.ProvisionStartTime = time.Time{}
+				state.PreviousState = state.CurrentState
+				state.CurrentState = "normal"
+				state.UpdateState()
+				return false
+			}
+		}
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaledown_completed"
 		state.UpdateState()
-		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
-		log.Info.Println("Node removed from ES configuration")
 	}
 	// Wait for cluster to be in stable state(Shard rebalance)
 	// Shut down the node
 	if state.CurrentState == "provisioning_scaledown_completed" {
-		SimulateSharRebalancing("scaleIn", state.NumNodes)
+		if simFlag {
+			SimulateSharRebalancing("scaleIn", state.NumNodes)
+		}
 		log.Info.Println("Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
-		CheckClusterHealth(state, osClient, simFlag)
+		CheckClusterHealth(state, simFlag)
 		log.Info.Println("Shutdown the node")
 		time.Sleep(time.Duration(config.PollingInterval) * time.Second)
 	}
@@ -261,13 +359,13 @@ func ScaleIn(cfg config.ClusterDetails, state *State, osClient *opensearch.Clien
 //	to provisioned_successfully. Else, we will wait for 3 minutes and perform this check again for 3 times.
 //
 // Return:
-func CheckClusterHealth(state *State, osClient *opensearch.Client, simFlag bool) {
+func CheckClusterHealth(state *State, simFlag bool) {
 	var clusterDynamic cluster.ClusterDynamic
 	for i := 0; i <= 12; i++ {
 		if simFlag {
 			clusterDynamic = cluster_sim.GetClusterCurrent()
 		} else {
-			clusterDynamic = cluster.GetClusterCurrent(ctx, osClient)
+			clusterDynamic = cluster.GetClusterCurrent()
 		}
 		log.Debug.Println(clusterDynamic.ClusterStatus)
 		if clusterDynamic.ClusterStatus == "green" {
@@ -314,7 +412,7 @@ func SimulateSharRebalancing(operation string, numNode int) {
 	req, err := http.NewRequest("POST", urlLink, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
 	client := http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: 10 * time.Second,
 	}
 	resp, err := client.Do(req)
 
