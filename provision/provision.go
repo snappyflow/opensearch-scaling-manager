@@ -87,6 +87,7 @@ func TriggerProvision(cfg config.ClusterDetails, state *State, numNodes int, ope
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
 		isScaledUp := ScaleOut(cfg, state, simFlag, monitorWithLogs)
+
 		if isScaledUp {
 			log.Info.Println("Scaleup successful")
 		} else {

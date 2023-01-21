@@ -1,0 +1,55 @@
+{
+    "mappings": {
+      "properties": {
+        "NodeId": {
+          "type": "text"
+        },
+        "Timestamp": {
+          "type": "date"
+        },
+        "CpuUtil": {
+          "type": "integer"
+        },
+        "HeapUtil": {
+          "type": "integer"
+        },
+        "RamUtil": {
+          "type": "integer"
+        },
+        "DiskUtil": {
+          "type": "long"
+        },
+        "NodeCount": {
+          "type": "integer"
+        },
+        "ActiveDataNodes": {
+          "type": "integer"
+        },
+        "ActiveShards": {
+          "type": "integer"
+        },
+        "ActivePrimaryShards": {
+          "type": "integer"
+        },
+        "ClusterStats": {
+          "type": "text"
+        },
+        "InitializingShards": {
+          "type": "integer"
+        },
+        "UnassignedShards": {
+          "type": "integer"
+        },
+        "RelocatingShards": {
+          "type": "integer"
+        },
+        "StatTag": {
+          "type": "text"
+        },
+        "ClusterName": {
+            "type": "text"
+        }
+      }
+    }
+  }
+  

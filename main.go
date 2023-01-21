@@ -3,11 +3,15 @@ package main
 import (
 	"scaling_manager/cluster"
 	"scaling_manager/config"
+	fetch "scaling_manager/fetchmetrics"
 	"scaling_manager/logger"
 	"scaling_manager/provision"
 	"scaling_manager/task"
+	"scaling_manager/utils"
 	"strings"
 	"time"
+
+	"github.com/fsnotify/fsnotify"
 )
 
 var state = new(provision.State)
@@ -18,7 +22,10 @@ func init() {
 	log.Init("logger")
 	log.Info.Println("Main module initialized")
 }
+
 func main() {
+	// The following go routine will watch the changes inside config.yaml
+	go fileWatch("config.yaml")
 	// A periodic check if there is a change in master node to pick up incomplete provisioning
 	go periodicProvisionCheck()
 	// The polling interval is set to 5 minutes and can be configured.
@@ -27,9 +34,6 @@ func main() {
 		state.GetCurrentState()
 		// The recommendation and provisioning should only happen on master node
 		if cluster.CheckIfMaster() && state.CurrentState == "normal" {
-			// This function is responsible for fetching the metrics and pushing it to the index.
-			// In starting we will call simulator to provide this details with current timestamp.
-			// fetch.FetchMetrics()
 			// This function will be responsible for parsing the config file and fill in task_details struct.
 			var task = new(task.TaskDetails)
 			configStruct, err := config.GetConfig("config.yaml")
@@ -38,9 +42,17 @@ func main() {
 				log.Error.Println(err.Error())
 				continue
 			}
+			cfg := configStruct.ClusterDetails
+			osClient := utils.CreateOsClient(cfg.OsCredentials.OsAdminUsername,
+				cfg.OsCredentials.OsAdminPassword)
+			// This function is responsible for fetching the metrics and pushing it to the index.
+			// In starting we will call simulator to provide this details with current timestamp.
+			if !configStruct.MonitorWithSimulator {
+				fetch.FetchMetrics(osClient)
+			}
 			task.Tasks = configStruct.TaskDetails
 			// This function is responsible for evaluating the task and recommend.
-			recommendationList := task.EvaluateTask()
+			recommendationList := task.EvaluateTask(osClient, configStruct.MonitorWithSimulator)
 			// This function is responsible for getting the recommendation and provision.
 			provision.GetRecommendation(state, recommendationList, osClient, configStruct.MonitorWithSimulator, configStruct.MonitorWithLogs)
 		}
@@ -66,9 +78,11 @@ func periodicProvisionCheck() {
 					return
 				}
 				cfg := configStruct.ClusterDetails
+				osClient := utils.CreateOsClient(cfg.OsCredentials.OsAdminUsername,
+					cfg.OsCredentials.OsAdminPassword)
 				if strings.Contains(state.CurrentState, "scaleup") {
 					log.Debug.Println("Calling scaleOut")
-					isScaledUp := provision.ScaleOut(cfg, state)
+					isScaledUp := provision.ScaleOut(cfg, state, osClient, configStruct.MonitorWithSimulator, configStruct.MonitorWithLogs)
 					if isScaledUp {
 						log.Info.Println("Scaleup completed successfully")
 					} else {
@@ -77,7 +91,7 @@ func periodicProvisionCheck() {
 					}
 				} else if strings.Contains(state.CurrentState, "scaledown") {
 					log.Debug.Println("Calling scaleIn")
-					isScaledDown := provision.ScaleIn(cfg, state)
+					isScaledDown := provision.ScaleIn(cfg, state, osClient, configStruct.MonitorWithSimulator, configStruct.MonitorWithLogs)
 					if isScaledDown {
 						log.Info.Println("Scaledown completed successfully")
 					} else {
@@ -90,4 +104,37 @@ func periodicProvisionCheck() {
 		// Update the previousMaster for next loop
 		previousMaster = currentMaster
 	}
+}
+
+func fileWatch(filePath string) {
+	//Adding file watcher to detect the change in configuration
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Error.Println("ERROR: ", err)
+	}
+	defer watcher.Close()
+	done := make(chan bool)
+
+	//A go routine that keeps checking for change in configuration
+	go func() {
+		for {
+			select {
+			// watch for events
+			case event := <-watcher.Events:
+				//If there is change in config then clear recommendation queue
+				//clearRecommendationQueue()
+				log.Warn.Println("EVENT!", event)
+				log.Warn.Println("The recommendation queue will be cleared.")
+			case err := <-watcher.Errors:
+				log.Error.Println("ERROR in file watcher: ", err)
+			}
+		}
+	}()
+
+	// Adding fsnotify watcher to keep track of the changes in config file
+	if err := watcher.Add(filePath); err != nil {
+		log.Error.Println("ERROR:", err)
+	}
+
+	<-done
 }

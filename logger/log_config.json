@@ -1,0 +1,10 @@
+{
+    "logpath": "logs",
+    "logfile": "application.log",
+    "pathsep": "/",
+    "level": "info",
+    "MaxSize": 1,
+    "MaxBackups": 5,
+    "MaxAge": 28
+}
+
