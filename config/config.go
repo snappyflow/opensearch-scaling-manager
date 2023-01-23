@@ -13,7 +13,6 @@ import (
 )
 
 var log logger.LOG
-var PollingInterval uint16 = 10
 
 // Input:
 //
@@ -55,6 +54,7 @@ type ClusterDetails struct {
 type ConfigStruct struct {
 	MonitorWithLogs      bool                  `yaml:"monitor_with_logs"`
 	MonitorWithSimulator bool                  `yaml:"monitor_with_simulator"`
+	PollingInterval      int		   `yaml:"polling_interval_in_secs"`
 	ClusterDetails       ClusterDetails        `yaml:"cluster_details"`
 	TaskDetails          []recommendation.Task `yaml:"task_details" validate:"gt=0,dive"`
 }

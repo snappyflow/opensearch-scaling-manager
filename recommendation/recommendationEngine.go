@@ -14,6 +14,7 @@ import (
 	"scaling_manager/cluster_sim"
 	"scaling_manager/logger"
 	"strings"
+	"errors"
 )
 
 var log logger.LOG
@@ -87,12 +88,12 @@ type TaskDetails struct {
 // Return:
 //              Returns an array of the recommendations.
 
-func (t TaskDetails) EvaluateTask(simFlag bool) []map[string]string {
+func (t TaskDetails) EvaluateTask(simFlag bool, pollingInterval int) []map[string]string {
 	var recommendationArray []map[string]string
 	var isRecommendedTask bool
 	for _, v := range t.Tasks {
 		var rulesResponsibleMap = make(map[string]string)
-		isRecommendedTask, rulesResponsibleMap[v.TaskName] = v.GetNextTask(simFlag)
+		isRecommendedTask, rulesResponsibleMap[v.TaskName] = v.GetNextTask(simFlag, pollingInterval)
 		log.Debug.Println(rulesResponsibleMap)
 		if isRecommendedTask {
 			v.PushToRecommendationQueue()
@@ -117,7 +118,7 @@ func (t TaskDetails) EvaluateTask(simFlag bool) []map[string]string {
 //
 //              Return if a task can be recommended or not(bool)
 
-func (t Task) GetNextTask(simFlag bool) (bool, string) {
+func (t Task) GetNextTask(simFlag bool, pollingInterval int) (bool, string) {
 	var isRecommendedTask bool = true
 	var isRecommendedRule bool
 	var rulesResponsible string
@@ -142,7 +143,7 @@ func (t Task) GetNextTask(simFlag bool) (bool, string) {
 		// There is a possibility that each rule is taking time.
 		// What if in the case of AND the non matching rule is present at the last.
 		// What if in the case of OR the matching rule is present at the last.
-		isRecommendedRule, err = v.GetNextRule(taskOperation, simFlag)
+		isRecommendedRule, err = v.GetNextRule(taskOperation, simFlag, pollingInterval)
 		if err != nil {
 			log.Warn.Println(fmt.Sprintf("%s for the rule: %v", string(err), v))
 		}
@@ -178,8 +179,8 @@ func (t Task) GetNextTask(simFlag bool) (bool, string) {
 // Return:
 //              Return if a rule is meeting the criteria or not(bool)
 
-func (r Rule) GetNextRule(taskOperation string, simFlag bool) (bool, []byte) {
-	cluster, err := r.GetMetrics(simFlag)
+func (r Rule) GetNextRule(taskOperation string, simFlag bool, pollingInterval int) (bool, []byte) {
+	cluster, err := r.GetMetrics(simFlag, pollingInterval)
 	if err != nil {
 		return false, err
 	}
@@ -201,21 +202,25 @@ func (r Rule) GetNextRule(taskOperation string, simFlag bool) (bool, []byte) {
 // Return:
 //              Return marshal form of either MetricStatsCluster or MetricViolatedCountCluster struct([]byte)
 
-func (r Rule) GetMetrics(simFlag bool) ([]byte, []byte) {
+func (r Rule) GetMetrics(simFlag bool, pollingInterval int) ([]byte, []byte) {
 	var clusterStats cluster.MetricStats
 	var clusterCount cluster.MetricViolatedCount
 	var clusterMetric []byte
 	var jsonErr error
 	var err []byte
+	var invalidDatapoints bool
 
 	if r.Stat == "AVG" {
 		if simFlag {
 			clusterStats, err = cluster_sim.GetClusterAvg(r.Metric, r.DecisionPeriod)
 		} else {
-			clusterStats, err = cluster.GetClusterAvg(r.Metric, r.DecisionPeriod, ctx)
+			clusterStats, invalidDatapoints, err = cluster.GetClusterAvg(r.Metric, r.DecisionPeriod, pollingInterval, ctx)
 		}
 
-		if err != nil {
+		if err != nil || invalidDatapoints {
+			if invalidDatapoints {
+				err = []byte(errors.New("Not enough data points").Error())
+			}
 			return clusterMetric, err
 		}
 		clusterMetric, jsonErr = json.MarshalIndent(clusterStats, "", "\t")
@@ -228,10 +233,13 @@ func (r Rule) GetMetrics(simFlag bool) ([]byte, []byte) {
 		if simFlag {
 			clusterCount, err = cluster_sim.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit)
 		} else {
-			clusterCount, err = cluster.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit, ctx)
+			clusterCount, invalidDatapoints, err = cluster.GetClusterCount(r.Metric, r.DecisionPeriod, pollingInterval, r.Limit, ctx)
 		}
 
-		if err != nil {
+		if err != nil || invalidDatapoints {
+			if invalidDatapoints {
+                                err = []byte(errors.New("Not enough data points").Error())
+                        }
 			return clusterMetric, err
 		}
 		clusterMetric, jsonErr = json.MarshalIndent(clusterCount, "", "\t")
