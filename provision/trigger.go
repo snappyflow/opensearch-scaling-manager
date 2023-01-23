@@ -24,12 +24,12 @@ var ctx = context.Background()
 //      Triggers the provisioning
 //
 // Return:
-func GetRecommendation(state *State, recommendationQueue []map[string]string, simFlag, monitorWithLogs bool) {
+func GetRecommendation(state *State, recommendationQueue []map[string]string, cfg config.ConfigStruct) {
         var clusterCurrent cluster.ClusterDynamic
         scaleRegexString := `(scale_up|scale_down)_by_([0-9]+)`
         scaleRegex := regexp.MustCompile(scaleRegexString)
         if len(recommendationQueue) > 0 {
-                if simFlag {
+                if cfg.MonitorWithSimulator {
                         clusterCurrent = cluster_sim.GetClusterCurrent()
                 } else {
                         clusterCurrent = cluster.GetClusterCurrent()
@@ -46,13 +46,7 @@ func GetRecommendation(state *State, recommendationQueue []map[string]string, si
 
                         numNodes, _ := strconv.Atoi(subMatch[2])
                         operation := subMatch[1]
-                        configStruct, err := config.GetConfig("config.yaml")
-                        if err != nil {
-                                log.Warn.Println("Unable to get Config from GetConfig()", err)
-                                return
-                        }
-                        cfg := configStruct.ClusterDetails
-                        TriggerProvision(cfg, state, numNodes, operation, recommendationQueue[0][task], simFlag, monitorWithLogs)
+                        TriggerProvision(cfg, state, numNodes, operation, recommendationQueue[0][task])
                 } else {
                         log.Warn.Println("Recommendation can not be provisioned as open search cluster is already in provisioning phase or the cluster isn't healthy yet")
                 }

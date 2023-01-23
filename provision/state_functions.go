@@ -4,7 +4,7 @@ import (
         "context"
         "encoding/json"
         "fmt"
-        os "scaling_manager/opensearch"
+        osutils "scaling_manager/opensearch"
         utils "scaling_manager/utilities"
 
 )
@@ -28,7 +28,7 @@ func InitializeDocId() {
 func (s *State) GetCurrentState() {
         // Get the document.
 
-        searchResponse, err := os.SearchDoc(docId, context.Background())
+        searchResponse, err := osutils.SearchDoc(docId, context.Background())
         if err != nil {
                 log.Panic.Println("failed to search document: ", err)
                 panic(err)
@@ -75,7 +75,7 @@ func (s *State) UpdateState() {
         }
         content := string(state)
 
-        updateResponse, err := os.UpdateDoc(docId, content, context.Background())
+        updateResponse, err := osutils.UpdateDoc(docId, content, context.Background())
         if err != nil {
                 log.Panic.Println("failed to update document: ", err)
                 panic(err)
