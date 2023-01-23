@@ -87,7 +87,6 @@ func TriggerProvision(cfg config.ConfigStruct, state *State, numNodes int, opera
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
 		isScaledUp := ScaleOut(cfg, state)
-
 		if isScaledUp {
 			log.Info.Println("Scaleup successful")
 		} else {

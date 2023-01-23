@@ -1,0 +1,14 @@
+[Unit]
+Description=OpenSearch Scaling Manager(scale the opensearch cluster based on rules.)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/local/scaling_manager_lib
+ExecStart=/usr/local/scaling_manager_lib/scaling_manager
+ExecStop=/bin/bash -c "kill $(pgrep scaling_manager)"
+Restart=on-failure
+RestartSec=300
+
+[Install]
+WantedBy=multi-user.target

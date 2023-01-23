@@ -1,11 +1,14 @@
 package main
 
 import (
-	"scaling_manager/cluster"
+	"context"
 	"scaling_manager/config"
+	fetch "scaling_manager/fetchmetrics"
 	"scaling_manager/logger"
+	os "scaling_manager/opensearch"
 	"scaling_manager/provision"
-	"scaling_manager/task"
+	"scaling_manager/recommendation"
+	utils "scaling_manager/utilities"
 	"strings"
 	"time"
 )
@@ -14,24 +17,40 @@ var state = new(provision.State)
 
 var log logger.LOG
 
+var firstExecution bool
+
 func init() {
 	log.Init("logger")
 	log.Info.Println("Main module initialized")
+
+	firstExecution = true
+	configStruct, err := config.GetConfig("config.yaml")
+	if err != nil {
+		log.Panic.Println("The recommendation can not be made as there is an error in the validation of config file.", err)
+		panic(err)
+	}
+	cfg := configStruct.ClusterDetails
+	os.InitializeOsClient(cfg.OsCredentials.OsAdminUsername, cfg.OsCredentials.OsAdminPassword)
+
+	provision.InitializeDocId()
+
+	if !configStruct.MonitorWithSimulator {
+		go fetch.FetchMetrics(int(config.PollingInterval))
+	}
 }
+
 func main() {
 	// A periodic check if there is a change in master node to pick up incomplete provisioning
 	go periodicProvisionCheck()
-	// The polling interval is set to 5 minutes and can be configured.
 	ticker := time.Tick(time.Duration(config.PollingInterval) * time.Second)
 	for range ticker {
 		state.GetCurrentState()
 		// The recommendation and provisioning should only happen on master node
-		if cluster.CheckIfMaster() && state.CurrentState == "normal" {
-			// This function is responsible for fetching the metrics and pushing it to the index.
-			// In starting we will call simulator to provide this details with current timestamp.
-			// fetch.FetchMetrics()
+		if utils.CheckIfMaster(context.Background(), "") && state.CurrentState == "normal" {
+			//              if firstExecution && state.CurrentState == "normal" {
+			firstExecution = false
 			// This function will be responsible for parsing the config file and fill in task_details struct.
-			var task = new(task.TaskDetails)
+			var task = new(recommendation.TaskDetails)
 			configStruct, err := config.GetConfig("config.yaml")
 			if err != nil {
 				log.Error.Println("The recommendation can not be made as there is an error in the validation of config file.")
@@ -40,9 +59,9 @@ func main() {
 			}
 			task.Tasks = configStruct.TaskDetails
 			// This function is responsible for evaluating the task and recommend.
-			recommendationList := task.EvaluateTask()
+			recommendationList := task.EvaluateTask(configStruct.MonitorWithSimulator)
 			// This function is responsible for getting the recommendation and provision.
-			provision.GetRecommendation(state, recommendationList, osClient, configStruct.MonitorWithSimulator, configStruct.MonitorWithLogs)
+			provision.GetRecommendation(state, recommendationList, configStruct.MonitorWithSimulator, configStruct.MonitorWithLogs)
 		}
 	}
 }
@@ -53,13 +72,15 @@ func main() {
 
 func periodicProvisionCheck() {
 	tick := time.Tick(time.Duration(config.PollingInterval) * time.Second)
-	previousMaster := cluster.CheckIfMaster()
+	previousMaster := utils.CheckIfMaster(context.Background(), "")
 	for range tick {
 		state.GetCurrentState()
 		// Call a function which returns the current master node
-		currentMaster := cluster.CheckIfMaster()
+		currentMaster := utils.CheckIfMaster(context.Background(), "")
 		if state.CurrentState != "normal" {
-			if !(previousMaster) && currentMaster {
+			if (!previousMaster && currentMaster) || (currentMaster && firstExecution) {
+				//                      if firstExecution {
+				firstExecution = false
 				configStruct, err := config.GetConfig("config.yaml")
 				if err != nil {
 					log.Warn.Println("Unable to get Config from GetConfig()", err)
@@ -68,7 +89,7 @@ func periodicProvisionCheck() {
 				cfg := configStruct.ClusterDetails
 				if strings.Contains(state.CurrentState, "scaleup") {
 					log.Debug.Println("Calling scaleOut")
-					isScaledUp := provision.ScaleOut(cfg, state)
+					isScaledUp := provision.ScaleOut(cfg, state, configStruct.MonitorWithSimulator, configStruct.MonitorWithLogs)
 					if isScaledUp {
 						log.Info.Println("Scaleup completed successfully")
 					} else {
@@ -77,7 +98,7 @@ func periodicProvisionCheck() {
 					}
 				} else if strings.Contains(state.CurrentState, "scaledown") {
 					log.Debug.Println("Calling scaleIn")
-					isScaledDown := provision.ScaleIn(cfg, state)
+					isScaledDown := provision.ScaleIn(cfg, state, configStruct.MonitorWithSimulator, configStruct.MonitorWithLogs)
 					if isScaledDown {
 						log.Info.Println("Scaledown completed successfully")
 					} else {
