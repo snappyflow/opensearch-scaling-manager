@@ -40,6 +40,7 @@ class DataModel(db.Model):
     active_data_nodes = db.Column(db.Integer, default=0)
     date_created = db.Column(db.DateTime, default=datetime.now(), primary_key=True)
     disk_usage_percent = db.Column(db.Integer, default=0)
+    rolled_index_size = db.Column(db.Float, default=0)
 
 
 def get_provision_status():
@@ -86,6 +87,7 @@ def cluster_db_object(cluster):
         master_eligible_nodes_count=cluster.master_eligible_nodes_count,
         active_data_nodes=cluster.active_data_nodes,
         disk_usage_percent=cluster_obj.disk_usage_percent,
+        rolled_index_size=cluster.rolled_index_size,
     )
 
 
@@ -112,6 +114,38 @@ def overwrite_after_node_count_change(cluster_objects):
     # expiry_time = Simulator.create_provisioning_lock()
     return
 
+def reset_load(sim):
+    """
+    The fuction resets the shard size from the end of simulation
+    to the size configured at current time
+    """
+    sim.cluster.clear_index_size()
+    time_now = datetime.now()
+    current_disk = (
+    DataModel.query.order_by(desc(DataModel.date_created)).filter(DataModel.date_created < time_now)
+    .with_entities(
+        DataModel.__getattribute__(DataModel, constants.STAT_REQUEST['disk'])
+    )
+    .first()
+    )
+    current_rolled_size = (
+    DataModel.query.order_by(desc(DataModel.date_created)).filter(DataModel.date_created < time_now)
+    .with_entities(
+        DataModel.__getattribute__(DataModel, 'rolled_index_size')
+    )
+    .first()
+    )
+    rolled_index_size = current_rolled_size[0]
+    distribution_size = ((current_disk[0]*sim.cluster.total_disk_size_gb)/100)
+    distribution_size-=rolled_index_size
+    shard_size = distribution_size/sim.cluster.total_shard_count
+    distribution_size-= (sim.cluster.replica_shards_per_index * sim.cluster.index_count * shard_size)
+    sim.cluster.cluster_disk_size_used = 0
+    sim.distribute_load((distribution_size/5)*60)
+    sim.cluster.indices[sim.cluster.rolled_over_index_id].shards[0].shard_size = rolled_index_size
+    sim.cluster.indices[sim.cluster.rolled_over_index_id].index_size = rolled_index_size
+    sim.cluster.cluster_disk_size_used+= sim.disk_utilization_for_ingestion()
+    sim.cluster.cluster_disk_size_used = sim.disk_util_for_index_roll_over()
 
 def add_node_and_rebalance(nodes):
     """
@@ -127,10 +161,11 @@ def add_node_and_rebalance(nodes):
         configs.searches,
         configs.simulation_frequency_minutes,
     )
-    sim.cluster.add_nodes(nodes)
     hour = datetime.now().hour
     minutes = str(datetime.now().minute) if datetime.now().minute > 9 else "0" + str(datetime.now().minute)
     duration = (24 - hour) * 60 - datetime.now().minute
+    reset_load(sim)
+    sim.cluster.add_nodes(nodes)
     cluster_objects = sim.run(duration, str(hour) + "_" + minutes + "_00")
     # expiry_time = overwrite_after_node_count_change(cluster_objects)
     overwrite_after_node_count_change(cluster_objects)
@@ -157,6 +192,7 @@ def rem_node_and_rebalance(nodes):
     hour = datetime.now().hour
     minutes = str(datetime.now().minute) if datetime.now().minute > 9 else "0" + str(datetime.now().minute)
     duration = (24 - hour) * 60 - datetime.now().minute
+    reset_load(sim)
     cluster_objects = sim.run(duration, str(hour) + "_" + minutes + "_00")
     # expiry_time = overwrite_after_node_count_change(cluster_objects)
     overwrite_after_node_count_change(cluster_objects)
@@ -295,6 +331,8 @@ def current_all():
     if len(args) > constants.QUERY_ARG_LENGTH_ONE or (len(args) == constants.QUERY_ARG_LENGTH_ONE and metric == None):
         return Response(json.dumps("Invalid query parameters"), status=400)
 
+    time_now = datetime.now()
+
     if len(args) == constants.QUERY_ARG_LENGTH_ONE and metric!=None:
         try:
             if constants.STAT_REQUEST[metric] == constants.CLUSTER_STATE:
@@ -305,7 +343,7 @@ def current_all():
                 DataModel.query.order_by(desc(DataModel.date_created))
                 .with_entities(
                     DataModel.__getattribute__(DataModel, constants.STAT_REQUEST[metric])
-                )
+                ).filter(DataModel.date_created < time_now)
                 .all()
             )
 
@@ -332,7 +370,7 @@ def current_all():
                     DataModel.__getattribute__(
                         DataModel, constants.STAT_REQUEST_CURRENT[key]
                     )
-                )
+                ).filter(DataModel.date_created < time_now)
                 .all()
             )
             stat_dict[key] = value[0][0]

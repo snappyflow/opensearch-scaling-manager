@@ -88,9 +88,11 @@ class Cluster:
         self.index_count = index_count
         self.index_roll_over_size_gb = index_roll_over_size_gb
         self.index_clean_up_age_in_minutes = index_clean_up_age_days
-        self.total_shard_count = total_shard_count
         self.primary_shards_per_index = primary_shards_per_index
         self.replica_shards_per_index = replica_shards_per_index
+        self.total_shard_count = (primary_shards_per_index
+                                 * (replica_shards_per_index + 1)
+                                 ) * index_count
         self.rolled_over_index_id = -1
         self.cluster_dynamic = cluster_dynamic
         self.min_nodes_in_cluster = min_nodes_in_cluster
@@ -107,6 +109,7 @@ class Cluster:
         self._simple_query_rate = 0
         self._medium_query_rate = 0
         self._complex_query_rate = 0
+        self.rolled_index_size = 0
         self.active_primary_shards = active_primary_shards
         self.nodes = self.initialize_nodes(
             total_nodes_count,
@@ -145,7 +148,6 @@ class Cluster:
             rebalancing_size = self.cluster_disk_size_used / self.total_nodes_count
             self.total_disk_size_gb+= (self.total_disk_size_gb/self.total_nodes_count)
             rebalance_time = self.time_function_for_rebalancing(rebalancing_size)
-            self.clear_index_size()
             self.rebalance_shards(rebalance_time,existing_node_id, len(existing_node_id))
             self.total_nodes_count += 1
         self.cluster_dynamic.NumRelocatingShards = 0
