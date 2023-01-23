@@ -3,12 +3,9 @@ package fetchmetrics
 import (
 	"context"
 	"encoding/json"
-	"log"
 
-	"scaling_manager/utils"
 	"scaling_manager/cluster"
-	opensearch "github.com/opensearch-project/opensearch-go"
-	osapi "github.com/opensearch-project/opensearch-go/opensearchapi"
+	os "scaling_manager/opensearch"
 )
 
 // Description: ClusterMetrics holds the cluster level information that are to be populated and indexed into elasticsearch
@@ -22,7 +19,7 @@ type ClusterMetrics struct {
 // Input: opensearch client and context.
 // Description: Fetches cluster level info and populates ClusterMetrics struct
 // Output: Returns the populated ClusterMetrics struct
-func FetchClusterHealthMetrics(esClient *opensearch.Client, ctx context.Context) ClusterMetrics {
+func FetchClusterHealthMetrics(ctx context.Context) ClusterMetrics {
 
 	//Create an interface to capture the response from cluster health and cluster stats API
 	var clusterStatsInterface map[string]interface{}
@@ -31,15 +28,15 @@ func FetchClusterHealthMetrics(esClient *opensearch.Client, ctx context.Context)
 	clusterStats := new(ClusterMetrics)
 
 	//Create a cluster stats request and fetch the response
-	clusterStatsRequest, err := osapi.ClusterStatsRequest{}.Do(ctx, esClient)
+	resp, err := os.GetClusterStats(ctx)
 	if err != nil {
-		log.Fatalf("cluster stats fetch ERROR:", err)
+		log.Error.Println("cluster Stats fetch ERROR:", err)
 	}
 
 	//decode and dump the cluster stats response into interface
-	decodeErr := json.NewDecoder(clusterStatsRequest.Body).Decode(&clusterStatsInterface)
+	decodeErr := json.NewDecoder(resp.Body).Decode(&clusterStatsInterface)
 	if decodeErr != nil {
-		log.Fatal("decode Error: ", decodeErr)
+		log.Error.Println("decode Error: ", decodeErr)
 	}
 
 	//Parse the interface and populate required fields in cluster stats
@@ -48,15 +45,15 @@ func FetchClusterHealthMetrics(esClient *opensearch.Client, ctx context.Context)
 	clusterStats.Timestamp = int64(clusterStatsInterface["timestamp"].(float64))
 
 	//create a cluster health request and fetch cluster health
-	clusterHealthRequest, err := osapi.ClusterHealthRequest{}.Do(ctx, esClient)
+	clusterHealthRequest, err := os.GetClusterHealth(ctx)
 	if err != nil {
-		log.Fatalf("cluster Health fetch ERROR:", err)
+		log.Error.Println("cluster Health fetch ERROR:", err)
 	}
 
 	//Decode the response and dump the response into the cluster health interface
 	decodeErr2 := json.NewDecoder(clusterHealthRequest.Body).Decode(&clusterHealthInterface)
 	if decodeErr2 != nil {
-		log.Fatal("decode Error: ", decodeErr)
+		log.Error.Println("decode Error: ", decodeErr)
 	}
 
 	//Parse the interface and populate required fields in cluster stats
@@ -74,19 +71,23 @@ func FetchClusterHealthMetrics(esClient *opensearch.Client, ctx context.Context)
 
 // Input: opensearch client and context
 // Description: Fetches the cluster level info and indexes into the elasticsearch
-func IndexClusterHealth(esClient *opensearch.Client, ctx context.Context) {
+func IndexClusterHealth(ctx context.Context) {
 	var clusterHealth = ClusterMetrics{}
 
 	//fetch the cluster stats
-	clusterHealth = FetchClusterHealthMetrics(esClient, ctx)
+	clusterHealth = FetchClusterHealthMetrics(ctx)
 
 	//Convert the cluster stats struct into Json
 	clusterHealthJson, jsonErr := json.MarshalIndent(clusterHealth, "", "\t")
 	if jsonErr != nil {
-		log.Fatal("Error converting struct to json: ", jsonErr)
+		log.Error.Println("Error converting struct to json: ", jsonErr)
 	}
 
 	//Check and index the Json document into elasticsearch
-	utils.CheckIfIndexExists(esClient, ctx)
-	utils.IndexMetrics(ctx, esClient, clusterHealthJson)
+	_, err := os.IndexMetrics(ctx, clusterHealthJson)
+	if err != nil {
+		log.Panic.Println("Error indexing cluster document: ", err)
+		panic(err)
+	}
+	log.Info.Println("Cluster document indexed successfull")
 }

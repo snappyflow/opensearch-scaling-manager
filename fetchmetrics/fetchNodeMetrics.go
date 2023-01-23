@@ -3,14 +3,12 @@ package fetchmetrics
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"os/exec"
+	"scaling_manager/cluster"
+	os "scaling_manager/opensearch"
+	utils "scaling_manager/utilities"
 	"strconv"
 	"strings"
-	"scaling_manager/utils"
-	"scaling_manager/cluster"
-	opensearch "github.com/opensearch-project/opensearch-go"
-	osapi "github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
 // Description: NodeMetrics struct holds the node level metrics that are to be populated and indexed to elasticsearch
@@ -32,12 +30,12 @@ func getDiskUtil(m map[string]interface{}, nodeId string) float32 {
 	list := m["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["fs"].(map[string]interface{})["data"].([]interface{})
 	listJson, err := json.MarshalIndent(list[0], "", " ")
 	if err != nil {
-		log.Fatal("Cannot marshall: ", err)
+		log.Error.Println("Cannot marshall: ", err)
 	}
 	var listInterface map[string]interface{}
 	err1 := json.Unmarshal(listJson, &listInterface)
 	if err1 != nil {
-		log.Fatal("Unmarshal Error: ", err1)
+		log.Error.Println("Unmarshal Error: ", err1)
 	}
 	// disk utilization = ((total space - available space) / total space) *100
 	return float32(((listInterface["total_in_bytes"].(float64) - listInterface["available_in_bytes"].(float64)) / listInterface["total_in_bytes"].(float64)) * 100)
@@ -50,13 +48,13 @@ func getCpuUtil() float32 {
 	cmd := exec.Command("bash", "-c", "top -bn2 | grep '%Cpu' | tail -1 | awk '{print 100-$8}'")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Fatal("error: ", out)
+		log.Error.Println("error: ", out)
 	}
 
 	//Converting the result to float
 	cpuFloat, err := strconv.ParseFloat(strings.TrimSuffix(string(out), "\n"), 8)
 	if err != nil {
-		log.Fatal("Unable to convert to float: ", err)
+		log.Error.Println("Unable to convert to float: ", err)
 	}
 	return float32(cpuFloat)
 }
@@ -68,13 +66,13 @@ func getRamUtil() float32 {
 	cmd := exec.Command("bash", "-c", "top -bn2 | grep 'KiB Mem' | tail -1 | awk '{print ($8/$4)*100}'")
 	memout, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Fatal(err)
+		log.Error.Println(err)
 	}
 
 	//Converting the result to float
 	memFloat, err := strconv.ParseFloat(strings.TrimSuffix(string(memout), "\n"), 8)
 	if err != nil {
-		log.Fatal("Unable to convert to float: ", err)
+		log.Error.Println("Unable to convert to float: ", err)
 	}
 
 	return float32(memFloat)
@@ -82,52 +80,57 @@ func getRamUtil() float32 {
 
 // Input: opensearch client and context
 // Description: The function fetches and indexes the node stats
-func IndexNodeStats(esClient *opensearch.Client, ctx context.Context) {
+func IndexNodeStats(ctx context.Context) {
 
 	nodeMetrics := new(NodeMetrics)
 
 	//creating a node stats requests with filter to reduce the response to requirement
 	nodes := []string{"_local"}
-	metric := []string{"jvm", "os", "fs", "indices"}
-	nodeStatReq, err := osapi.NodesStatsRequest{
-		Pretty: true,
-		NodeID: nodes,
-		Metric: metric,
-	}.Do(ctx, esClient)
+	metrics := []string{"jvm", "os", "fs", "indices"}
+	nodeStatResp, err := os.GetNodeStats(nodes, metrics, ctx)
 	if err != nil {
-		log.Fatal("Node stat fetch error: ", err)
+		log.Error.Println("Node stat fetch error: ", err)
 	}
 
 	//A map to dump the values from node stats response
 	var nodeStatsInterface map[string]interface{}
 
 	//Decoding the response into the the interface
-	decodeErr := json.NewDecoder(nodeStatReq.Body).Decode(&nodeStatsInterface)
+	decodeErr := json.NewDecoder(nodeStatResp.Body).Decode(&nodeStatsInterface)
 	if decodeErr != nil {
-		log.Fatal("decode Error: ", decodeErr)
+		log.Error.Println("decode Error: ", decodeErr)
 	}
 
 	//parsing the interface and populating the node stats structure
-	nodeId := utils.GetNodeId(nodeStatsInterface["nodes"].(map[string]interface{}))
+	nodeId := utils.ParseNodeId(nodeStatsInterface["nodes"].(map[string]interface{}))
+	nodeInfo := nodeStatsInterface["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})
 	nodeMetrics.NodeId = nodeId
-	nodeMetrics.NodeName = nodeStatsInterface["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["name"].(string)
-	nodeMetrics.Timestamp = int64(nodeStatsInterface["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["timestamp"].(float64))
-	nodeMetrics.HostIp = nodeStatsInterface["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["host"].(string)
-	nodeMetrics.IsMaster = utils.CheckIfMaster(esClient, ctx)
-	nodeMetrics.IsData = utils.CheckIfData(esClient, ctx)
+	nodeMetrics.NodeName = nodeInfo["name"].(string)
+	nodeMetrics.Timestamp = int64(nodeInfo["timestamp"].(float64))
+	nodeMetrics.HostIp = nodeInfo["host"].(string)
+	nodeMetrics.IsMaster = utils.CheckIfMaster(ctx, nodeId)
+	for _, role := range nodeInfo["roles"].([]interface{}) {
+		if role == "data" {
+			nodeMetrics.IsData = true
+		}
+	}
 	nodeMetrics.CpuUtil = getCpuUtil()
 	nodeMetrics.RamUtil = getRamUtil()
-	nodeMetrics.HeapUtil = float32(nodeStatsInterface["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["jvm"].(map[string]interface{})["mem"].(map[string]interface{})["heap_used_percent"].(float64))
+	nodeMetrics.HeapUtil = float32(nodeInfo["jvm"].(map[string]interface{})["mem"].(map[string]interface{})["heap_used_percent"].(float64))
 	nodeMetrics.DiskUtil = getDiskUtil(nodeStatsInterface, nodeId)
-	nodeMetrics.NumShards = int(nodeStatsInterface["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["indices"].(map[string]interface{})["shard_stats"].(map[string]interface{})["total_count"].(float64))
+	//      nodeMetrics.NumShards = int(nodeStatsInterface["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["indices"].(map[string]interface{})["shard_stats"].(map[string]interface{})["total_count"].(float64))
 	nodeMetrics.StatTag = "NodesStats"
 
 	//marshall the node metrics, to index into the elasticsearch
 	nodeMetricsJson, err := json.MarshalIndent(nodeMetrics, "", "\t")
 	if err != nil {
-		log.Fatal("Error converting struct to Json: ", err)
+		log.Error.Println("Error converting struct to Json: ", err)
 	}
 
-	utils.CheckIfIndexExists(esClient, ctx)
-	utils.IndexMetrics(ctx, esClient, nodeMetricsJson)
+	_, err = os.IndexMetrics(ctx, nodeMetricsJson)
+	if err != nil {
+		log.Panic.Println("Error indexing document: ", err)
+		panic(err)
+	}
+	log.Info.Println("Node document indexed successfully")
 }
