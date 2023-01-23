@@ -19,7 +19,6 @@ require (
 	github.com/apenella/go-common-utils/error v0.0.0-20210528133155-34ba915e28c8 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
