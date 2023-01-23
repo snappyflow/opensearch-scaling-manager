@@ -5,7 +5,7 @@ import (
 	"scaling_manager/config"
 	fetch "scaling_manager/fetchmetrics"
 	"scaling_manager/logger"
-	os "scaling_manager/opensearch"
+	osutils "scaling_manager/opensearch"
 	"scaling_manager/provision"
 	"scaling_manager/recommendation"
 	utils "scaling_manager/utilities"
@@ -30,19 +30,24 @@ func init() {
 		panic(err)
 	}
 	cfg := configStruct.ClusterDetails
-	os.InitializeOsClient(cfg.OsCredentials.OsAdminUsername, cfg.OsCredentials.OsAdminPassword)
+	osutils.InitializeOsClient(cfg.OsCredentials.OsAdminUsername, cfg.OsCredentials.OsAdminPassword)
 
 	provision.InitializeDocId()
 
 	if !configStruct.MonitorWithSimulator {
-		go fetch.FetchMetrics(int(config.PollingInterval))
+		go fetch.FetchMetrics(int(configStruct.PollingInterval))
 	}
 }
 
 func main() {
+	configStruct, err := config.GetConfig("config.yaml")
+	if err != nil {
+		log.Panic.Println("The recommendation can not be made as there is an error in the validation of config file.", err)
+		panic(err)
+	}
 	// A periodic check if there is a change in master node to pick up incomplete provisioning
-	go periodicProvisionCheck()
-	ticker := time.Tick(time.Duration(config.PollingInterval) * time.Second)
+	go periodicProvisionCheck(configStruct.PollingInterval)
+	ticker := time.Tick(time.Duration(configStruct.PollingInterval) * time.Second)
 	for range ticker {
 		state.GetCurrentState()
 		// The recommendation and provisioning should only happen on master node
@@ -59,9 +64,9 @@ func main() {
 			}
 			task.Tasks = configStruct.TaskDetails
 			// This function is responsible for evaluating the task and recommend.
-			recommendationList := task.EvaluateTask(configStruct.MonitorWithSimulator)
+			recommendationList := task.EvaluateTask(configStruct.MonitorWithSimulator, configStruct.PollingInterval)
 			// This function is responsible for getting the recommendation and provision.
-			provision.GetRecommendation(state, recommendationList, configStruct.MonitorWithSimulator, configStruct.MonitorWithLogs)
+			provision.GetRecommendation(state, recommendationList, configStruct)
 		}
 	}
 }
@@ -70,8 +75,8 @@ func main() {
 // Description: It periodically checks if the master node is changed and picks up if there was any ongoing provision operation
 // Output:
 
-func periodicProvisionCheck() {
-	tick := time.Tick(time.Duration(config.PollingInterval) * time.Second)
+func periodicProvisionCheck(pollingInterval int) {
+	tick := time.Tick(time.Duration(pollingInterval) * time.Second)
 	previousMaster := utils.CheckIfMaster(context.Background(), "")
 	for range tick {
 		state.GetCurrentState()
@@ -86,10 +91,9 @@ func periodicProvisionCheck() {
 					log.Warn.Println("Unable to get Config from GetConfig()", err)
 					return
 				}
-				cfg := configStruct.ClusterDetails
 				if strings.Contains(state.CurrentState, "scaleup") {
 					log.Debug.Println("Calling scaleOut")
-					isScaledUp := provision.ScaleOut(cfg, state, configStruct.MonitorWithSimulator, configStruct.MonitorWithLogs)
+					isScaledUp := provision.ScaleOut(configStruct, state)
 					if isScaledUp {
 						log.Info.Println("Scaleup completed successfully")
 					} else {
@@ -98,7 +102,7 @@ func periodicProvisionCheck() {
 					}
 				} else if strings.Contains(state.CurrentState, "scaledown") {
 					log.Debug.Println("Calling scaleIn")
-					isScaledDown := provision.ScaleIn(cfg, state, configStruct.MonitorWithSimulator, configStruct.MonitorWithLogs)
+					isScaledDown := provision.ScaleIn(configStruct, state)
 					if isScaledDown {
 						log.Info.Println("Scaledown completed successfully")
 					} else {
