@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"scaling_manager/cluster"
 	"scaling_manager/logger"
-	"scaling_manager/task"
+	"scaling_manager/recommendation"
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
@@ -24,7 +24,7 @@ var PollingInterval uint16 = 10
 // Return:
 func init() {
 	log.Init("logger")
-	log.Info.Println("Main module initialized")
+	log.Info.Println("Config module initialized")
 }
 
 // This struct contains the OS Admin Username and OS Admin Password via which we can connect to OS cluster.
@@ -53,10 +53,10 @@ type ClusterDetails struct {
 
 // This struct contains the data structure to parse the configuration file.
 type ConfigStruct struct {
-	MonitorWithLogs      bool           `yaml:"monitor_with_logs"`
-	MonitorWithSimulator bool           `yaml:"monitor_with_simulator"`
-	ClusterDetails       ClusterDetails `yaml:"cluster_details"`
-	TaskDetails          []task.Task    `yaml:"task_details" validate:"gt=0,dive"`
+	MonitorWithLogs      bool                  `yaml:"monitor_with_logs"`
+	MonitorWithSimulator bool                  `yaml:"monitor_with_simulator"`
+	ClusterDetails       ClusterDetails        `yaml:"cluster_details"`
+	TaskDetails          []recommendation.Task `yaml:"task_details" validate:"gt=0,dive"`
 }
 
 // Inputs:

@@ -3,7 +3,7 @@
 // The actions can have list of rules.
 // The recommendation engine will parse these rules and recommend the action if rules meets the criteria.
 // Multiple rules can be added inside an action and like wise multiple actions can be added inside a task.
-package task
+package recommendation
 
 import (
 	"context"
@@ -14,8 +14,6 @@ import (
 	"scaling_manager/cluster_sim"
 	"scaling_manager/logger"
 	"strings"
-
-	"github.com/opensearch-project/opensearch-go"
 )
 
 var log logger.LOG
@@ -46,18 +44,18 @@ type Task struct {
 // This struct contains the rule.
 type Rule struct {
 	// Metic indicates the name of the metric. These can be:
-	// 	Cpu
-	//	Mem
-	//	Shard
+	//      Cpu
+	//      Mem
+	//      Shard
 	Metric string `yaml:"metric" validate:"required,oneof=cpu mem heap disk shard"`
 	// Limit indicates the threshold value for a metric.
 	// If this threshold is achieved for a given metric for the decision periond then the rule will be activated.
 	Limit float32 `yaml:"limit" validate:"required"`
 	// Stat indicates the statistics on which the evaluation of the rule will happen.
 	// For Cpu and Mem the values can be:
-	//		Avg: The average CPU or MEM value will be calculated for a given decision period.
-	//		Count: The number of occurences where CPU or MEM value crossed the threshold limit.
-	//		Term:
+	//              Avg: The average CPU or MEM value will be calculated for a given decision period.
+	//              Count: The number of occurences where CPU or MEM value crossed the threshold limit.
+	//              Term:
 	// For rule: Shard, the stat will not be applicable as the shard will be calculated across the cluster and is not a statistical value.
 	Stat string `yaml:"stat" validate:"required,oneof=AVG COUNT TERM"`
 	// DecisionPeriod indicates the time in minutes for which a rule is evalated.
@@ -73,8 +71,8 @@ type TaskDetails struct {
 	// A task indicates what operation needs to be recommended by recommendation engine.
 	// As of now tasks can be of two types:
 	//
-	//	scale_up_by_1
-	//	scale_down_by_1
+	//      scale_up_by_1
+	//      scale_down_by_1
 	Tasks []Task `yaml:"action" validate:"gt=0,dive"`
 }
 
@@ -82,19 +80,19 @@ type TaskDetails struct {
 // Caller: Object of TaskDetails
 // Description:
 //
-//		EvaluateTask will go through all the tasks one by one. and
-//		It check if the task are meeting the criteria based on rules and operator.
-//		If the task is meeting the criteria then it will push the task to recommendation queue.
+//              EvaluateTask will go through all the tasks one by one. and
+//              It check if the task are meeting the criteria based on rules and operator.
+//              If the task is meeting the criteria then it will push the task to recommendation queue.
 //
 // Return:
-//		Returns an array of the recommendations.
+//              Returns an array of the recommendations.
 
-func (t TaskDetails) EvaluateTask(osClient *opensearch.Client, simFlag bool) []map[string]string {
+func (t TaskDetails) EvaluateTask(simFlag bool) []map[string]string {
 	var recommendationArray []map[string]string
 	var isRecommendedTask bool
 	for _, v := range t.Tasks {
 		var rulesResponsibleMap = make(map[string]string)
-		isRecommendedTask, rulesResponsibleMap[v.TaskName] = v.GetNextTask(osClient, simFlag)
+		isRecommendedTask, rulesResponsibleMap[v.TaskName] = v.GetNextTask(simFlag)
 		log.Debug.Println(rulesResponsibleMap)
 		if isRecommendedTask {
 			v.PushToRecommendationQueue()
@@ -110,16 +108,16 @@ func (t TaskDetails) EvaluateTask(osClient *opensearch.Client, simFlag bool) []m
 // Caller: Object of Task
 // Description:
 //
-//		GetNextTask will get the Task and iterate through all the rules inside the task.
-//		Based on the operator it will check if it should iterate through all the rules or not.
-//		It will call GetNextRule while iterating through the rules.
-//		Based on the result GetNextTask will check if a task can be recommended or not.
+//              GetNextTask will get the Task and iterate through all the rules inside the task.
+//              Based on the operator it will check if it should iterate through all the rules or not.
+//              It will call GetNextRule while iterating through the rules.
+//              Based on the result GetNextTask will check if a task can be recommended or not.
 //
 // Return:
 //
-//		Return if a task can be recommended or not(bool)
+//              Return if a task can be recommended or not(bool)
 
-func (t Task) GetNextTask(osClient *opensearch.Client, simFlag bool) (bool, string) {
+func (t Task) GetNextTask(simFlag bool) (bool, string) {
 	var isRecommendedTask bool = true
 	var isRecommendedRule bool
 	var rulesResponsible string
@@ -144,7 +142,7 @@ func (t Task) GetNextTask(osClient *opensearch.Client, simFlag bool) (bool, stri
 		// There is a possibility that each rule is taking time.
 		// What if in the case of AND the non matching rule is present at the last.
 		// What if in the case of OR the matching rule is present at the last.
-		isRecommendedRule, err = v.GetNextRule(taskOperation, osClient, simFlag)
+		isRecommendedRule, err = v.GetNextRule(taskOperation, simFlag)
 		if err != nil {
 			log.Warn.Println(fmt.Sprintf("%s for the rule: %v", string(err), v))
 		}
@@ -174,14 +172,14 @@ func (t Task) GetNextTask(osClient *opensearch.Client, simFlag bool) (bool, stri
 // Caller: Object of Rule
 // Description:
 //
-//		GetNextRule will fetch the metrics based on the rules MetricName and Stats using GetMetrics
-//		Then it will evaluate if the rule is meeting the criteria or not using EvaluateRule
+//              GetNextRule will fetch the metrics based on the rules MetricName and Stats using GetMetrics
+//              Then it will evaluate if the rule is meeting the criteria or not using EvaluateRule
 //
 // Return:
-//		Return if a rule is meeting the criteria or not(bool)
+//              Return if a rule is meeting the criteria or not(bool)
 
-func (r Rule) GetNextRule(taskOperation string, osClient *opensearch.Client, simFlag bool) (bool, []byte) {
-	cluster, err := r.GetMetrics(osClient, simFlag)
+func (r Rule) GetNextRule(taskOperation string, simFlag bool) (bool, []byte) {
+	cluster, err := r.GetMetrics(simFlag)
 	if err != nil {
 		return false, err
 	}
@@ -195,15 +193,15 @@ func (r Rule) GetNextRule(taskOperation string, osClient *opensearch.Client, sim
 // Caller: Object of Rule
 // Description:
 //
-//		GetMetrics will be getting the metrics for a metricName based on its stats
-//		If the stat is Avg then it will call GetClusterAvg which will provide MetricViolatedCountCluster struct.
-//		If the stat is Count or Term then it will call GetClusterCount which will provide MetricViolatedCountCluster struct.
-//		At last it marshal the structure such that uniform data can be used across multiple methods.
+//              GetMetrics will be getting the metrics for a metricName based on its stats
+//              If the stat is Avg then it will call GetClusterAvg which will provide MetricViolatedCountCluster struct.
+//              If the stat is Count or Term then it will call GetClusterCount which will provide MetricViolatedCountCluster struct.
+//              At last it marshal the structure such that uniform data can be used across multiple methods.
 //
 // Return:
-//		Return marshal form of either MetricStatsCluster or MetricViolatedCountCluster struct([]byte)
+//              Return marshal form of either MetricStatsCluster or MetricViolatedCountCluster struct([]byte)
 
-func (r Rule) GetMetrics(osClient *opensearch.Client, simFlag bool) ([]byte, []byte) {
+func (r Rule) GetMetrics(simFlag bool) ([]byte, []byte) {
 	var clusterStats cluster.MetricStats
 	var clusterCount cluster.MetricViolatedCount
 	var clusterMetric []byte
@@ -214,7 +212,7 @@ func (r Rule) GetMetrics(osClient *opensearch.Client, simFlag bool) ([]byte, []b
 		if simFlag {
 			clusterStats, err = cluster_sim.GetClusterAvg(r.Metric, r.DecisionPeriod)
 		} else {
-			clusterStats, err = cluster.GetClusterAvg(r.Metric, r.DecisionPeriod, ctx, osClient)
+			clusterStats, err = cluster.GetClusterAvg(r.Metric, r.DecisionPeriod, ctx)
 		}
 
 		if err != nil {
@@ -230,7 +228,7 @@ func (r Rule) GetMetrics(osClient *opensearch.Client, simFlag bool) ([]byte, []b
 		if simFlag {
 			clusterCount, err = cluster_sim.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit)
 		} else {
-			clusterCount, err = cluster.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit, ctx, osClient)
+			clusterCount, err = cluster.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit, ctx)
 		}
 
 		if err != nil {
@@ -251,10 +249,10 @@ func (r Rule) GetMetrics(osClient *opensearch.Client, simFlag bool) ([]byte, []b
 // Caller: Object of Rule
 // Description:
 //
-//		EvaluateRule will be compare the collected metric and mentioned rule
-//		It will then decide if rules are meeting the criteria or not and return the result.
+//              EvaluateRule will be compare the collected metric and mentioned rule
+//              It will then decide if rules are meeting the criteria or not and return the result.
 // Return:
-//		Return whether a rule is meeting the criteria or not(bool)
+//              Return whether a rule is meeting the criteria or not(bool)
 
 func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 	log.Debug.Println(taskOperation)
@@ -301,10 +299,11 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 // Caller: Object of Task
 // Description:
 //
-//		PushToRecommendationQueue will be pushing the task which matches the criteria to recommendation queue.
+//              PushToRecommendationQueue will be pushing the task which matches the criteria to recommendation queue.
 //
 // Return:
 
 func (task Task) PushToRecommendationQueue() {
 	log.Info.Println(fmt.Sprintf("The %s task is recommended and will be pushed to the queue", task.TaskName))
 }
+

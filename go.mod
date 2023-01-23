@@ -5,7 +5,6 @@ go 1.19
 require (
 	github.com/apenella/go-ansible v1.1.7
 	github.com/aws/aws-sdk-go v1.42.27
-	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-playground/validator/v10 v10.11.1
 	github.com/jarcoal/httpmock v1.2.0
 	github.com/knadh/koanf v1.4.4
