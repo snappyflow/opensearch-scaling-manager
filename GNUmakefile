@@ -4,6 +4,7 @@ INCLUDESIM ?=false
 export GO_BUILD=env go build
 export SCALING_MANAGER_TAR_GZ="scaling_manager.tar.gz"
 export SCALING_MANAGER_LIB="scaling_manager_lib"
+export SCALING_MANAGER_INSTALL="/usr/local"
 
 default: build
 
@@ -39,7 +40,7 @@ cleaninstall:
     ifeq ($(PLATFORM),linux)
 		systemctl stop scaling_manager
 		systemctl disable scaling_manager
-		rm -rf /usr/local/$(SCALING_MANAGER_LIB)
+		rm -rf $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)
 		rm -f /etc/systemd/system/scaling_manager.service
     endif
 
@@ -64,13 +65,11 @@ pack: check
 	rm -rf $(SCALING_MANAGER_LIB) $(SCALING_MANAGER_TAR_GZ)
 	mkdir -p $(SCALING_MANAGER_LIB)
 	mkdir -p $(SCALING_MANAGER_LIB)/logger
-	mkdir -p $(SCALING_MANAGER_LIB)/provision
-	cp config.yaml mappings.json scaling_manager.service $(SCALING_MANAGER_LIB)
+	cp config.yaml scaling_manager.service $(SCALING_MANAGER_LIB)
     ifeq ($(INCLUDESIM),true)
 	cp -rf simulator $(SCALING_MANAGER_LIB)
     endif
 	cp logger/log_config.json $(SCALING_MANAGER_LIB)/logger
-	cp provision/mappings.json $(SCALING_MANAGER_LIB)/provision
     ifeq ($(PLATFORM),windows)
 		cp scaling_manager.exe $(SCALING_MANAGER_LIB)
     else
@@ -86,9 +85,9 @@ install: cleaninstall
 	rm -rf $(SCALING_MANAGER_LIB)
 	tar -xzf $(SCALING_MANAGER_TAR_GZ)
     ifeq ($(PLATFORM),linux)
-		tar -C /usr/local -xzf $(SCALING_MANAGER_TAR_GZ)
-		chmod +x /usr/local/$(SCALING_MANAGER_LIB)/scaling_manager
-		mv -f /usr/local/$(SCALING_MANAGER_LIB)/scaling_manager.service /etc/systemd/system/
+		tar -C $(SCALING_MANAGER_INSTALL) -xzf $(SCALING_MANAGER_TAR_GZ)
+		chmod +x $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager
+		mv -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager.service /etc/systemd/system/
 		systemctl enable scaling_manager
 		systemctl daemon-reload -l
     endif
