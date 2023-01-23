@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"os/exec"
 	"scaling_manager/cluster"
-	os "scaling_manager/opensearch"
+	osutils "scaling_manager/opensearch"
 	utils "scaling_manager/utilities"
 	"strconv"
 	"strings"
@@ -87,7 +87,7 @@ func IndexNodeStats(ctx context.Context) {
 	//creating a node stats requests with filter to reduce the response to requirement
 	nodes := []string{"_local"}
 	metrics := []string{"jvm", "os", "fs", "indices"}
-	nodeStatResp, err := os.GetNodeStats(nodes, metrics, ctx)
+	nodeStatResp, err := osutils.GetNodeStats(nodes, metrics, ctx)
 	if err != nil {
 		log.Error.Println("Node stat fetch error: ", err)
 	}
@@ -127,7 +127,7 @@ func IndexNodeStats(ctx context.Context) {
 		log.Error.Println("Error converting struct to Json: ", err)
 	}
 
-	_, err = os.IndexMetrics(ctx, nodeMetricsJson)
+	_, err = osutils.IndexMetrics(ctx, nodeMetricsJson)
 	if err != nil {
 		log.Panic.Println("Error indexing document: ", err)
 		panic(err)

@@ -2,7 +2,7 @@ package fetchmetrics
 
 import (
 	"context"
-	os "scaling_manager/opensearch"
+	osutils "scaling_manager/opensearch"
 )
 
 // Input: opensearch client and context
@@ -21,7 +21,7 @@ func DeleteOldDocs(ctx context.Context) {
                           }
                   }
           }`)
-	deleteResp, err := os.DeleteWithQuery(jsonQuery, ctx)
+	deleteResp, err := osutils.DeleteWithQuery(jsonQuery, ctx)
 	if err != nil {
 		log.Panic.Println("Unable to execute request: ", err)
 		panic(err)
