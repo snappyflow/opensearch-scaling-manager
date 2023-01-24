@@ -8,13 +8,13 @@ package recommendation
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"scaling_manager/cluster"
 	"scaling_manager/cluster_sim"
 	"scaling_manager/logger"
 	"strings"
-	"errors"
 )
 
 var log logger.LOG
@@ -238,8 +238,8 @@ func (r Rule) GetMetrics(simFlag bool, pollingInterval int) ([]byte, []byte) {
 
 		if err != nil || invalidDatapoints {
 			if invalidDatapoints {
-                                err = []byte(errors.New("Not enough data points").Error())
-                        }
+				err = []byte(errors.New("Not enough data points").Error())
+			}
 			return clusterMetric, err
 		}
 		clusterMetric, jsonErr = json.MarshalIndent(clusterCount, "", "\t")
@@ -314,4 +314,3 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 func (task Task) PushToRecommendationQueue() {
 	log.Info.Println(fmt.Sprintf("The %s task is recommended and will be pushed to the queue", task.TaskName))
 }
-

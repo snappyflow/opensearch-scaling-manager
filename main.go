@@ -5,7 +5,7 @@ import (
 	"scaling_manager/config"
 	fetch "scaling_manager/fetchmetrics"
 	"scaling_manager/logger"
-	osutils "scaling_manager/opensearch"
+	osutils "scaling_manager/opensearchUtils"
 	"scaling_manager/provision"
 	"scaling_manager/recommendation"
 	utils "scaling_manager/utilities"
@@ -34,8 +34,10 @@ func init() {
 
 	provision.InitializeDocId()
 
-	if !configStruct.MonitorWithSimulator {
-		go fetch.FetchMetrics(int(configStruct.PollingInterval))
+	userCfg := configStruct.UserConfig
+
+	if !userCfg.MonitorWithSimulator {
+		go fetch.FetchMetrics(int(userCfg.PollingInterval))
 	}
 }
 
@@ -46,13 +48,13 @@ func main() {
 		panic(err)
 	}
 	// A periodic check if there is a change in master node to pick up incomplete provisioning
-	go periodicProvisionCheck(configStruct.PollingInterval)
-	ticker := time.Tick(time.Duration(configStruct.PollingInterval) * time.Second)
+	go periodicProvisionCheck(configStruct.UserConfig.PollingInterval)
+	ticker := time.Tick(time.Duration(configStruct.UserConfig.PollingInterval) * time.Second)
 	for range ticker {
 		state.GetCurrentState()
 		// The recommendation and provisioning should only happen on master node
 		if utils.CheckIfMaster(context.Background(), "") && state.CurrentState == "normal" {
-			//              if firstExecution && state.CurrentState == "normal" {
+			//              if firstExecution || state.CurrentState == "normal" {
 			firstExecution = false
 			// This function will be responsible for parsing the config file and fill in task_details struct.
 			var task = new(recommendation.TaskDetails)
@@ -63,10 +65,12 @@ func main() {
 				continue
 			}
 			task.Tasks = configStruct.TaskDetails
+			userCfg := configStruct.UserConfig
+			clusterCfg := configStruct.ClusterDetails
 			// This function is responsible for evaluating the task and recommend.
-			recommendationList := task.EvaluateTask(configStruct.MonitorWithSimulator, configStruct.PollingInterval)
+			recommendationList := task.EvaluateTask(userCfg.MonitorWithSimulator, userCfg.PollingInterval)
 			// This function is responsible for getting the recommendation and provision.
-			provision.GetRecommendation(state, recommendationList, configStruct)
+			provision.GetRecommendation(state, recommendationList, clusterCfg, userCfg)
 		}
 	}
 }
@@ -93,7 +97,7 @@ func periodicProvisionCheck(pollingInterval int) {
 				}
 				if strings.Contains(state.CurrentState, "scaleup") {
 					log.Debug.Println("Calling scaleOut")
-					isScaledUp := provision.ScaleOut(configStruct, state)
+					isScaledUp := provision.ScaleOut(configStruct.ClusterDetails, configStruct.UserConfig, state)
 					if isScaledUp {
 						log.Info.Println("Scaleup completed successfully")
 					} else {
@@ -102,7 +106,7 @@ func periodicProvisionCheck(pollingInterval int) {
 					}
 				} else if strings.Contains(state.CurrentState, "scaledown") {
 					log.Debug.Println("Calling scaleIn")
-					isScaledDown := provision.ScaleIn(configStruct, state)
+					isScaledDown := provision.ScaleIn(configStruct.ClusterDetails, configStruct.UserConfig, state)
 					if isScaledDown {
 						log.Info.Println("Scaledown completed successfully")
 					} else {
