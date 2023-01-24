@@ -14,7 +14,7 @@ import (
         "context"
         "encoding/json"
         "scaling_manager/logger"
-        osutils "scaling_manager/opensearch"
+        osutils "scaling_manager/opensearchUtils"
         "strconv"
 )
 
