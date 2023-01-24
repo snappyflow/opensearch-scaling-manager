@@ -54,7 +54,7 @@ func (l *LOG) Init(module string) {
 		PANIC   = fmt.Sprintf("%5s%15s ", "PANIC", module)
 	)
 
-	if err := k.Load(file.Provider("logger/log_config.json"), json.Parser()); err != nil {
+	if err := k.Load(file.Provider("log_config.json"), json.Parser()); err != nil {
 		log.Fatalf("error loading config: %v", err)
 	}
 
