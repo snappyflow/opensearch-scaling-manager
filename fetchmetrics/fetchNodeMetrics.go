@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"os/exec"
 	"scaling_manager/cluster"
-	osutils "scaling_manager/opensearch"
+	osutils "scaling_manager/opensearchUtils"
 	utils "scaling_manager/utilities"
 	"strconv"
 	"strings"

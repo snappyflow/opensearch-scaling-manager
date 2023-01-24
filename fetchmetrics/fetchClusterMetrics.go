@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"scaling_manager/cluster"
-	osutils "scaling_manager/opensearch"
+	osutils "scaling_manager/opensearchUtils"
 )
 
 // Description: ClusterMetrics holds the cluster level information that are to be populated and indexed into elasticsearch

@@ -2,7 +2,7 @@ package fetchmetrics
 
 import (
 	"context"
-	osutils "scaling_manager/opensearch"
+	osutils "scaling_manager/opensearchUtils"
 )
 
 // Input: opensearch client and context
