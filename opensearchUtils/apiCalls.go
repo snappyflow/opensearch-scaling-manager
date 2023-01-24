@@ -37,6 +37,13 @@ func GetNodeStats(nodes []string, metrics []string, ctx context.Context) (*osapi
 	}.Do(ctx, osClient)
 }
 
+func CatAllocation(nodes []string, ctx context.Context) (*osapi.Response, error) {
+	return osapi.CatAllocationRequest{
+		Pretty: true,
+		NodeID: nodes,
+	}.Do(ctx, osClient)
+}
+
 func SearchQuery(jsonQuery []byte, ctx context.Context) (*osapi.Response, error) {
 	return osapi.SearchRequest{
 		Index: []string{IndexName},
