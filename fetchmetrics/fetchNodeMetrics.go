@@ -101,6 +101,20 @@ func IndexNodeStats(ctx context.Context) {
 		log.Error.Println("decode Error: ", decodeErr)
 	}
 
+	catAllocationResp, catErr := osutils.CatAllocation(nodes, ctx)
+	if catErr != nil {
+		log.Error.Println("Cat allocation fetch error: ", catErr)
+	}
+
+	var catAllocationInterface interface{}
+
+	decodeErr = json.NewDecoder(catAllocationResp.Body).Decode(&catAllocationInterface)
+	if decodeErr != nil {
+		log.Error.Println("decode Error: ", decodeErr)
+	}
+
+	nodeMetrics.NumShards = int(catAllocationInterface.(float64))
+
 	//parsing the interface and populating the node stats structure
 	nodeId := utils.ParseNodeId(nodeStatsInterface["nodes"].(map[string]interface{}))
 	nodeInfo := nodeStatsInterface["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})
@@ -118,7 +132,6 @@ func IndexNodeStats(ctx context.Context) {
 	nodeMetrics.RamUtil = getRamUtil()
 	nodeMetrics.HeapUtil = float32(nodeInfo["jvm"].(map[string]interface{})["mem"].(map[string]interface{})["heap_used_percent"].(float64))
 	nodeMetrics.DiskUtil = getDiskUtil(nodeStatsInterface, nodeId)
-	//      nodeMetrics.NumShards = int(nodeStatsInterface["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["indices"].(map[string]interface{})["shard_stats"].(map[string]interface{})["total_count"].(float64))
 	nodeMetrics.StatTag = "NodesStats"
 
 	//marshall the node metrics, to index into the elasticsearch
