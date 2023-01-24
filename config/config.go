@@ -50,13 +50,18 @@ type ClusterDetails struct {
 	CloudCredentials      CloudCredentials `yaml:"cloud_credentials"`
 }
 
+// Config for application behaviour from user
+type UserConfig struct {
+	MonitorWithLogs      bool `yaml:"monitor_with_logs"`
+	MonitorWithSimulator bool `yaml:"monitor_with_simulator"`
+	PollingInterval      int  `yaml:"polling_interval_in_secs"`
+}
+
 // This struct contains the data structure to parse the configuration file.
 type ConfigStruct struct {
-	MonitorWithLogs      bool                  `yaml:"monitor_with_logs"`
-	MonitorWithSimulator bool                  `yaml:"monitor_with_simulator"`
-	PollingInterval      int		   `yaml:"polling_interval_in_secs"`
-	ClusterDetails       ClusterDetails        `yaml:"cluster_details"`
-	TaskDetails          []recommendation.Task `yaml:"task_details" validate:"gt=0,dive"`
+	PollingInterval int                   `yaml:"polling_interval_in_secs"`
+	ClusterDetails  ClusterDetails        `yaml:"cluster_details"`
+	TaskDetails     []recommendation.Task `yaml:"task_details" validate:"gt=0,dive"`
 }
 
 // Inputs:

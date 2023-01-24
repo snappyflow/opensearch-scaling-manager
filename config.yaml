@@ -1,7 +1,8 @@
 ---
-monitor_with_logs: true
-monitor_with_simulator: false
-polling_interval_in_secs: 10
+user_config:
+  monitor_with_logs: true
+  monitor_with_simulator: false
+  polling_interval_in_secs: 10
 cluster_details:
   ip_address: 10.81.1.250
   cluster_name: cluster.1
