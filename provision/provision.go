@@ -76,7 +76,7 @@ func init() {
 //	        May be we can keep a concept of minimum number of nodes as a configuration input.
 //
 // Return:
-func TriggerProvision(cfg config.ConfigStruct, state *State, numNodes int, operation, RulesResponsible string) {
+func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *State, numNodes int, operation, RulesResponsible string) {
 	state.GetCurrentState()
 	if operation == "scale_up" {
 		state.PreviousState = state.CurrentState
@@ -86,8 +86,7 @@ func TriggerProvision(cfg config.ConfigStruct, state *State, numNodes int, opera
 		state.RuleTriggered = "scale_up"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledUp := ScaleOut(cfg, state)
-
+		isScaledUp := ScaleOut(clusterCfg, usrCfg, state)
 		if isScaledUp {
 			log.Info.Println("Scaleup successful")
 		} else {
@@ -105,7 +104,7 @@ func TriggerProvision(cfg config.ConfigStruct, state *State, numNodes int, opera
 		state.RuleTriggered = "scale_down"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledDown := ScaleIn(cfg, state)
+		isScaledDown := ScaleIn(clusterCfg, usrCfg, state)
 		if isScaledDown {
 			log.Info.Println("Scaledown successful")
 		} else {
@@ -132,16 +131,16 @@ func TriggerProvision(cfg config.ConfigStruct, state *State, numNodes int, opera
 // Return:
 //
 //	Return the status of scale out of the nodes.
-func ScaleOut(cfg config.ConfigStruct, state *State) bool {
+func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *State) bool {
 	// Read the current state of scaleup process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaleup process
 	state.GetCurrentState()
 	var newNodeIp string
-	simFlag := cfg.MonitorWithSimulator
-	monitorWithLogs := cfg.MonitorWithLogs
+	simFlag := usrCfg.MonitorWithSimulator
+	monitorWithLogs := usrCfg.MonitorWithLogs
 	if state.CurrentState == "provisioning_scaleup" {
 		log.Info.Println("Starting scaleUp process")
-		time.Sleep(time.Duration(cfg.PollingInterval) * time.Second)
+		time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "start_scaleup_process"
 		state.ProvisionStartTime = time.Now()
@@ -151,9 +150,9 @@ func ScaleOut(cfg config.ConfigStruct, state *State) bool {
 	if state.CurrentState == "start_scaleup_process" {
 		if monitorWithLogs {
 			log.Info.Println("Spin new vms based on the cloud type")
-			time.Sleep(time.Duration(cfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 			log.Info.Println("Spinning AWS instance")
-			time.Sleep(time.Duration(cfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 		} else {
 			var err error
 			newNodeIp, err = SpinNewVm()
@@ -176,11 +175,11 @@ func ScaleOut(cfg config.ConfigStruct, state *State) bool {
 	if state.CurrentState == "scaleup_triggered_spin_vm" {
 		if monitorWithLogs {
 			log.Info.Println("Adding the spinned nodes into the list of vms")
-			time.Sleep(time.Duration(cfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 			log.Info.Println("Configure ES")
-			time.Sleep(time.Duration(cfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 			log.Info.Println("Configuring in progress")
-			time.Sleep(time.Duration(cfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 		} else {
 			hostsFileName := "provision/ansible_scripts/hosts"
 			username := "ubuntu"
@@ -225,8 +224,8 @@ func ScaleOut(cfg config.ConfigStruct, state *State) bool {
 			SimulateSharRebalancing("scaleOut", state.NumNodes)
 		}
 		log.Info.Println("Waiting for the cluster to become healthy")
-		time.Sleep(time.Duration(cfg.PollingInterval) * time.Second)
-		CheckClusterHealth(state, simFlag, cfg.PollingInterval)
+		time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
+		CheckClusterHealth(state, simFlag, usrCfg.PollingInterval)
 	}
 	// Setting the state back to 'normal' irrespective of successful or failed provisioning to continue further
 	state.LastProvisionedTime = time.Now()
@@ -253,14 +252,14 @@ func ScaleOut(cfg config.ConfigStruct, state *State) bool {
 // Return:
 //
 //	Return the status of scale in of the nodes.
-func ScaleIn(cfg config.ConfigStruct, state *State) bool {
+func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *State) bool {
 	// Read the current state of scaledown process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaledown process
 	state.GetCurrentState()
 	var removeNodeIp, removeNodeName string
 	var nodes map[string]interface{}
-	monitorWithLogs := cfg.MonitorWithLogs
-	simFlag := cfg.MonitorWithSimulator
+	monitorWithLogs := usrCfg.MonitorWithLogs
+	simFlag := usrCfg.MonitorWithSimulator
 	if state.CurrentState == "provisioning_scaledown" {
 		log.Info.Println("Staring scaleDown process")
 		state.PreviousState = state.CurrentState
@@ -273,7 +272,7 @@ func ScaleIn(cfg config.ConfigStruct, state *State) bool {
 	if state.CurrentState == "start_scaledown_process" {
 		log.Info.Println("Identify the node to remove from the cluster and store the node_ip")
 		if monitorWithLogs {
-			time.Sleep(time.Duration(cfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 		} else {
 			nodes = utils.GetNodes()
 			for nodeId, nodeIdInfo := range nodes {
@@ -292,9 +291,9 @@ func ScaleIn(cfg config.ConfigStruct, state *State) bool {
 	if state.CurrentState == "scaledown_node_identified" {
 		if monitorWithLogs {
 			log.Info.Println("Configure ES to remove the node ip from cluster")
-			time.Sleep(time.Duration(cfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 			log.Info.Println("Shutdown the node by ssh")
-			time.Sleep(time.Duration(cfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 		} else {
 			hostsFileName := "provision/ansible_scripts/hosts"
 			username := "ubuntu"
@@ -336,9 +335,9 @@ func ScaleIn(cfg config.ConfigStruct, state *State) bool {
 			SimulateSharRebalancing("scaleIn", state.NumNodes)
 		}
 		log.Info.Println("Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
-		CheckClusterHealth(state, simFlag, cfg.PollingInterval)
+		CheckClusterHealth(state, simFlag, usrCfg.PollingInterval)
 		log.Info.Println("Shutdown the node")
-		time.Sleep(time.Duration(cfg.PollingInterval) * time.Second)
+		time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 	}
 	// Setting the state back to 'normal' irrespective of successful or failed provisioning to continue further
 	state.LastProvisionedTime = time.Now()
