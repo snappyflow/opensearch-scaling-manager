@@ -76,4 +76,3 @@ func CallScaleDown(username string, hosts string) error {
 	}
 	return nil
 }
-
