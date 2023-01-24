@@ -59,7 +59,7 @@ type UserConfig struct {
 
 // This struct contains the data structure to parse the configuration file.
 type ConfigStruct struct {
-	PollingInterval int                   `yaml:"polling_interval_in_secs"`
+	UserConfig	UserConfig            `yaml:"user_config"`
 	ClusterDetails  ClusterDetails        `yaml:"cluster_details"`
 	TaskDetails     []recommendation.Task `yaml:"task_details" validate:"gt=0,dive"`
 }
