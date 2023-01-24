@@ -4,7 +4,7 @@ import (
         "context"
         "encoding/json"
         "fmt"
-        osutils "scaling_manager/opensearch"
+        osutils "scaling_manager/opensearchUtils"
         utils "scaling_manager/utilities"
 
 )
