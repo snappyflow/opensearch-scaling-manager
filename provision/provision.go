@@ -259,7 +259,7 @@ func ScaleIn(cfg config.ConfigStruct, state *State) bool {
 	state.GetCurrentState()
 	var removeNodeIp, removeNodeName string
 	var nodes map[string]interface{}
-	monitorWithLogs:= cfg.MonitorWithLogs
+	monitorWithLogs := cfg.MonitorWithLogs
 	simFlag := cfg.MonitorWithSimulator
 	if state.CurrentState == "provisioning_scaledown" {
 		log.Info.Println("Staring scaleDown process")
