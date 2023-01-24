@@ -3,9 +3,9 @@ package osutils
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"os"
 	"scaling_manager/logger"
-	_ "embed"
 
 	opensearch "github.com/opensearch-project/opensearch-go"
 	osapi "github.com/opensearch-project/opensearch-go/opensearchapi"
@@ -43,8 +43,13 @@ func InitializeOsClient(username string, password string) {
 	}
 
 	res, err := osClient.Ping()
-	if err != nil || res.StatusCode != 200 {
-		log.Fatal.Println("Unable to ping OpenSearch: ", err)
+	if err != nil {
+		log.Fatal.Println(err)
+		os.Exit(1)
+	}
+
+	if res.IsError() {
+		log.Fatal.Println("Unable to ping OpenSearch! Error: ", res.Status())
 		os.Exit(1)
 	}
 
