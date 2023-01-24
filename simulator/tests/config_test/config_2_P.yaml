@@ -1,0 +1,32 @@
+---
+cluster_name: test
+cluster_hostname: test-cluster.aws
+cluster_ip_address: 10.0.0.1
+node_machine_type_identifier: m5-12xlarge
+total_nodes_count: 5
+active_data_nodes: 4
+master_eligible_nodes_count: 1
+index_count: 1000
+primary_shards_per_index: 5
+replica_shards_per_index: 5
+index_roll_over_size_gb: 50
+index_clean_up_age_days: 20
+simulation_frequency_minutes: 5
+
+states:
+- position: 1
+  time_hh_mm_ss: '00_00_00'
+  ingestion_rate_gb_per_hr: 10
+- position: 2
+  time_hh_mm_ss: '06_00_00'
+  ingestion_rate_gb_per_hr: 60
+- position: 3
+  time_hh_mm_ss: '12_00_00'
+  ingestion_rate_gb_per_hr: 65
+- position: 4
+  time_hh_mm_ss: '18_00_00'
+  ingestion_rate_gb_per_hr: 15
+- position: 5
+  time_hh_mm_ss: '23_00_00'
+  ingestion_rate_gb_per_hr: 5
+randomness_percentage: 5
