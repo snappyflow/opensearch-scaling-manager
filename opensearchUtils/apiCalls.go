@@ -75,9 +75,9 @@ func GetClusterState(ctx context.Context) (*osapi.Response, error) {
 
 // Input:
 //
-//			nodes ([]string): The list of nodes for which the stats needs to be fetched
-//			metrics ([]string): The list of metrics that needs to be fetched for the specified node/s
-//	             ctx (context.Context): Request-scoped data that transits processes and APIs.
+//	nodes ([]string): The list of nodes for which the stats needs to be fetched
+//	metrics ([]string): The list of metrics that needs to be fetched for the specified node/s
+//	ctx (context.Context): Request-scoped data that transits processes and APIs.
 //
 // Description:
 //
@@ -96,8 +96,8 @@ func GetNodeStats(nodes []string, metrics []string, ctx context.Context) (*osapi
 
 // Input:
 //
-//			nodes ([]string): List of nodes for which the allocation needs to be fetched
-//	             ctx (context.Context): Request-scoped data that transits processes and APIs.
+//	nodes ([]string): List of nodes for which the allocation needs to be fetched
+//	ctx (context.Context): Request-scoped data that transits processes and APIs.
 //
 // Description:
 //
@@ -115,8 +115,8 @@ func CatAllocation(nodes []string, ctx context.Context) (*osapi.Response, error)
 
 // Input:
 //
-//			jsonQuery ([]byte): The json query in bytes that needs to be queried from the index
-//	             ctx (context.Context): Request-scoped data that transits processes and APIs.
+//	jsonQuery ([]byte): The json query in bytes that needs to be queried from the index
+//	ctx (context.Context): Request-scoped data that transits processes and APIs.
 //
 // Description:
 //
@@ -134,8 +134,8 @@ func SearchQuery(jsonQuery []byte, ctx context.Context) (*osapi.Response, error)
 
 // Input:
 //
-//			docId (string): The _id of the document which needs to be searched
-//	             ctx (context.Context): Request-scoped data that transits processes and APIs.
+//	docId (string): The _id of the document which needs to be searched
+//	ctx (context.Context): Request-scoped data that transits processes and APIs.
 //
 // Description:
 //
@@ -153,9 +153,9 @@ func SearchDoc(docId string, ctx context.Context) (*osapi.Response, error) {
 
 // Input:
 //
-//			docId (string): The _id of the document which needs to be updated
-//			content (string): The body of the request that needs to be updated in the document
-//	             ctx (context.Context): Request-scoped data that transits processes and APIs.
+//	docId (string): The _id of the document which needs to be updated
+//	content (string): The body of the request that needs to be updated in the document
+//	ctx (context.Context): Request-scoped data that transits processes and APIs.
 //
 // Description:
 //
@@ -174,8 +174,8 @@ func UpdateDoc(docId string, content string, ctx context.Context) (*osapi.Respon
 
 // Input:
 //
-//			jsonQuery ([]byte): Query by which the deletion of documents is carried
-//	             ctx (context.Context): Request-scoped data that transits processes and APIs.
+//	jsonQuery ([]byte): Query by which the deletion of documents is carried
+//	ctx (context.Context): Request-scoped data that transits processes and APIs.
 //
 // Description:
 //
