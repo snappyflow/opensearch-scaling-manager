@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"scaling_manager/cluster"
@@ -138,16 +137,18 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 	var newNodeIp string
 	simFlag := usrCfg.MonitorWithSimulator
 	monitorWithLogs := usrCfg.MonitorWithLogs
-	if state.CurrentState == "provisioning_scaleup" {
+
+	switch state.CurrentState {
+	case "provisioning_scaleup":
 		log.Info.Println("Starting scaleUp process")
 		time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "start_scaleup_process"
 		state.ProvisionStartTime = time.Now()
 		state.UpdateState()
-	}
-	// Spin new VMs based on number of nodes and cloud type
-	if state.CurrentState == "start_scaleup_process" {
+		fallthrough
+		// Spin new VMs based on number of nodes and cloud type
+	case "start_scaleup_process":
 		if monitorWithLogs {
 			log.Info.Println("Spin new vms based on the cloud type")
 			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
@@ -169,10 +170,10 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "scaleup_triggered_spin_vm"
 		state.UpdateState()
-	}
+		fallthrough
 	// Add the newly added VM to the list of VMs
 	// Configure OS on newly created VM
-	if state.CurrentState == "scaleup_triggered_spin_vm" {
+	case "scaleup_triggered_spin_vm":
 		if monitorWithLogs {
 			log.Info.Println("Adding the spinned nodes into the list of vms")
 			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
@@ -217,9 +218,9 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaleup_completed"
 		state.UpdateState()
-	}
+		fallthrough
 	// Check cluster status after the configuration
-	if state.CurrentState == "provisioning_scaleup_completed" {
+	case "provisioning_scaleup_completed":
 		if simFlag {
 			SimulateSharRebalancing("scaleOut", state.NumNodes)
 		}
@@ -267,9 +268,9 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 		state.ProvisionStartTime = time.Now()
 		state.UpdateState()
 	}
-
 	// Identify the node which can be removed from the cluster.
-	if state.CurrentState == "start_scaledown_process" {
+	switch state.CurrentState {
+	case "start_scaledown_process":
 		log.Info.Println("Identify the node to remove from the cluster and store the node_ip")
 		if monitorWithLogs {
 			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
@@ -286,9 +287,9 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "scaledown_node_identified"
 		state.UpdateState()
-	}
+		fallthrough
 	// Configure OS to tell master node that the present node is going to be removed
-	if state.CurrentState == "scaledown_node_identified" {
+	case "scaledown_node_identified":
 		if monitorWithLogs {
 			log.Info.Println("Configure ES to remove the node ip from cluster")
 			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
@@ -327,14 +328,14 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaledown_completed"
 		state.UpdateState()
-	}
+		fallthrough
 	// Wait for cluster to be in stable state(Shard rebalance)
 	// Shut down the node
-	if state.CurrentState == "provisioning_scaledown_completed" {
+	case "provisioning_scaledown_completed":
 		if simFlag {
 			SimulateSharRebalancing("scaleIn", state.NumNodes)
 		}
-		log.Info.Println("Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
+		log.Info.Println("Wait for the cluster to become healthy and then proceed")
 		CheckClusterHealth(state, simFlag, usrCfg.PollingInterval)
 		log.Info.Println("Shutdown the node")
 		time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
@@ -426,10 +427,7 @@ func SimulateSharRebalancing(operation string, numNode int) {
 	}
 
 	if resp.StatusCode != 200 {
-		if resp.StatusCode == 404 {
-			response, _ := ioutil.ReadAll(resp.Body)
-			log.Error.Println(string(response))
-		}
+		log.Error.Println(resp.Status)
 	}
 
 	defer resp.Body.Close()
