@@ -54,7 +54,13 @@ type State struct {
 	RemainingNodes int
 }
 
-// Initializing logger module
+// Input:
+//
+// Description:
+//
+//	Initialize the Provision module.
+//
+// Return:
 func init() {
 	log.Init("logger")
 	log.Info.Println("Provisioner module initiated")
@@ -62,12 +68,16 @@ func init() {
 
 // Input:
 //
-//	state: The current provisioning state of the system
+//	clusterCfg (config.ClusterDetails): Cluster Level config details
+//	usrCfg (config.UserConfig): User defined config for applicatio behavior
+//	numNodes (int): Number of nodes to be scaled up/down
+//	operation (string): scaleup or scaledown operation
+//	RulesResponsible (string): A string that contains the rules responsible for the decision of operation being performed
+//	state (*State): A pointer to the state struct which is state maintained in OS document
 //
-// Caller: Object of config.ConfigStruct
 // Description:
 //
-//	TriggerProvision will scale in/out the cluster based on the operation.
+//	TriggerProvision will call scale in/out the cluster based on the operation.
 //	ToDo:
 //	        Think about the scenario where event based scaling needs to be performed.
 //	        Morning need to scale up and evening need to scale down.
@@ -118,9 +128,10 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 
 // Input:
 //
-//	state: The current provisioning state of the system
+//	             clusterCfg (config.ClusterDetails): Cluster Level config details
+//	             usrCfg (config.UserConfig): User defined config for applicatio behavior
+//			state (*State): A pointer to the state struct which is state maintained in OS document
 //
-// Caller: Object of ConfigClusterDetails
 // Description:
 //
 //	ScaleOut will scale out the cluster with the number of nodes.
@@ -129,7 +140,7 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 //
 // Return:
 //
-//	Return the status of scale out of the nodes.
+//	(bool): Return the status of scale out of the nodes.
 func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *State) bool {
 	// Read the current state of scaleup process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaleup process
@@ -242,9 +253,10 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 
 // Input:
 //
-//	state: Pointer to the current provisioning state of the system
+//	clusterCfg (config.ClusterDetails): Cluster Level config details
+//	usrCfg (config.UserConfig): User defined config for applicatio behavior
+//	state (*State): A pointer to the state struct which is state maintained in OS document
 //
-// Caller: Object of ConfigClusterDetails
 // Description:
 //
 //	ScaleIn will scale in the cluster with the number of nodes.
@@ -252,7 +264,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 //
 // Return:
 //
-//	Return the status of scale in of the nodes.
+//	(bool): Return the status of scale in of the nodes.
 func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *State) bool {
 	// Read the current state of scaledown process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaledown process
@@ -355,7 +367,9 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 
 // Input:
 //
-//	state: Pointer to the current provisioning state of the system
+//	state (*State): A pointer to the state struct which is state maintained in OS document
+//	simFlag (bool): A flag to check if the task needs to collect stats from Opensearch data or simulated data.
+//	pollingInterval (int): The time interval in seconds to wait until the next cluster health check happens
 //
 // Description:
 //
@@ -403,6 +417,16 @@ func CheckClusterHealth(state *State, simFlag bool, pollingInterval int) {
 	// the recommendation.
 }
 
+// Inputs:
+//
+//	operation (string): An input required by the simulator to know the operation being pperformed (scaleup/scaledown)
+//	numNode (int): The number of nodes added/removed from the cluster to simulate
+//
+// Description:
+//
+//	Calls the simulator api with the details of nodes added/removed to simulate the shard rebalancing operation
+//
+// Return:
 func SimulateSharRebalancing(operation string, numNode int) {
 	// Add logic to call the simulator's end point
 	byteStr := fmt.Sprintf("{\"nodes\":%d}", numNode)
