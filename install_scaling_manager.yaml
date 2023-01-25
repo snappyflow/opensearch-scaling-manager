@@ -1,0 +1,67 @@
+---
+- name: Build and Pack Scaling Manager
+  hosts: localhost
+  tasks:
+  - name: Build the Scaling Manager
+    command: make build
+    become: yes
+  - name: Pack the Scaling Manager
+    command: make pack
+    become: yes
+  tags: build_and_pack
+- name: Install Scaling Manager
+  hosts: all
+  tasks:
+  - name: Transfer the Binaries
+    become: yes
+    copy:
+        src: "{{ item }}"
+        dest: /tmp/
+    with_items:
+      - scaling_manager.tar.gz
+      - GNUmakefile
+  - name: Installing Scalling Manager
+    shell:
+    args:
+      cmd: make install
+      chdir: /tmp
+    become: yes
+  tags: install
+- name: Update Config
+  hosts: all
+  tasks:
+  - name: Transfer the Config file
+    become: yes
+    copy:
+        src: "/usr/local/scaling_manager_lib/config.yaml"
+        dest: /usr/local/scaling_manager_lib
+  tags: update_config
+- name: Start Scaling manager
+  hosts: all
+  tasks:
+  - name: Starting Scaling Manager Service
+    become: yes
+    shell: systemctl start scaling_manager.service
+  tags: start
+- name: Stop Scaling manager
+  hosts: all
+  tasks:
+  - name: Stopping Scaling Manager Service
+    become: yes
+    shell: systemctl stop scaling_manager.service
+  tags: stop
+- name: Uninstall Scaling Manager
+  hosts: all
+  tasks:
+  - name: Transfer the Makefile
+    become: yes
+    copy:
+        src: GNUmakefile
+        dest: /tmp/
+  - name: Uninstalling Scalling Manager
+    shell:
+    args:
+      cmd: make uninstall
+      chdir: /tmp
+    become: yes
+  tags: uninstall
