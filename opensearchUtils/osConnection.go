@@ -20,15 +20,34 @@ const (
 	IndexName string = "monitor-stats-1"
 )
 
+// A global logger variable used across the package for logging.
 var log = new(logger.LOG)
 
+// // A global opensearch Client used across the package for Opensearch operations.
 var osClient *opensearch.Client
 
+// Input:
+//
+// Description:
+//
+//	Initialize the osutils module
+//
+// Return:
 func init() {
 	log.Init("logger")
 	log.Info.Println("Opensearch module initiated")
 }
 
+// Input:
+//
+//	username (string): Username for OS cluster
+//	password (string): Password for OS cluster
+//
+// Description:
+//
+//	Initialize the Opensearch client
+//
+// Return:
 func InitializeOsClient(username string, password string) {
 	var err error
 
@@ -59,10 +78,15 @@ func InitializeOsClient(username string, password string) {
 
 }
 
-// Input: opensearch client and context
-// Description:The function checks if index exists, if it exists it does nothing and returns. If it does not exists
-// It creates the index and returns
-// Output: Cretes a new index if does not exists
+// Input:
+//
+//	ctx (context.Context)
+//
+// Description:
+//
+//	The function checks if index exists, if it exists it does nothing and returns. If it does not exists, it creates the index and returns
+//
+// Output:
 func CheckIfIndexExists(ctx context.Context) {
 
 	var indexName = []string{IndexName}
