@@ -18,7 +18,7 @@ var log logger.LOG
 //
 // Description:
 //
-//	Initialize the logger module.
+//	Initialize the Config module.
 //
 // Return:
 func init() {
@@ -59,22 +59,20 @@ type UserConfig struct {
 
 // This struct contains the data structure to parse the configuration file.
 type ConfigStruct struct {
-	UserConfig	UserConfig            `yaml:"user_config"`
-	ClusterDetails  ClusterDetails        `yaml:"cluster_details"`
-	TaskDetails     []recommendation.Task `yaml:"task_details" validate:"gt=0,dive"`
+	UserConfig     UserConfig            `yaml:"user_config"`
+	ClusterDetails ClusterDetails        `yaml:"cluster_details"`
+	TaskDetails    []recommendation.Task `yaml:"task_details" validate:"gt=0,dive"`
 }
 
 // Inputs:
-//
-//	path(string): The path of the configuration file.
+//		path (string): The path of the configuration file.
 //
 // Description:
-//
-//	This function will be parsing the provided configuration file and populate the ConfigStruct.
+//		This function will be parsing the provided configuration file and populate the ConfigStruct.
 //
 // Return:
-//
-//	Return the ConfigStruct.
+//	 (ConfigStruct, error): Return the ConfigStruct and error if any
+
 func GetConfig(path string) (ConfigStruct, error) {
 	yamlConfig, err := os.Open(path)
 	if err != nil {
@@ -94,16 +92,14 @@ func GetConfig(path string) (ConfigStruct, error) {
 }
 
 // Inputs:
-//
-//	config(ConfigStruct): config structure populated with unmarshalled data.
+//		config (ConfigStruct): config structure populated with unmarshalled data.
 //
 // Description:
-//
-//	This function will be validating the configuration structure.
+//		This function will be validating the configuration structure.
 //
 // Return:
-//
-//	Return the error if there is a validation error.
+//		(error): Return the error if there is a validation error.
+
 func validation(config ConfigStruct) error {
 	validate := validator.New()
 	validate.RegisterValidation("isValidName", isValidName)
@@ -114,7 +110,7 @@ func validation(config ConfigStruct) error {
 
 // Inputs:
 //
-//	field(validator.FieldLevel): The field which needs to be validated.
+//	fl (validator.FieldLevel): The field which needs to be validated.
 //
 // Description:
 //
@@ -122,7 +118,7 @@ func validation(config ConfigStruct) error {
 //
 // Return:
 //
-//	Return true if there is a valida cluster name else false.
+//	(bool): Return true if there is a valid cluster name else false.
 func isValidName(fl validator.FieldLevel) bool {
 	nameRegexString := `^[a-zA-Z][a-zA-Z0-9\-\._]+[a-zA-Z0-9]$`
 	nameRegex := regexp.MustCompile(nameRegexString)
@@ -132,7 +128,7 @@ func isValidName(fl validator.FieldLevel) bool {
 
 // Inputs:
 //
-//	field(validator.FieldLevel): The field which needs to be validated.
+//	fl (validator.FieldLevel): The field which needs to be validated.
 //
 // Description:
 //
@@ -140,7 +136,7 @@ func isValidName(fl validator.FieldLevel) bool {
 //
 // Return:
 //
-//	Return true if there is a valid Task name else false.
+//	(bool): Return true if there is a valid Task name else false.
 func isValidTaskName(fl validator.FieldLevel) bool {
 	TaskNameRegexString := `scale_(up|down)_by_[0-9]+`
 	TaskNameRegex := regexp.MustCompile(TaskNameRegexString)
