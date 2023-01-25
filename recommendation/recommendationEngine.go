@@ -29,7 +29,7 @@ var ctx = context.Background()
 // Return:
 func init() {
 	log.Init("logger")
-	log.Info.Println("Main module initialized")
+	log.Info.Println("Recommendation module initialized")
 }
 
 // This struct contains the task to be perforrmed by the recommendation and set of rules wrt the action.
