@@ -38,8 +38,8 @@ clean:
 
 cleaninstall:
     ifeq ($(PLATFORM),linux)
-		systemctl stop scaling_manager
-		systemctl disable scaling_manager
+		-systemctl stop scaling_manager.service
+		-systemctl disable scaling_manager.service
 		rm -rf $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)
 		rm -f /etc/systemd/system/scaling_manager.service
     endif
@@ -69,7 +69,7 @@ pack: check
     ifeq ($(INCLUDESIM),true)
 	cp -rf simulator $(SCALING_MANAGER_LIB)
     endif
-	cp logger/log_config.json $(SCALING_MANAGER_LIB)/logger
+	cp log_config.json $(SCALING_MANAGER_LIB)
     ifeq ($(PLATFORM),windows)
 		cp scaling_manager.exe $(SCALING_MANAGER_LIB)
     else
@@ -89,5 +89,6 @@ install: cleaninstall
 		chmod +x $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager
 		mv -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager.service /etc/systemd/system/
 		systemctl enable scaling_manager
-		systemctl daemon-reload -l
     endif
+
+uninstall: cleaninstall
