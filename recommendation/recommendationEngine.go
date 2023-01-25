@@ -122,7 +122,7 @@ func (t Task) GetNextTask(simFlag bool, pollingInterval int) (bool, string) {
 	var isRecommendedTask bool = true
 	var isRecommendedRule bool
 	var rulesResponsible string
-	var err []byte
+	var err error
 
 	scaleRegexString := `(scale_up|scale_down)_by_([0-9]+)`
 	scaleRegex := regexp.MustCompile(scaleRegexString)
@@ -145,7 +145,7 @@ func (t Task) GetNextTask(simFlag bool, pollingInterval int) (bool, string) {
 		// What if in the case of OR the matching rule is present at the last.
 		isRecommendedRule, err = v.GetNextRule(taskOperation, simFlag, pollingInterval)
 		if err != nil {
-			log.Warn.Println(fmt.Sprintf("%s for the rule: %v", string(err), v))
+			log.Warn.Println(fmt.Sprintf("%s for the rule: %v", err, v))
 		}
 		if isRecommendedRule {
 			if v.Stat == "AVG" {
@@ -179,7 +179,7 @@ func (t Task) GetNextTask(simFlag bool, pollingInterval int) (bool, string) {
 // Return:
 //              Return if a rule is meeting the criteria or not(bool)
 
-func (r Rule) GetNextRule(taskOperation string, simFlag bool, pollingInterval int) (bool, []byte) {
+func (r Rule) GetNextRule(taskOperation string, simFlag bool, pollingInterval int) (bool, error) {
 	cluster, err := r.GetMetrics(simFlag, pollingInterval)
 	if err != nil {
 		return false, err
@@ -202,12 +202,12 @@ func (r Rule) GetNextRule(taskOperation string, simFlag bool, pollingInterval in
 // Return:
 //              Return marshal form of either MetricStatsCluster or MetricViolatedCountCluster struct([]byte)
 
-func (r Rule) GetMetrics(simFlag bool, pollingInterval int) ([]byte, []byte) {
+func (r Rule) GetMetrics(simFlag bool, pollingInterval int) ([]byte, error) {
 	var clusterStats cluster.MetricStats
 	var clusterCount cluster.MetricViolatedCount
 	var clusterMetric []byte
 	var jsonErr error
-	var err []byte
+	var err error
 	var invalidDatapoints bool
 
 	if r.Stat == "AVG" {
@@ -219,7 +219,7 @@ func (r Rule) GetMetrics(simFlag bool, pollingInterval int) ([]byte, []byte) {
 
 		if err != nil || invalidDatapoints {
 			if invalidDatapoints {
-				err = []byte(errors.New("Not enough data points").Error())
+				err = errors.New("Not enough data points")
 			}
 			return clusterMetric, err
 		}
@@ -238,7 +238,7 @@ func (r Rule) GetMetrics(simFlag bool, pollingInterval int) ([]byte, []byte) {
 
 		if err != nil || invalidDatapoints {
 			if invalidDatapoints {
-				err = []byte(errors.New("Not enough data points").Error())
+				err = errors.New("Not enough data points")
 			}
 			return clusterMetric, err
 		}

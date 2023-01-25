@@ -12,8 +12,8 @@ package cluster_sim
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"scaling_manager/cluster"
 	"scaling_manager/logger"
@@ -48,7 +48,7 @@ func init() {
 // Return:
 //              Return populated MetricStatsCluster struct.
 
-func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, []byte) {
+func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, error) {
 	var metricStats cluster.MetricStats
 	url := fmt.Sprintf("http://localhost:5000/stats/avg?metric=%s&duration=%d", metricName, decisionPeriod)
 	client := http.Client{
@@ -62,10 +62,7 @@ func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, 
 	}
 
 	if resp.StatusCode != 200 {
-		if resp.StatusCode == 400 {
-			response, _ := ioutil.ReadAll(resp.Body)
-			return metricStats, response
-		}
+		return metricStats, errors.New(resp.Status)
 	}
 
 	defer resp.Body.Close()
@@ -96,7 +93,7 @@ func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, 
 // Return:
 //              Return populated MetricViolatedCountCluster struct.
 
-func GetClusterCount(metricName string, decisonPeriod int, limit float32) (cluster.MetricViolatedCount, []byte) {
+func GetClusterCount(metricName string, decisonPeriod int, limit float32) (cluster.MetricViolatedCount, error) {
 	var metricViolatedCount cluster.MetricViolatedCount
 	url := fmt.Sprintf("http://localhost:5000/stats/violated?metric=%s&duration=%d&threshold=%f", metricName, decisonPeriod, limit)
 	client := http.Client{
@@ -111,10 +108,7 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) (clust
 	}
 
 	if resp.StatusCode != 200 {
-		if resp.StatusCode == 400 {
-			response, _ := ioutil.ReadAll(resp.Body)
-			return metricViolatedCount, response
-		}
+		return metricViolatedCount, errors.New(resp.Status)
 	}
 
 	defer resp.Body.Close()

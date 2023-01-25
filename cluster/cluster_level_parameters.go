@@ -230,7 +230,7 @@ func getClusterAvgQuery(metricName string, decisionPeriod int) string {
 	return clusterAvgQueryString
 }
 
-func GetClusterAvg(metricName string, decisionPeriod int, pollingInterval int, ctx context.Context) (MetricStats, bool, []byte) {
+func GetClusterAvg(metricName string, decisionPeriod int, pollingInterval int, ctx context.Context) (MetricStats, bool, error) {
 	//Create an object of MetricStatsCluster to populate and return
 	var metricStats MetricStats
 
@@ -240,7 +240,7 @@ func GetClusterAvg(metricName string, decisionPeriod int, pollingInterval int, c
 	dataPointsResp, dpErr := osutils.SearchQuery([]byte(dataPointsQuery(decisionPeriod, pollingInterval)), ctx)
 	if dpErr != nil {
 		log.Error.Println("Can't query for data points!", dpErr)
-		return metricStats, invalidDatapoints, []byte(dpErr.Error())
+		return metricStats, invalidDatapoints, dpErr
 	}
 
 	var dpRespInterface map[string]interface{}
@@ -248,7 +248,7 @@ func GetClusterAvg(metricName string, decisionPeriod int, pollingInterval int, c
 	decodeErr := json.NewDecoder(dataPointsResp.Body).Decode(&dpRespInterface)
 	if decodeErr != nil {
 		log.Error.Println("decode Error: ", decodeErr)
-		return metricStats, invalidDatapoints, []byte(decodeErr.Error())
+		return metricStats, invalidDatapoints, decodeErr
 	}
 
 	if int(dpRespInterface["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64)) == 0 {
@@ -263,7 +263,7 @@ func GetClusterAvg(metricName string, decisionPeriod int, pollingInterval int, c
 	searchResp, err := osutils.SearchQuery(jsonQuery, ctx)
 	if err != nil {
 		log.Error.Println("Cannot fetch cluster average: ", err)
-		return metricStats, invalidDatapoints, []byte(err.Error())
+		return metricStats, invalidDatapoints, err
 	}
 	//Interface to dump the response
 	var queryResultInterface map[string]interface{}
@@ -272,7 +272,7 @@ func GetClusterAvg(metricName string, decisionPeriod int, pollingInterval int, c
 	decodeErr = json.NewDecoder(searchResp.Body).Decode(&queryResultInterface)
 	if decodeErr != nil {
 		log.Error.Println("decode Error: ", decodeErr)
-		return metricStats, invalidDatapoints, []byte(err.Error())
+		return metricStats, invalidDatapoints, decodeErr
 	}
 
 	//Parse the interface and populate the metricStatsCluster
@@ -346,7 +346,7 @@ func getClusterCountQuery(metricName string, decisionPeriod int, limit float32) 
 	return clusterCountQueryString
 }
 
-func GetClusterCount(metricName string, decisionPeriod int, pollingInterval int, limit float32, ctx context.Context) (MetricViolatedCount, bool, []byte) {
+func GetClusterCount(metricName string, decisionPeriod int, pollingInterval int, limit float32, ctx context.Context) (MetricViolatedCount, bool, error) {
 	var metricViolatedCount MetricViolatedCount
 	var invalidDatapoints bool
 
@@ -354,7 +354,7 @@ func GetClusterCount(metricName string, decisionPeriod int, pollingInterval int,
 	dataPointsResp, dpErr := osutils.SearchQuery([]byte(dataPointsQuery(decisionPeriod, pollingInterval)), ctx)
 	if dpErr != nil {
 		log.Error.Println("Can't query for data points!", dpErr)
-		return metricViolatedCount, invalidDatapoints, []byte(dpErr.Error())
+		return metricViolatedCount, invalidDatapoints, dpErr
 	}
 
 	var dpRespInterface map[string]interface{}
@@ -362,7 +362,7 @@ func GetClusterCount(metricName string, decisionPeriod int, pollingInterval int,
 	decodeErr := json.NewDecoder(dataPointsResp.Body).Decode(&dpRespInterface)
 	if decodeErr != nil {
 		log.Error.Println("decode Error: ", decodeErr)
-		return metricViolatedCount, invalidDatapoints, []byte(decodeErr.Error())
+		return metricViolatedCount, invalidDatapoints, decodeErr
 	}
 
 	if int(dpRespInterface["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64)) == 0 {
@@ -377,7 +377,7 @@ func GetClusterCount(metricName string, decisionPeriod int, pollingInterval int,
 	searchResp, err := osutils.SearchQuery(jsonQuery, ctx)
 	if err != nil {
 		log.Error.Println("Cannot fetch cluster average: ", err)
-		return metricViolatedCount, invalidDatapoints, []byte(err.Error())
+		return metricViolatedCount, invalidDatapoints, err
 	}
 
 	//Interface to dump the response
@@ -387,7 +387,7 @@ func GetClusterCount(metricName string, decisionPeriod int, pollingInterval int,
 	decodeErr = json.NewDecoder(searchResp.Body).Decode(&queryResultInterface)
 	if decodeErr != nil {
 		log.Error.Println("decode Error: ", decodeErr)
-		return metricViolatedCount, invalidDatapoints, []byte(err.Error())
+		return metricViolatedCount, invalidDatapoints, decodeErr
 	}
 	//Parse the interface and populate the metricStatsCluster
 	metricViolatedCount.ViolatedCount = int(queryResultInterface["aggregations"].(map[string]interface{})[metricName].(map[string]interface{})["buckets"].([]interface{})[0].(map[string]interface{})["doc_count"].(float64))
