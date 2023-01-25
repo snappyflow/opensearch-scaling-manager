@@ -2,7 +2,6 @@ package fetchmetrics
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"scaling_manager/logger"
@@ -26,7 +25,6 @@ func FetchMetrics(pollingInterval int) {
 	for range ticker {
 		//check if current node is the master node and update the cluster stats if it is master
 		if utils.CheckIfMaster(ctx, "") {
-			fmt.Println("It's the master node")
 			IndexClusterHealth(ctx)
 		}
 		//Index the the node stats
