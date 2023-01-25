@@ -77,7 +77,6 @@ func CheckIfIndexExists(ctx context.Context) {
 	}
 	//If status code == 200 then index exists, print index exists, return
 	if exist.StatusCode == 200 {
-		log.Info.Println("Index Exists!")
 		return
 	}
 	//If status code is not 200 then index does not exist, so crete a new Index via index create request API,
