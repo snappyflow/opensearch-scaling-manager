@@ -18,8 +18,13 @@ func init() {
 	log.Info.Println("FetchMetrics module initiated")
 }
 
-// Descriptions: Fetch metrics will create an opensearch client and fetches the node and cluster level details and
-// indexes them into elasticesearch. It also deletes documents that are older than 72 hours
+// Input:
+// 		pollingInterval(int): Interval (minutes) at which metrics are fetched and indexed
+// Descriptions: 
+// 		Fetch metrics will index node level and cluster level(if current node is master) 
+// 		parameters to opensearch index and deletes documents that are older than
+// 	    72 hours
+// Return:
 func FetchMetrics(pollingInterval int) {
 	ticker := time.Tick(time.Duration(pollingInterval) * time.Second)
 	for range ticker {
