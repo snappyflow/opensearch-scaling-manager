@@ -5,8 +5,11 @@ import (
 	osutils "scaling_manager/opensearchUtils"
 )
 
-// Input: opensearch client and context
-// Description: Deletes documents that older than 72 hours
+// Input:
+//      ctx (context.Context): Request-scoped data that transits processes and APIs.
+// Description: 
+//      Deletes documents that older than 72 hours
+// Return:
 func DeleteOldDocs(ctx context.Context) {
 	var jsonQuery = []byte(`{
                 "query": {

@@ -8,7 +8,7 @@ import (
 	osutils "scaling_manager/opensearchUtils"
 )
 
-// Description: ClusterMetrics holds the cluster level information that are to be populated and indexed into elasticsearch
+// ClusterMetrics holds the cluster level parameters that are to be populated and indexed into opensearch
 type ClusterMetrics struct {
 	cluster.ClusterDynamic
 	Timestamp   int64
@@ -16,9 +16,12 @@ type ClusterMetrics struct {
 	ClusterName string
 }
 
-// Input: opensearch client and context.
-// Description: Fetches cluster level info and populates ClusterMetrics struct
-// Output: Returns the populated ClusterMetrics struct
+// Input: 
+// 		ctx (context.Context): Request-scoped data that transits processes and APIs. 			
+// Description: 
+// 		Fetches cluster level info and populates ClusterMetrics struct
+// Return: 
+// 		(ClusterMetrics): Returns cluster metrics struct
 func FetchClusterHealthMetrics(ctx context.Context) ClusterMetrics {
 
 	//Create an interface to capture the response from cluster health and cluster stats API
@@ -69,8 +72,11 @@ func FetchClusterHealthMetrics(ctx context.Context) ClusterMetrics {
 	return *clusterStats
 }
 
-// Input: opensearch client and context
-// Description: Fetches the cluster level info and indexes into the elasticsearch
+// Input: 
+// 		ctx (context.Context): Request-scoped data that transits processes and APIs.
+// Description: 
+// 		Converts ClusterMetrics struct to Json and indexes it to opensearch
+// Return:
 func IndexClusterHealth(ctx context.Context) {
 	var clusterHealth = ClusterMetrics{}
 
@@ -83,7 +89,7 @@ func IndexClusterHealth(ctx context.Context) {
 		log.Error.Println("Error converting struct to json: ", jsonErr)
 	}
 
-	//Check and index the Json document into elasticsearch
+	//Check and index the Json document into opensearch
 	_, err := osutils.IndexMetrics(ctx, clusterHealthJson)
 	if err != nil {
 		log.Panic.Println("Error indexing cluster document: ", err)
