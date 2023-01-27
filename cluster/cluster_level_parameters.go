@@ -24,7 +24,7 @@ var log logger.LOG
 //
 // Description:
 //
-//	Initialize the logger module.
+//	Initialize the cluster module.
 //
 // Return:
 func init() {
@@ -167,6 +167,17 @@ type MetricViolatedCountCluster struct {
 	NodeLevel []MetricViolatedCountNode
 }
 
+// Input:
+//		decisionPeriod (int): Time in minutes used to specify the time range for collecting data from Opensearch.
+//		pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index
+//
+// Description:
+//		Generates the query string necessary to check if there is any datapoints between the specified time range
+//
+//
+// Return:
+//		(string): Returns the query string which can be passed as OS query api
+
 func dataPointsQuery(decisionPeriod int, pollingInterval int) string {
 	dataPointQuery := `{
 	  "query": {
@@ -189,18 +200,14 @@ func dataPointsQuery(decisionPeriod int, pollingInterval int) string {
 }
 
 // Input:
-//
-//              metricName: The Name of the metric for which the Cluster Average will be calculated(string).
-//              decisionPeriod: The evaluation period for which the Average will be calculated.
+//		metricName (string): The metric for which the average is needed.
+//		decisionPeriod (int): Time in minutes used to specify the time range for collecting data from Opensearch.
 //
 // Description:
-//
-//              GetClusterAvg will use the opensearch query to find out the stats aggregation.
-//              While getting stats aggregation it will pass the metricName and decisionPeriod as an input.
-//              It will populate MetricStatsCluster struct and return it.
+//		Generates the query string for determining the average of the metric specified.
 //
 // Return:
-//              Return populated MetricStatsCluster struct.
+//		(string): Returns the query string that can be given as an OS query api parameter.
 
 func getClusterAvgQuery(metricName string, decisionPeriod int) string {
 	clusterAvgQueryString := `{
@@ -226,9 +233,23 @@ func getClusterAvgQuery(metricName string, decisionPeriod int) string {
 	    }
 	  }
 	}`
-	//nodesAvgQueryString:= `{"query":{"bool":{"filter":{"range":{"Timestamp":{"from": "now-`+strconv.Itoa(decisionPeriod)+`h","include_lower": true,"include_upper": true,"to": null}}}}},"aggs": {"node_statistics": {"terms": {"field": "HostIp.keyword","size": 100},"aggs": {`+metricName+`: { "stats": { "field":`+metricName+`} } }}}}`
 	return clusterAvgQueryString
 }
+
+// Input:
+//              metricName (string): The metric name for which the Cluster Average will be calculated
+//              decisionPeriod (int): The evaluation time over which the Average will be computed
+//		pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index
+//		ctx (context.Context): Request-scoped data that transits processes and APIs.
+//
+// Description:
+//
+//              GetClusterAvg will utilize an opensearch query to determine the statistic aggregation.
+//              The metricName and decisionPeriod will be supplied as inputs for getting stats aggregate.
+//              It will populate MetricStatsCluster struct and return it.
+//
+// Return:
+//              (MetricStats, bool, error): Return a populated (MetricStats) struct, a (bool) value indicating whether there were enough data points to find the Stats, and any (errors).
 
 func GetClusterAvg(metricName string, decisionPeriod int, pollingInterval int, ctx context.Context) (MetricStats, bool, error) {
 	//Create an object of MetricStatsCluster to populate and return
@@ -298,19 +319,15 @@ func GetClusterAvg(metricName string, decisionPeriod int, pollingInterval int, c
 }
 
 // Input:
-//
-//              metricName: The Name of the metric for which the Cluster Average will be calculated(string).
-//              decisionPeriod: The evaluation period for which the Average will be calculated.(int)
-//              limit: The limit for the particular metric for which the count is calculated.(float32)
+//		metricName (string): The metric for which the count is needed.
+//		decisionPeriod (int): Time in minutes used to specify the time range for collecting data from Opensearch.
+//		limit (float32): The limit which needs to checked for the metric if it has been reached
 //
 // Description:
-//
-//              GetClusterCount will use the opensearch query to find out the stats aggregation.
-//              While getting stats aggregation it will pass the metricName, decisionPeriod and limit as an input.
-//              It will populate MetricViolatedCountCluster struct and return it.
+//		Generates the query string for determining the number of times the limit for the defined measure has been reached.
 //
 // Return:
-//              Return populated MetricViolatedCountCluster struct.
+//		(string): Returns the query string that can be given as an OS query api parameter.
 
 func getClusterCountQuery(metricName string, decisionPeriod int, limit float32) string {
 	clusterCountQueryString := `{
@@ -345,6 +362,19 @@ func getClusterCountQuery(metricName string, decisionPeriod int, limit float32) 
 
 	return clusterCountQueryString
 }
+
+// Input:
+//		metricName (string): The name of the metric that will be used to compute the number of times the limit is reached.
+//		decisionPeriod (int): The evaluation period for which the Count will be determined.
+//		pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index
+//		limit (float32): The limit for the metric for which the count is calculated.
+//		ctx (context.Context): Request-scoped data that transits processes and APIs.
+//
+// Description:
+//		GetClusterCount will return the number of times the specified metric has reached the limit.
+//
+// Return:
+//		(MetricViolatedCount, bool, error): Return populated MetricViolatedCount struct, bool which says if there were enough datapoints to calculate the count and error if any.
 
 func GetClusterCount(metricName string, decisionPeriod int, pollingInterval int, limit float32, ctx context.Context) (MetricViolatedCount, bool, error) {
 	var metricViolatedCount MetricViolatedCount
@@ -396,14 +426,12 @@ func GetClusterCount(metricName string, decisionPeriod int, pollingInterval int,
 }
 
 // Input:
-// Description:
 //
-//              GetClusterCurrent will fetch the node level and cluster level metrics and fill in
-//              ClusterDynamic, clusterStatic and Node struct using the given config file.
-//              It will return the current cluster status.
+// Description:
+//		GetClusterCurrent returns the most recent cluster level Statistics and Health in the form of a struct.
 //
 // Return:
-//              Return populated ClusterDynamic struct.
+//		(ClusterDynamic): Return populated ClusterDynamic struct.
 
 func GetClusterCurrent() ClusterDynamic {
 	ctx := context.Background()
@@ -454,17 +482,15 @@ func GetClusterCurrent() ClusterDynamic {
 }
 
 // Input:
-//
-//              decisionPeriod: The evaluation period for which the Average will be calculated.(int)
+//		decisionPeriod(int): The evaluation period for which the Average will be calculated.(int)
 //
 // Description:
-//
-//              GetClusterHistoricAvg will get Historic average for the cluster for all the metrics.
-//              GetClusterHistoricAvg will use the stats aggregation to fetch the cluster and node level
-//              Historic average for the mentioned decision period.
+//		GetClusterHistoricAvg will get Historic average for the cluster for all the metrics.
+//		GetClusterHistoricAvg will use the stats aggregation to fetch the cluster and node level
+//		Historic average for the mentioned decision period.
 //
 // Return:
-//              Return an array of populated MetricStatsCluster struct collected for all the metrics.
+//		([]MetricStatsCluster): Return an array of populated MetricStatsCluster struct collected for all the metrics.
 
 func GetClusterHistoricAvg(decisonPeriod int) []MetricStatsCluster {
 	var metricStatsCluster []MetricStatsCluster
@@ -472,18 +498,16 @@ func GetClusterHistoricAvg(decisonPeriod int) []MetricStatsCluster {
 }
 
 // Input:
-//
-//              decisionPeriod: The evaluation period for which the Average will be calculated.(int)
-//              thresholdMap: The map provide mapping of metric name and the threshold for which the Count is calculated.
+//		decisionPeriod(int): The evaluation period for which the Average will be calculated.
+//		thresholdMap( map[string]int): The map provide mapping of metric name and the threshold for which the Count is calculated.
 //
 // Description:
-//
-//              GetClusterHistoricCount will use the opensearch query to find out the Count for which a metric crossed the threshold limit.
-//              GetClusterHistoricCount will then iterate through all the metric and collect the count for all the metrics.
-//              It will return the array of node level and cluster level count been voilated for all the metrics.
+//		GetClusterHistoricCount will use the opensearch query to find out the Count for which a metric crossed the threshold limit.
+//		GetClusterHistoricCount will then iterate through all the metric and collect the count for all the metrics.
+//		It will return the array of node level and cluster level count been voilated for all the metrics.
 //
 // Return:
-//              Return array of populated MetricViolatedCountCluster struct.
+//              ([]MetricViolatedCountCluster): Return array of populated MetricViolatedCountCluster struct.
 
 func GetClusterHistoricCount(decisionPeriod int, thresholdMap map[string]int) []MetricViolatedCountCluster {
 	var metricViolatedCount []MetricViolatedCountCluster
