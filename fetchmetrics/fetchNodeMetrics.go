@@ -63,7 +63,7 @@ func getCpuUtil() float32 {
 // Output: Returns the memory utilization of the system.
 func getRamUtil() float32 {
 	//Executing the top command to fetch the memory utilization
-	cmd := exec.Command("bash", "-c", "top -bn2 | grep 'KiB Mem' | tail -1 | awk '{print ($8/$4)*100}'")
+	cmd := exec.Command("bash", "-c", "top -bn2 | grep -E '[KiB|MiB|GiB] Mem' | tail -1 | awk '{print ($8/$4)*100}'")
 	memout, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Error.Println(err)
