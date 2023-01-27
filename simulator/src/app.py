@@ -1,6 +1,7 @@
 import os
 import shutil
 import json
+import math
 from datetime import datetime, timedelta
 from threading import Thread
 
@@ -14,6 +15,7 @@ from config_parser import parse_config, get_source_code_dir
 from open_search_simulator import Simulator
 from cluster_dynamic import ClusterDynamic
 from plotter import plot_data_points
+from open_search_simulator import timeit
 
 
 app = Flask(__name__)
@@ -44,12 +46,19 @@ class DataModel(db.Model):
 
 
 def get_provision_status():
+    """
+    Returns the status of provision
+    """
     return is_provisioning
 
 
-def set_provision_status(bool_val):
+def set_provision_status(provisioning):
+    """
+    Sets the provision status
+    :param provisioning: boolean value that indicates provision status
+    """
     global is_provisioning
-    is_provisioning = bool_val
+    is_provisioning = provisioning
 
 
 def get_first_data_point_time():
@@ -86,7 +95,7 @@ def cluster_db_object(cluster):
         relocating_shards_count=cluster.relocating_shards,
         master_eligible_nodes_count=cluster.master_eligible_nodes_count,
         active_data_nodes=cluster.active_data_nodes,
-        disk_usage_percent=cluster_obj.disk_usage_percent,
+        disk_usage_percent=cluster.disk_usage_percent,
         rolled_index_size=cluster.rolled_index_size,
     )
 
@@ -111,49 +120,78 @@ def overwrite_after_node_count_change(cluster_objects):
     plot_data_points(
         cluster_objects_post_change, skip_data_ingestion=True, skip_search_query=True
     )
-    # expiry_time = Simulator.create_provisioning_lock()
     return
 
+@timeit
 def reset_load(sim):
     """
-    The fuction resets the shard size from the end of simulation
-    to the size configured at current time
+    The fuction resets shard size from end of simulation
+    to shard size configured at current time
     """
     sim.cluster.clear_index_size()
-    time_now = datetime.now()
+
+    now = datetime.now()
+    time_now_hour = now - timedelta(minutes=datetime.now().minute,seconds=now.second,
+                microseconds=now.microsecond)
     current_disk = (
-    DataModel.query.order_by(desc(DataModel.date_created)).filter(DataModel.date_created < time_now)
+    DataModel.query.order_by(desc(DataModel.date_created)).filter(DataModel.date_created <= now)
     .with_entities(
         DataModel.__getattribute__(DataModel, constants.STAT_REQUEST['disk'])
     )
     .first()
     )
     current_rolled_size = (
-    DataModel.query.order_by(desc(DataModel.date_created)).filter(DataModel.date_created < time_now)
+    DataModel.query.order_by(desc(DataModel.date_created)).filter(DataModel.date_created <= now)
     .with_entities(
         DataModel.__getattribute__(DataModel, 'rolled_index_size')
     )
     .first()
     )
     rolled_index_size = current_rolled_size[0]
-    distribution_size = ((current_disk[0]*sim.cluster.total_disk_size_gb)/100)
+    distribution_size = (current_disk[0]/100)*sim.cluster.total_disk_size_gb
     distribution_size-=rolled_index_size
     shard_size = distribution_size/sim.cluster.total_shard_count
-    distribution_size-= (sim.cluster.replica_shards_per_index * sim.cluster.index_count * shard_size)
-    sim.cluster.cluster_disk_size_used = 0
-    sim.distribute_load((distribution_size/5)*60)
+    distribution_size-= (sim.cluster.replica_shards_per_index * sim.cluster.primary_shards_per_index 
+                        * sim.cluster.index_count * (shard_size))
+    sim.cluster.rolled_index_size = rolled_index_size
     sim.cluster.indices[sim.cluster.rolled_over_index_id].shards[0].shard_size = rolled_index_size
     sim.cluster.indices[sim.cluster.rolled_over_index_id].index_size = rolled_index_size
-    sim.cluster.cluster_disk_size_used+= sim.disk_utilization_for_ingestion()
-    sim.cluster.cluster_disk_size_used = sim.disk_util_for_index_roll_over()
+    sim.distribute_load((distribution_size/sim.frequency_minutes)*60)
+    
+    
 
-def add_node_and_rebalance(nodes):
+def get_duration_for_resimulation():
     """
-    Increments node count in cluster object and rebalances the shards
-    among the available nodes. Re-Simulates the data once the node is
-    added and shards are distributed
+    Fetches duration in minutes to resimulate
     """
     app.app_context().push()
+    time_now = datetime.now()
+    simulation_end_date_time = DataModel.query.order_by(desc(DataModel.date_created)).with_entities(
+        DataModel.__getattribute__(DataModel, 'date_created')
+        ).first()
+    resimulation_time = math.ceil(((simulation_end_date_time[0] - time_now ).total_seconds())/60)
+    return int(resimulation_time)+5
+
+def get_simulated_points():
+    """
+    Returns simulated data rate, search rate and
+    total duration in minutes from the first simulation
+    """
+    data_rate = sim.simulated_data_rates.copy()
+    search_rate = sim.simulated_search_rates.copy()
+    total_minutes = sim.total_simulation_minutes
+    return data_rate,search_rate,total_minutes
+
+@timeit
+def add_node_and_rebalance(nodes):
+    """
+    Increments node count in cluster object and rebalances shards
+    among available nodes. Re-Simulates data after node addition
+    and shard rebalance.
+    :param nodes: count of node(s) to be added to cluster
+    """
+    app.app_context().push()
+    data_rate,search_rate,total_minutes = get_simulated_points()
     sim = Simulator(
         configs.cluster,
         configs.data_function,
@@ -161,26 +199,30 @@ def add_node_and_rebalance(nodes):
         configs.searches,
         configs.simulation_frequency_minutes,
     )
+    sim.simulated_data_rates = data_rate
+    sim.simulated_search_rates = search_rate
+    sim.total_simulation_minutes = total_minutes
+    duration = get_duration_for_resimulation()
     hour = datetime.now().hour
     minutes = str(datetime.now().minute) if datetime.now().minute > 9 else "0" + str(datetime.now().minute)
-    duration = (24 - hour) * 60 - datetime.now().minute
     reset_load(sim)
     sim.cluster.add_nodes(nodes)
-    cluster_objects = sim.run(duration, str(hour) + "_" + minutes + "_00")
-    # expiry_time = overwrite_after_node_count_change(cluster_objects)
+    cluster_objects = sim.run(duration, str(hour) + "_" + minutes + "_00",True)
     overwrite_after_node_count_change(cluster_objects)
     is_provisioning = get_provision_status()
     is_provisioning = False
     set_provision_status(is_provisioning)
 
-
+@timeit
 def rem_node_and_rebalance(nodes):
     """
     Decrements node count in cluster object and rebalances the shards
     among the available nodes. Re-Simulates the data once the node is
     removed and shards are distributed
+    :param nodes: count of node(s) to be removed from cluster
     """
     app.app_context().push()
+    data_rate,search_rate,total_minutes = get_simulated_points()
     sim = Simulator(
         configs.cluster,
         configs.data_function,
@@ -188,13 +230,16 @@ def rem_node_and_rebalance(nodes):
         configs.searches,
         configs.simulation_frequency_minutes,
     )
-    sim.cluster.remove_nodes(nodes)
+    sim.simulated_data_rates = data_rate
+    sim.simulated_search_rates = search_rate
+    sim.total_simulation_minutes = total_minutes
+    duration = get_duration_for_resimulation()
     hour = datetime.now().hour
     minutes = str(datetime.now().minute) if datetime.now().minute > 9 else "0" + str(datetime.now().minute)
-    duration = (24 - hour) * 60 - datetime.now().minute
     reset_load(sim)
-    cluster_objects = sim.run(duration, str(hour) + "_" + minutes + "_00")
-    # expiry_time = overwrite_after_node_count_change(cluster_objects)
+    sim.cluster.remove_nodes(nodes)
+    # sim.cluster.cluster_disk_size_used = sim.cluster.calculate_cluster_disk_size()
+    cluster_objects = sim.run(duration, str(hour) + "_" + minutes + "_00",True)
     overwrite_after_node_count_change(cluster_objects)
     is_provisioning = get_provision_status()
     is_provisioning = False
@@ -465,7 +510,6 @@ if __name__ == "__main__":
     cluster_dynamic = ClusterDynamic()
     # remove any existing provision lock
     is_provisioning = False
-    Simulator.remove_provisioning_lock()
     # get configs from config yaml
     configs = parse_config(
         os.path.join(get_source_code_dir(), constants.CONFIG_FILE_PATH)
@@ -480,7 +524,7 @@ if __name__ == "__main__":
     )
     sim.cluster.cluster_dynamic = cluster_dynamic
     # generate the data points from simulator
-    cluster_objects = sim.run(24 * 60)
+    cluster_objects = sim.run(24 * 60 * 3)
     # save the generated data points to png
     plot_data_points(cluster_objects)
     # save data points inside db
