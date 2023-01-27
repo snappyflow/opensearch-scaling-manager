@@ -118,8 +118,7 @@ def parse_config(config_file_path: str):
     fp.close()
 
     # Perform Validation of the config file
-    # is_valid, errors = validate_config(all_configs)
-    is_valid,errors = True,None
+    is_valid, errors = validate_config(all_configs)
 
     if not is_valid:
         raise ValidationError("Error validating config file - " + str(errors))

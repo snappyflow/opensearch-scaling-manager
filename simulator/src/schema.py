@@ -15,27 +15,37 @@
     "heap_memory_factor":{"required": True, "type": "number"},
     "total_disk_size_gb": {"required": True, "type": "number"},
     "simulation_frequency_minutes": {"required": True, "type": "number"},
-    "states": {
+    "states":{
+        "type":"list",
         "required": True,
-        "type": "list",
         "schema": {
-            "type": "dict",
-            "schema": {
-                "position": {"required": True, "type": "number"},
-                "time_hh_mm_ss": {"required": True, "type": "string"},
-                "ingestion_rate_gb_per_hr": {"required": True, "type": "number"},
-                "searches": {"required": False, "type": "dict"},
-                "schema": {
-                    "type": "dict",
-                    "schema": {
-                        "simple": {"required": False, "type": "number"},
-                        "medium": {"required": False, "type": "number"},
-                        "complex": {"required": False, "type": "number"},
+            "type":"dict",
+            "schema":{
+                "Day":{"required":True,"type":"number"},
+                    "pattern":{
+                        "type":"list",
+                        "required":True,
+                        "schema":{
+                            "type":"dict",
+                            "schema":{
+                                "position": {"required": True, "type": "number"},
+                                "time_hh_mm_ss": {"required": True, "type": "string"},
+                                "ingestion_rate_gb_per_hr": {"required": True, "type": "number"},
+                                "searches": {"required": False, "type": "dict"},
+                                "schema": {
+                                    "type": "dict",
+                                    "schema": {
+                                        "simple": {"required": False, "type": "number"},
+                                        "medium": {"required": False, "type": "number"},
+                                        "complex": {"required": False, "type": "number"},
+                                    },
+                                },
+                            },
+                        },
                     },
                 },
             },
         },
-    },
     "randomness_percentage": {"required": True, "type": "number"},
     "search_description": {
         "required": False,
