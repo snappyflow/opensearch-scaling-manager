@@ -11,18 +11,27 @@ import (
 // A global variable which stores the document ID of the State document that will to stored and fetched frm Opensearch
 var docId string
 
+// Input:
+//
+// Description:
+//
+//	Creates a unique document ID for maintaining the state of the provisioning system and updates the global variable
+//
+// Return:
 func InitializeDocId() {
 	docId = fmt.Sprint(utils.Hash(utils.GetClusterId()))
 }
 
 // Input:
-// Description:
 //
-//      GetCurrentState will update the state variable pointer such that it is insync with the updated values.
+// Caller:
+//		Object of type State
+//
+// Description:
+//      GetCurrentState will update the state variable pointer such that it is in sync with the updated values.
 //      Reads the document from Opensearch and updates the Struct
 //
 // Return:
-//
 
 func (s *State) GetCurrentState() {
 	// Get the document.

@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"scaling_manager/cluster"
@@ -55,7 +54,13 @@ type State struct {
 	RemainingNodes int
 }
 
-// Initializing logger module
+// Input:
+//
+// Description:
+//
+//	Initialize the Provision module.
+//
+// Return:
 func init() {
 	log.Init("logger")
 	log.Info.Println("Provisioner module initiated")
@@ -63,12 +68,16 @@ func init() {
 
 // Input:
 //
-//	state: The current provisioning state of the system
+//	clusterCfg (config.ClusterDetails): Cluster Level config details
+//	usrCfg (config.UserConfig): User defined config for applicatio behavior
+//	numNodes (int): Number of nodes to be scaled up/down
+//	operation (string): scaleup or scaledown operation
+//	RulesResponsible (string): A string that contains the rules responsible for the decision of operation being performed
+//	state (*State): A pointer to the state struct which is state maintained in OS document
 //
-// Caller: Object of config.ConfigStruct
 // Description:
 //
-//	TriggerProvision will scale in/out the cluster based on the operation.
+//	TriggerProvision will call scale in/out the cluster based on the operation.
 //	ToDo:
 //	        Think about the scenario where event based scaling needs to be performed.
 //	        Morning need to scale up and evening need to scale down.
@@ -119,9 +128,10 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 
 // Input:
 //
-//	state: The current provisioning state of the system
+//	             clusterCfg (config.ClusterDetails): Cluster Level config details
+//	             usrCfg (config.UserConfig): User defined config for applicatio behavior
+//			state (*State): A pointer to the state struct which is state maintained in OS document
 //
-// Caller: Object of ConfigClusterDetails
 // Description:
 //
 //	ScaleOut will scale out the cluster with the number of nodes.
@@ -130,7 +140,7 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 //
 // Return:
 //
-//	Return the status of scale out of the nodes.
+//	(bool): Return the status of scale out of the nodes.
 func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *State) bool {
 	// Read the current state of scaleup process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaleup process
@@ -138,16 +148,18 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 	var newNodeIp string
 	simFlag := usrCfg.MonitorWithSimulator
 	monitorWithLogs := usrCfg.MonitorWithLogs
-	if state.CurrentState == "provisioning_scaleup" {
+
+	switch state.CurrentState {
+	case "provisioning_scaleup":
 		log.Info.Println("Starting scaleUp process")
 		time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "start_scaleup_process"
 		state.ProvisionStartTime = time.Now()
 		state.UpdateState()
-	}
-	// Spin new VMs based on number of nodes and cloud type
-	if state.CurrentState == "start_scaleup_process" {
+		fallthrough
+		// Spin new VMs based on number of nodes and cloud type
+	case "start_scaleup_process":
 		if monitorWithLogs {
 			log.Info.Println("Spin new vms based on the cloud type")
 			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
@@ -169,10 +181,10 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "scaleup_triggered_spin_vm"
 		state.UpdateState()
-	}
+		fallthrough
 	// Add the newly added VM to the list of VMs
 	// Configure OS on newly created VM
-	if state.CurrentState == "scaleup_triggered_spin_vm" {
+	case "scaleup_triggered_spin_vm":
 		if monitorWithLogs {
 			log.Info.Println("Adding the spinned nodes into the list of vms")
 			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
@@ -217,9 +229,9 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaleup_completed"
 		state.UpdateState()
-	}
+		fallthrough
 	// Check cluster status after the configuration
-	if state.CurrentState == "provisioning_scaleup_completed" {
+	case "provisioning_scaleup_completed":
 		if simFlag {
 			SimulateSharRebalancing("scaleOut", state.NumNodes)
 		}
@@ -241,9 +253,10 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 
 // Input:
 //
-//	state: Pointer to the current provisioning state of the system
+//	clusterCfg (config.ClusterDetails): Cluster Level config details
+//	usrCfg (config.UserConfig): User defined config for applicatio behavior
+//	state (*State): A pointer to the state struct which is state maintained in OS document
 //
-// Caller: Object of ConfigClusterDetails
 // Description:
 //
 //	ScaleIn will scale in the cluster with the number of nodes.
@@ -251,7 +264,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 //
 // Return:
 //
-//	Return the status of scale in of the nodes.
+//	(bool): Return the status of scale in of the nodes.
 func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *State) bool {
 	// Read the current state of scaledown process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaledown process
@@ -267,9 +280,9 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 		state.ProvisionStartTime = time.Now()
 		state.UpdateState()
 	}
-
 	// Identify the node which can be removed from the cluster.
-	if state.CurrentState == "start_scaledown_process" {
+	switch state.CurrentState {
+	case "start_scaledown_process":
 		log.Info.Println("Identify the node to remove from the cluster and store the node_ip")
 		if monitorWithLogs {
 			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
@@ -286,9 +299,9 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "scaledown_node_identified"
 		state.UpdateState()
-	}
+		fallthrough
 	// Configure OS to tell master node that the present node is going to be removed
-	if state.CurrentState == "scaledown_node_identified" {
+	case "scaledown_node_identified":
 		if monitorWithLogs {
 			log.Info.Println("Configure ES to remove the node ip from cluster")
 			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
@@ -327,14 +340,14 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaledown_completed"
 		state.UpdateState()
-	}
+		fallthrough
 	// Wait for cluster to be in stable state(Shard rebalance)
 	// Shut down the node
-	if state.CurrentState == "provisioning_scaledown_completed" {
+	case "provisioning_scaledown_completed":
 		if simFlag {
 			SimulateSharRebalancing("scaleIn", state.NumNodes)
 		}
-		log.Info.Println("Wait for the cluster to become healthy (in a loop of 5*12 minutes) and then proceed")
+		log.Info.Println("Wait for the cluster to become healthy and then proceed")
 		CheckClusterHealth(state, simFlag, usrCfg.PollingInterval)
 		log.Info.Println("Shutdown the node")
 		time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
@@ -354,7 +367,9 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 
 // Input:
 //
-//	state: Pointer to the current provisioning state of the system
+//	state (*State): A pointer to the state struct which is state maintained in OS document
+//	simFlag (bool): A flag to check if the task needs to collect stats from Opensearch data or simulated data.
+//	pollingInterval (int): The time interval in seconds to wait until the next cluster health check happens
 //
 // Description:
 //
@@ -402,6 +417,16 @@ func CheckClusterHealth(state *State, simFlag bool, pollingInterval int) {
 	// the recommendation.
 }
 
+// Inputs:
+//
+//	operation (string): An input required by the simulator to know the operation being pperformed (scaleup/scaledown)
+//	numNode (int): The number of nodes added/removed from the cluster to simulate
+//
+// Description:
+//
+//	Calls the simulator api with the details of nodes added/removed to simulate the shard rebalancing operation
+//
+// Return:
 func SimulateSharRebalancing(operation string, numNode int) {
 	// Add logic to call the simulator's end point
 	byteStr := fmt.Sprintf("{\"nodes\":%d}", numNode)
@@ -426,10 +451,7 @@ func SimulateSharRebalancing(operation string, numNode int) {
 	}
 
 	if resp.StatusCode != 200 {
-		if resp.StatusCode == 404 {
-			response, _ := ioutil.ReadAll(resp.Body)
-			log.Error.Println(string(response))
-		}
+		log.Error.Println(resp.Status)
 	}
 
 	defer resp.Body.Close()

@@ -7,6 +7,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
+// Input:
+//
+// Description:
+//
+//	             Spins a new ec2 instance on AWS using the launchTemplate specified.
+//			Returns the ip address of the created ec2 instance for further configuration of Opensearch
+//
+// Return:
+//
+//	(string, error): Returns the private ip address of the spinned node and error if any
 func SpinNewVm() (string, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String("us-west-2"),
