@@ -11,15 +11,11 @@
 package cluster
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"scaling_manager/logger"
+	osutils "scaling_manager/opensearchUtils"
 	"strconv"
-
-	opensearch "github.com/opensearch-project/opensearch-go"
-	esapi "github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
 var log logger.LOG
@@ -33,7 +29,7 @@ var log logger.LOG
 // Return:
 func init() {
 	log.Init("logger")
-	log.Info.Println("Main module initialized")
+	log.Info.Println("Cluster module initialized")
 }
 
 // This struct will contain node metrics for a node in the OpenSearch cluster.
@@ -86,12 +82,12 @@ type ClusterStatic struct {
 type ClusterDynamic struct {
 	// NumNodes indicates the number of nodes present in the OpenSearch cluster at any time.
 	NumNodes int
-	//	ClusterStatus indicates the present state of a cluster.
-	//	red: One or more primary shards are unassigned, so some data is unavailable.
-	//		This can occur briefly during cluster startup as primary shards are assigned.
-	//	yellow: All primary shards are assigned, but one or more replica shards are unassigned.
-	//		If a node in the cluster fails, some data could be unavailable until that node is repaired.
-	//	green: All shards are assigned.
+	//      ClusterStatus indicates the present state of a cluster.
+	//      red: One or more primary shards are unassigned, so some data is unavailable.
+	//              This can occur briefly during cluster startup as primary shards are assigned.
+	//      yellow: All primary shards are assigned, but one or more replica shards are unassigned.
+	//              If a node in the cluster fails, some data could be unavailable until that node is repaired.
+	//      green: All shards are assigned.
 	ClusterStatus string
 	// NumActiveShards indicates the total number of active primary and replica shards.
 	NumActiveShards int
@@ -171,186 +167,304 @@ type MetricViolatedCountCluster struct {
 	NodeLevel []MetricViolatedCountNode
 }
 
+func dataPointsQuery(decisionPeriod int, pollingInterval int) string {
+	dataPointQuery := `{
+	  "query": {
+	    "bool": {
+	      "filter": {
+	        "range": {
+	          "Timestamp": {
+	            "from": "now-` + strconv.Itoa(decisionPeriod) + `m",
+	            "include_lower": true,
+	            "include_upper": true,
+	            "to": "now-` + strconv.Itoa(decisionPeriod) + `m+` + strconv.Itoa(pollingInterval) + `s"
+	          }
+	        }
+	      }
+	    }
+	  }
+	}`
+
+	return dataPointQuery
+}
+
 // Input:
 //
-//		metricName: The Name of the metric for which the Cluster Average will be calculated(string).
-//		decisionPeriod: The evaluation period for which the Average will be calculated.
+//              metricName: The Name of the metric for which the Cluster Average will be calculated(string).
+//              decisionPeriod: The evaluation period for which the Average will be calculated.
 //
 // Description:
 //
-//		GetClusterAvg will use the opensearch query to find out the stats aggregation.
-//		While getting stats aggregation it will pass the metricName and decisionPeriod as an input.
-//		It will populate MetricStatsCluster struct and return it.
+//              GetClusterAvg will use the opensearch query to find out the stats aggregation.
+//              While getting stats aggregation it will pass the metricName and decisionPeriod as an input.
+//              It will populate MetricStatsCluster struct and return it.
 //
 // Return:
-//		Return populated MetricStatsCluster struct.
+//              Return populated MetricStatsCluster struct.
 
 func getClusterAvgQuery(metricName string, decisionPeriod int) string {
+	clusterAvgQueryString := `{
+	  "query": {
+	    "bool": {
+	      "filter": {
+	        "range": {
+	          "Timestamp": {
+	            "from": "now-` + strconv.Itoa(decisionPeriod) + `m",
+	            "include_lower": true,
+	            "include_upper": true,
+	            "to": null
+	          }
+	        }
+	      }
+	    }
+	  },
+	  "aggs": {
+	    "` + metricName + `": {
+	      "stats": {
+	        "field": "` + metricName + `"
+	      }
+	    }
+	  }
+	}`
 	//nodesAvgQueryString:= `{"query":{"bool":{"filter":{"range":{"Timestamp":{"from": "now-`+strconv.Itoa(decisionPeriod)+`h","include_lower": true,"include_upper": true,"to": null}}}}},"aggs": {"node_statistics": {"terms": {"field": "HostIp.keyword","size": 100},"aggs": {`+metricName+`: { "stats": { "field":`+metricName+`} } }}}}`
-	clusterAvgQueryString := `{"query": {"bool": {"filter": {"range": {"Timestamp": {"from": "now-` + strconv.Itoa(decisionPeriod) + `h","include_lower": true,"include_upper": true,"to": null}}}}},"aggs": {"` + metricName + `": { "stats": { "field":"` + metricName + `"} }}}`
 	return clusterAvgQueryString
 }
 
-func GetClusterAvg(metricName string, decisionPeriod int, ctx context.Context, osClient *opensearch.Client) (MetricStats, []byte) {
+func GetClusterAvg(metricName string, decisionPeriod int, pollingInterval int, ctx context.Context) (MetricStats, bool, error) {
 	//Create an object of MetricStatsCluster to populate and return
 	var metricStats MetricStats
+
+	var invalidDatapoints bool
+
+	// Check data points
+	dataPointsResp, dpErr := osutils.SearchQuery([]byte(dataPointsQuery(decisionPeriod, pollingInterval)), ctx)
+	if dpErr != nil {
+		log.Error.Println("Can't query for data points!", dpErr)
+		return metricStats, invalidDatapoints, dpErr
+	}
+
+	var dpRespInterface map[string]interface{}
+
+	decodeErr := json.NewDecoder(dataPointsResp.Body).Decode(&dpRespInterface)
+	if decodeErr != nil {
+		log.Error.Println("decode Error: ", decodeErr)
+		return metricStats, invalidDatapoints, decodeErr
+	}
+
+	if int(dpRespInterface["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64)) == 0 {
+		invalidDatapoints = true
+		return metricStats, invalidDatapoints, nil
+	}
 
 	//Get the query and convert to json
 	var jsonQuery = []byte(getClusterAvgQuery(metricName, decisionPeriod))
 
-	indexName := []string{"monitor-stats-1"}
-
 	//create a search request and pass the query
-	searchQuery, err := esapi.SearchRequest{
-		Index: indexName,
-		Body:  bytes.NewReader(jsonQuery),
-	}.Do(ctx, osClient)
+	searchResp, err := osutils.SearchQuery(jsonQuery, ctx)
 	if err != nil {
-		fmt.Println("Cannot fetch cluster average: ", err)
-		return metricStats, []byte(err.Error())
+		log.Error.Println("Cannot fetch cluster average: ", err)
+		return metricStats, invalidDatapoints, err
 	}
 	//Interface to dump the response
 	var queryResultInterface map[string]interface{}
 
 	//decode the response into the interface
-	decodeErr := json.NewDecoder(searchQuery.Body).Decode(&queryResultInterface)
+	decodeErr = json.NewDecoder(searchResp.Body).Decode(&queryResultInterface)
 	if decodeErr != nil {
-		fmt.Println("decode Error: ", decodeErr)
-		return metricStats, []byte(err.Error())
+		log.Error.Println("decode Error: ", decodeErr)
+		return metricStats, invalidDatapoints, decodeErr
 	}
 
-	fmt.Println("Response Map")
-	fmt.Println(queryResultInterface)
 	//Parse the interface and populate the metricStatsCluster
-	metricStats.Avg = float32(queryResultInterface["aggregations"].(map[string]interface{})[metricName].(map[string]interface{})["avg"].(float64))
-	metricStats.Max = float32(queryResultInterface["aggregations"].(map[string]interface{})[metricName].(map[string]interface{})["max"].(float64))
-	metricStats.Min = float32(queryResultInterface["aggregations"].(map[string]interface{})[metricName].(map[string]interface{})["min"].(float64))
-	return metricStats, nil
+	avg := queryResultInterface["aggregations"].(map[string]interface{})[metricName].(map[string]interface{})["avg"]
+	if avg != nil {
+		metricStats.Avg = float32(avg.(float64))
+	} else {
+		log.Warn.Println(metricName, " average is nil!")
+	}
+	max := queryResultInterface["aggregations"].(map[string]interface{})[metricName].(map[string]interface{})["max"]
+	if max != nil {
+		metricStats.Max = float32(max.(float64))
+	} else {
+		log.Warn.Println(metricName, " max is nil!")
+	}
+	min := queryResultInterface["aggregations"].(map[string]interface{})[metricName].(map[string]interface{})["min"]
+	if min != nil {
+		metricStats.Min = float32(min.(float64))
+	} else {
+		log.Warn.Println(metricName, " min is nil!")
+	}
+	return metricStats, invalidDatapoints, nil
 }
 
 // Input:
 //
-//		metricName: The Name of the metric for which the Cluster Average will be calculated(string).
-//		decisionPeriod: The evaluation period for which the Average will be calculated.(int)
-//		limit: The limit for the particular metric for which the count is calculated.(float32)
+//              metricName: The Name of the metric for which the Cluster Average will be calculated(string).
+//              decisionPeriod: The evaluation period for which the Average will be calculated.(int)
+//              limit: The limit for the particular metric for which the count is calculated.(float32)
 //
 // Description:
 //
-//		GetClusterCount will use the opensearch query to find out the stats aggregation.
-//		While getting stats aggregation it will pass the metricName, decisionPeriod and limit as an input.
-//		It will populate MetricViolatedCountCluster struct and return it.
+//              GetClusterCount will use the opensearch query to find out the stats aggregation.
+//              While getting stats aggregation it will pass the metricName, decisionPeriod and limit as an input.
+//              It will populate MetricViolatedCountCluster struct and return it.
 //
 // Return:
-//		Return populated MetricViolatedCountCluster struct.
+//              Return populated MetricViolatedCountCluster struct.
 
 func getClusterCountQuery(metricName string, decisionPeriod int, limit float32) string {
-	clusterCountQueryString := `{"query": {"bool": {"filter":{"range": {"Timestamp": {"from": "now-` + strconv.Itoa(decisionPeriod) + `h","include_lower": true,"include_upper": true,"to": null}}}}},"aggs": {"` + metricName + `": { "range": { "field": "` + metricName + `" , "ranges": [{"from":` + strconv.FormatFloat(float64(limit), 'E', -1, 32) + `, "to":null}] }}}}`
+	clusterCountQueryString := `{
+	   "query": {
+	     "bool": {
+	       "filter": {
+	         "range": {
+	           "Timestamp": {
+	             "from": "now-` + strconv.Itoa(decisionPeriod) + `m",
+	             "include_lower": true,
+	             "include_upper": true,
+	             "to": null
+	           }
+	         }
+	       }
+	     }
+	   },
+	   "aggs": {
+	     "` + metricName + `": {
+	       "range": {
+	         "field": "` + metricName + `",
+	         "ranges": [
+	           {
+	             "from": ` + strconv.FormatFloat(float64(limit), 'E', -1, 32) + `,
+	             "to": null
+	           }
+	         ]
+	       }
+	     }
+	   }
+	 }`
+
 	return clusterCountQueryString
 }
 
-func GetClusterCount(metricName string, decisionPeriod int, limit float32, ctx context.Context, osClient *opensearch.Client) (MetricViolatedCount, []byte) {
+func GetClusterCount(metricName string, decisionPeriod int, pollingInterval int, limit float32, ctx context.Context) (MetricViolatedCount, bool, error) {
 	var metricViolatedCount MetricViolatedCount
+	var invalidDatapoints bool
+
+	// Check data points
+	dataPointsResp, dpErr := osutils.SearchQuery([]byte(dataPointsQuery(decisionPeriod, pollingInterval)), ctx)
+	if dpErr != nil {
+		log.Error.Println("Can't query for data points!", dpErr)
+		return metricViolatedCount, invalidDatapoints, dpErr
+	}
+
+	var dpRespInterface map[string]interface{}
+
+	decodeErr := json.NewDecoder(dataPointsResp.Body).Decode(&dpRespInterface)
+	if decodeErr != nil {
+		log.Error.Println("decode Error: ", decodeErr)
+		return metricViolatedCount, invalidDatapoints, decodeErr
+	}
+
+	if int(dpRespInterface["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64)) == 0 {
+		invalidDatapoints = true
+		return metricViolatedCount, invalidDatapoints, nil
+	}
 
 	//Get the query and convert to json
 	var jsonQuery = []byte(getClusterCountQuery(metricName, decisionPeriod, limit))
 
-	indexName := []string{"monitor-stats-1"}
-
 	//create a search request and pass the query
-	searchQuery, err := esapi.SearchRequest{
-		Index: indexName,
-		Body:  bytes.NewReader(jsonQuery),
-	}.Do(ctx, osClient)
+	searchResp, err := osutils.SearchQuery(jsonQuery, ctx)
 	if err != nil {
-		fmt.Println("Cannot fetch cluster average: ", err)
-		return metricViolatedCount, []byte(err.Error())
+		log.Error.Println("Cannot fetch cluster average: ", err)
+		return metricViolatedCount, invalidDatapoints, err
 	}
 
 	//Interface to dump the response
 	var queryResultInterface map[string]interface{}
 
 	//decode the response into the interface
-	decodeErr := json.NewDecoder(searchQuery.Body).Decode(&queryResultInterface)
+	decodeErr = json.NewDecoder(searchResp.Body).Decode(&queryResultInterface)
 	if decodeErr != nil {
-		fmt.Println("decode Error: ", decodeErr)
-		return metricViolatedCount, []byte(err.Error())
+		log.Error.Println("decode Error: ", decodeErr)
+		return metricViolatedCount, invalidDatapoints, decodeErr
 	}
-	fmt.Println()
-	fmt.Println("Response Map: ")
-	fmt.Println(queryResultInterface)
-	fmt.Println()
 	//Parse the interface and populate the metricStatsCluster
 	metricViolatedCount.ViolatedCount = int(queryResultInterface["aggregations"].(map[string]interface{})[metricName].(map[string]interface{})["buckets"].([]interface{})[0].(map[string]interface{})["doc_count"].(float64))
 
-	return metricViolatedCount, nil
+	return metricViolatedCount, invalidDatapoints, nil
 }
 
 // Input:
 // Description:
 //
-//		GetClusterCurrent will fetch the node level and cluster level metrics and fill in
-//		ClusterDynamic, clusterStatic and Node struct using the given config file.
-//		It will return the current cluster status.
+//              GetClusterCurrent will fetch the node level and cluster level metrics and fill in
+//              ClusterDynamic, clusterStatic and Node struct using the given config file.
+//              It will return the current cluster status.
 //
 // Return:
-//		Return populated ClusterDynamic struct.
+//              Return populated ClusterDynamic struct.
 
-func GetClusterCurrent(ctx context.Context, osClient *opensearch.Client) ClusterDynamic {
-	var clusterCurrent ClusterDynamic
+func GetClusterCurrent() ClusterDynamic {
+	ctx := context.Background()
+	//Create an interface to capture the response from cluster health and cluster stats API
+	var clusterStatsInterface map[string]interface{}
+	var clusterHealthInterface map[string]interface{}
 
-	//execute the query and get the cluster level info for recent poll
-	var clusterJsonQuery = []byte(`{ "query": { "bool": { "must": [ { "match": { "StatTag": "ClusterStats" } } ] } }, "aggs": { "top_hit": { "top_hits": { "size": 1, "sort": [ { "Timestamp": { "order": "desc" } } ] } } } }`)
+	var clusterStats ClusterDynamic
 
-	//create a map to dump the respone
-	//var clusterInfoInterface map[string]interface{}
-	var clusterLevelInfoInterface map[string]interface{}
-	indexName := []string{"monitor-stats-1"}
-
-	clusterSearchQuery, err := esapi.SearchRequest{
-		Index: indexName,
-		Body:  bytes.NewReader(clusterJsonQuery),
-	}.Do(ctx, osClient)
+	//Create a cluster stats request and fetch the response
+	resp, err := osutils.GetClusterStats(ctx)
 	if err != nil {
-		fmt.Println("Cannot fetch cluster average: ", err)
-		return clusterCurrent
+		log.Error.Println("cluster Stats fetch ERROR:", err)
 	}
 
-	decodeClusterErr := json.NewDecoder(clusterSearchQuery.Body).Decode(&clusterLevelInfoInterface)
-	if decodeClusterErr != nil {
-		fmt.Println("decode Error: ", decodeClusterErr)
-		return clusterCurrent
+	//decode and dump the cluster stats response into interface
+	decodeErr := json.NewDecoder(resp.Body).Decode(&clusterStatsInterface)
+	if decodeErr != nil {
+		log.Error.Println("decode Error: ", decodeErr)
 	}
 
-	fmt.Println()
-	fmt.Println("ClusterLevelInfo Interface: ")
-	fmt.Println(clusterLevelInfoInterface["hits"].(map[string]interface{})["hits"].([]interface{})[0].(map[string]interface{}))
-	fmt.Println()
+	//Parse the interface and populate required fields in cluster stats
+	clusterStats.NumActiveDataNodes = int(clusterStatsInterface["nodes"].(map[string]interface{})["count"].(map[string]interface{})["data"].(float64))
+	clusterStats.NumMasterNodes = int(clusterStatsInterface["nodes"].(map[string]interface{})["count"].(map[string]interface{})["master"].(float64))
 
-	//Populating cluster dynamic in cluster structure
-	clusterCurrent.ClusterStatus = clusterLevelInfoInterface["hits"].(map[string]interface{})["hits"].([]interface{})[0].(map[string]interface{})["_source"].(map[string]interface{})["ClusterStatus"].(string)
-	clusterCurrent.NumActiveDataNodes = int(clusterLevelInfoInterface["hits"].(map[string]interface{})["hits"].([]interface{})[0].(map[string]interface{})["_source"].(map[string]interface{})["NumActiveDataNodes"].(float64))
-	clusterCurrent.NumActivePrimaryShards = int(clusterLevelInfoInterface["hits"].(map[string]interface{})["hits"].([]interface{})[0].(map[string]interface{})["_source"].(map[string]interface{})["NumActivePrimaryShards"].(float64))
-	clusterCurrent.NumActiveShards = int(clusterLevelInfoInterface["hits"].(map[string]interface{})["hits"].([]interface{})[0].(map[string]interface{})["_source"].(map[string]interface{})["NumActiveShards"].(float64))
-	clusterCurrent.NumInitializingShards = int(clusterLevelInfoInterface["hits"].(map[string]interface{})["hits"].([]interface{})[0].(map[string]interface{})["_source"].(map[string]interface{})["NumInitializingShards"].(float64))
-	clusterCurrent.NumMasterNodes = int(clusterLevelInfoInterface["hits"].(map[string]interface{})["hits"].([]interface{})[0].(map[string]interface{})["_source"].(map[string]interface{})["NumMasterNodes"].(float64))
-	clusterCurrent.NumNodes = int(clusterLevelInfoInterface["hits"].(map[string]interface{})["hits"].([]interface{})[0].(map[string]interface{})["_source"].(map[string]interface{})["NumNodes"].(float64))
-	clusterCurrent.NumRelocatingShards = int(clusterLevelInfoInterface["hits"].(map[string]interface{})["hits"].([]interface{})[0].(map[string]interface{})["_source"].(map[string]interface{})["NumRelocatingShards"].(float64))
-	clusterCurrent.NumUnassignedShards = int(clusterLevelInfoInterface["hits"].(map[string]interface{})["hits"].([]interface{})[0].(map[string]interface{})["_source"].(map[string]interface{})["NumUnassignedShards"].(float64))
-	return clusterCurrent
+	//create a cluster health request and fetch cluster health
+	clusterHealthRequest, err := osutils.GetClusterHealth(ctx)
+	if err != nil {
+		log.Error.Println("cluster Health fetch ERROR:", err)
+	}
+
+	//Decode the response and dump the response into the cluster health interface
+	decodeErr2 := json.NewDecoder(clusterHealthRequest.Body).Decode(&clusterHealthInterface)
+	if decodeErr2 != nil {
+		log.Error.Println("decode Error: ", decodeErr)
+	}
+
+	//Parse the interface and populate required fields in cluster stats
+	clusterStats.NumNodes = int(clusterHealthInterface["number_of_nodes"].(float64))
+	clusterStats.ClusterStatus = clusterStatsInterface["status"].(string)
+	clusterStats.NumActiveShards = int(clusterHealthInterface["active_shards"].(float64))
+	clusterStats.NumActivePrimaryShards = int(clusterHealthInterface["active_primary_shards"].(float64))
+	clusterStats.NumInitializingShards = int(clusterHealthInterface["initializing_shards"].(float64))
+	clusterStats.NumUnassignedShards = int(clusterHealthInterface["unassigned_shards"].(float64))
+	clusterStats.NumRelocatingShards = int(clusterHealthInterface["relocating_shards"].(float64))
+
+	return clusterStats
 }
 
 // Input:
 //
-//		decisionPeriod: The evaluation period for which the Average will be calculated.(int)
+//              decisionPeriod: The evaluation period for which the Average will be calculated.(int)
 //
 // Description:
 //
-//		GetClusterHistoricAvg will get Historic average for the cluster for all the metrics.
-//		GetClusterHistoricAvg will use the stats aggregation to fetch the cluster and node level
-//		Historic average for the mentioned decision period.
+//              GetClusterHistoricAvg will get Historic average for the cluster for all the metrics.
+//              GetClusterHistoricAvg will use the stats aggregation to fetch the cluster and node level
+//              Historic average for the mentioned decision period.
 //
 // Return:
-//		Return an array of populated MetricStatsCluster struct collected for all the metrics.
+//              Return an array of populated MetricStatsCluster struct collected for all the metrics.
 
 func GetClusterHistoricAvg(decisonPeriod int) []MetricStatsCluster {
 	var metricStatsCluster []MetricStatsCluster
@@ -359,64 +473,19 @@ func GetClusterHistoricAvg(decisonPeriod int) []MetricStatsCluster {
 
 // Input:
 //
-//		decisionPeriod: The evaluation period for which the Average will be calculated.(int)
-//		thresholdMap: The map provide mapping of metric name and the threshold for which the Count is calculated.
+//              decisionPeriod: The evaluation period for which the Average will be calculated.(int)
+//              thresholdMap: The map provide mapping of metric name and the threshold for which the Count is calculated.
 //
 // Description:
 //
-//		GetClusterHistoricCount will use the opensearch query to find out the Count for which a metric crossed the threshold limit.
-//		GetClusterHistoricCount will then iterate through all the metric and collect the count for all the metrics.
-//		It will return the array of node level and cluster level count been voilated for all the metrics.
+//              GetClusterHistoricCount will use the opensearch query to find out the Count for which a metric crossed the threshold limit.
+//              GetClusterHistoricCount will then iterate through all the metric and collect the count for all the metrics.
+//              It will return the array of node level and cluster level count been voilated for all the metrics.
 //
 // Return:
-//		Return array of populated MetricViolatedCountCluster struct.
+//              Return array of populated MetricViolatedCountCluster struct.
 
 func GetClusterHistoricCount(decisionPeriod int, thresholdMap map[string]int) []MetricViolatedCountCluster {
 	var metricViolatedCount []MetricViolatedCountCluster
 	return metricViolatedCount
-}
-
-// Input:
-//
-// Description:
-//		Calls ES Api to find the current master node in the cluster
-//
-// Return:
-//              Returns the Ip of current master node
-
-func GetCurrentMasterIp() string {
-	return "10.81.1.225"
-}
-
-// Input:
-//
-// Description:
-//              Calls ES Api to check if the current node is the master node of the cluster
-//
-// Return:
-//              Returns true/false based on the return of API
-
-func CheckIfMaster() bool {
-	var currentNode Node
-	// For testing
-	currentNode.IsMaster = true
-	return currentNode.IsMaster
-}
-
-// Input:
-//
-// Description:
-//              Calls OS Api to get the cluster id
-//				ToDo: We need to add logic to fetch the cluster id from OS and return it.
-// Return:
-//              Returns clusterId for the cluster
-
-func GetClusterId() string {
-	var clusterId = "vcPboLtxQXyPhJMe8bn44A"
-	return clusterId
-}
-
-func GetClusterDetails(ctx context.Context, osClient *opensearch.Client) Cluster {
-	var cluster Cluster
-	return cluster
 }

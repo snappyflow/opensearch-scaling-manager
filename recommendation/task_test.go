@@ -1,4 +1,4 @@
-package task
+package recommendation
 
 import (
 	"net/http"

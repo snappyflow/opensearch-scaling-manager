@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"scaling_manager/cluster"
-	os "scaling_manager/opensearch"
+	osutils "scaling_manager/opensearchUtils"
 )
 
 // Description: ClusterMetrics holds the cluster level information that are to be populated and indexed into elasticsearch
@@ -28,7 +28,7 @@ func FetchClusterHealthMetrics(ctx context.Context) ClusterMetrics {
 	clusterStats := new(ClusterMetrics)
 
 	//Create a cluster stats request and fetch the response
-	resp, err := os.GetClusterStats(ctx)
+	resp, err := osutils.GetClusterStats(ctx)
 	if err != nil {
 		log.Error.Println("cluster Stats fetch ERROR:", err)
 	}
@@ -45,7 +45,7 @@ func FetchClusterHealthMetrics(ctx context.Context) ClusterMetrics {
 	clusterStats.Timestamp = int64(clusterStatsInterface["timestamp"].(float64))
 
 	//create a cluster health request and fetch cluster health
-	clusterHealthRequest, err := os.GetClusterHealth(ctx)
+	clusterHealthRequest, err := osutils.GetClusterHealth(ctx)
 	if err != nil {
 		log.Error.Println("cluster Health fetch ERROR:", err)
 	}
@@ -84,7 +84,7 @@ func IndexClusterHealth(ctx context.Context) {
 	}
 
 	//Check and index the Json document into elasticsearch
-	_, err := os.IndexMetrics(ctx, clusterHealthJson)
+	_, err := osutils.IndexMetrics(ctx, clusterHealthJson)
 	if err != nil {
 		log.Panic.Println("Error indexing cluster document: ", err)
 		panic(err)

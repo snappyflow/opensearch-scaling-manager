@@ -6,14 +6,13 @@ import (
 	"regexp"
 	"scaling_manager/cluster"
 	"scaling_manager/logger"
-	"scaling_manager/task"
+	"scaling_manager/recommendation"
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
 )
 
 var log logger.LOG
-var PollingInterval uint16 = 10
 
 // Input:
 //
@@ -24,7 +23,7 @@ var PollingInterval uint16 = 10
 // Return:
 func init() {
 	log.Init("logger")
-	log.Info.Println("Main module initialized")
+	log.Info.Println("Config module initialized")
 }
 
 // This struct contains the OS Admin Username and OS Admin Password via which we can connect to OS cluster.
@@ -51,12 +50,18 @@ type ClusterDetails struct {
 	CloudCredentials      CloudCredentials `yaml:"cloud_credentials"`
 }
 
+// Config for application behaviour from user
+type UserConfig struct {
+	MonitorWithLogs      bool `yaml:"monitor_with_logs"`
+	MonitorWithSimulator bool `yaml:"monitor_with_simulator"`
+	PollingInterval      int  `yaml:"polling_interval_in_secs"`
+}
+
 // This struct contains the data structure to parse the configuration file.
 type ConfigStruct struct {
-	MonitorWithLogs      bool           `yaml:"monitor_with_logs"`
-	MonitorWithSimulator bool           `yaml:"monitor_with_simulator"`
-	ClusterDetails       ClusterDetails `yaml:"cluster_details"`
-	TaskDetails          []task.Task    `yaml:"task_details" validate:"gt=0,dive"`
+	UserConfig	UserConfig            `yaml:"user_config"`
+	ClusterDetails  ClusterDetails        `yaml:"cluster_details"`
+	TaskDetails     []recommendation.Task `yaml:"task_details" validate:"gt=0,dive"`
 }
 
 // Inputs:

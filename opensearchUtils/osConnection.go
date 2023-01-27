@@ -1,9 +1,9 @@
-package os
+package osutils
 
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	_ "embed"
 	"os"
 	"scaling_manager/logger"
 
@@ -11,7 +11,11 @@ import (
 	osapi "github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
-// Index that holds the node and cluster level metrics
+//go:embed mappings.json
+
+var mappingsFile []byte
+
+// Index used by the application
 const (
 	IndexName string = "monitor-stats-1"
 )
@@ -39,8 +43,13 @@ func InitializeOsClient(username string, password string) {
 	}
 
 	res, err := osClient.Ping()
-	if err != nil || res.StatusCode != 200 {
-		log.Fatal.Println("Unable to ping OpenSearch: ", err)
+	if err != nil {
+		log.Fatal.Println(err)
+		os.Exit(1)
+	}
+
+	if res.IsError() {
+		log.Fatal.Println("Unable to ping OpenSearch! Error: ", res.Status())
 		os.Exit(1)
 	}
 
@@ -55,11 +64,6 @@ func InitializeOsClient(username string, password string) {
 // It creates the index and returns
 // Output: Cretes a new index if does not exists
 func CheckIfIndexExists(ctx context.Context) {
-	//Read the mappings file to create index with mappings if index is not present
-	mappings, err := ioutil.ReadFile("opensearch/mappings.json")
-	if err != nil {
-		log.Error.Println("Unable to find mappings: ", err)
-	}
 
 	var indexName = []string{IndexName}
 
@@ -80,7 +84,7 @@ func CheckIfIndexExists(ctx context.Context) {
 	// pass mappings and index name.
 	indexCreateRequest, err := osapi.IndicesCreateRequest{
 		Index: IndexName,
-		Body:  bytes.NewReader(mappings),
+		Body:  bytes.NewReader(mappingsFile),
 	}.Do(ctx, osClient)
 	if err != nil {
 		log.Panic.Println("Index create request error: ", err)

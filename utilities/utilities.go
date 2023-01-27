@@ -3,7 +3,7 @@ package utilities
 import (
         "context"
         "encoding/json"
-        os "scaling_manager/opensearch"
+        osutils "scaling_manager/opensearchUtils"
         "scaling_manager/logger"
         "hash/fnv"
 
@@ -24,7 +24,7 @@ func CheckIfMaster(ctx context.Context, nodeId string) bool {
         var nodeStatsInterface map[string]interface{}    //To store current node stats and parse for current node ID
 
         //Create cluster state request and fetch cluster state
-        clusterState, err := os.GetClusterState(ctx)
+        clusterState, err := osutils.GetClusterState(ctx)
         if err != nil {
                 panic(err)
         }
@@ -46,7 +46,7 @@ func CheckIfMaster(ctx context.Context, nodeId string) bool {
         nodes := []string{"_local"}
 
         //Creating node stats request and fetching the node stats for the current node
-        nodeStatReq, err := os.GetNodeStats(nodes, nil, ctx)
+        nodeStatReq, err := osutils.GetNodeStats(nodes, nil, ctx)
         if err != nil {
                 log.Panic.Println("Node stat fetch error: ", err)
                 panic(err)
@@ -70,7 +70,7 @@ func CheckIfMaster(ctx context.Context, nodeId string) bool {
 
 func GetClusterId() string {
         var clusterStatsInterface map[string]interface{}
-        resp, err := os.GetClusterStats(context.Background())
+        resp, err := osutils.GetClusterStats(context.Background())
         if err != nil {
                 log.Error.Println("cluster Stats fetch ERROR:", err)
         }
@@ -90,7 +90,7 @@ func GetNodes() map[string]interface{} {
         nodes := []string{"_all"}
         metrics := []string{}
 
-        nodeStatResp, err := os.GetNodeStats(nodes, metrics, context.Background())
+        nodeStatResp, err := osutils.GetNodeStats(nodes, metrics, context.Background())
         if err != nil {
                 log.Error.Println("Node stat fetch error: ", err)
         }

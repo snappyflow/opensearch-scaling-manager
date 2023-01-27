@@ -80,4 +80,3 @@ func SpinNewVm() (string, error) {
 	return private_ip, nil
 
 }
-

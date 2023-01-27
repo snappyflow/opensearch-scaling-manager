@@ -1,4 +1,4 @@
-package os
+package osutils
 
 import (
 	"bytes"
@@ -34,6 +34,13 @@ func GetNodeStats(nodes []string, metrics []string, ctx context.Context) (*osapi
 		Pretty: true,
 		NodeID: nodes,
 		Metric: metrics,
+	}.Do(ctx, osClient)
+}
+
+func CatAllocation(nodes []string, ctx context.Context) (*osapi.Response, error) {
+	return osapi.CatAllocationRequest{
+		Pretty: true,
+		NodeID: nodes,
 	}.Do(ctx, osClient)
 }
 

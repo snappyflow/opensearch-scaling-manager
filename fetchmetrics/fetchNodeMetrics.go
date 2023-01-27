@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"os/exec"
 	"scaling_manager/cluster"
-	os "scaling_manager/opensearch"
+	osutils "scaling_manager/opensearchUtils"
 	utils "scaling_manager/utilities"
 	"strconv"
 	"strings"
@@ -87,7 +87,7 @@ func IndexNodeStats(ctx context.Context) {
 	//creating a node stats requests with filter to reduce the response to requirement
 	nodes := []string{"_local"}
 	metrics := []string{"jvm", "os", "fs", "indices"}
-	nodeStatResp, err := os.GetNodeStats(nodes, metrics, ctx)
+	nodeStatResp, err := osutils.GetNodeStats(nodes, metrics, ctx)
 	if err != nil {
 		log.Error.Println("Node stat fetch error: ", err)
 	}
@@ -100,6 +100,20 @@ func IndexNodeStats(ctx context.Context) {
 	if decodeErr != nil {
 		log.Error.Println("decode Error: ", decodeErr)
 	}
+
+	catAllocationResp, catErr := osutils.CatAllocation(nodes, ctx)
+	if catErr != nil {
+		log.Error.Println("Cat allocation fetch error: ", catErr)
+	}
+
+	var catAllocationInterface interface{}
+
+	decodeErr = json.NewDecoder(catAllocationResp.Body).Decode(&catAllocationInterface)
+	if decodeErr != nil {
+		log.Error.Println("decode Error: ", decodeErr)
+	}
+
+	nodeMetrics.NumShards = int(catAllocationInterface.(float64))
 
 	//parsing the interface and populating the node stats structure
 	nodeId := utils.ParseNodeId(nodeStatsInterface["nodes"].(map[string]interface{}))
@@ -118,7 +132,6 @@ func IndexNodeStats(ctx context.Context) {
 	nodeMetrics.RamUtil = getRamUtil()
 	nodeMetrics.HeapUtil = float32(nodeInfo["jvm"].(map[string]interface{})["mem"].(map[string]interface{})["heap_used_percent"].(float64))
 	nodeMetrics.DiskUtil = getDiskUtil(nodeStatsInterface, nodeId)
-	//      nodeMetrics.NumShards = int(nodeStatsInterface["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["indices"].(map[string]interface{})["shard_stats"].(map[string]interface{})["total_count"].(float64))
 	nodeMetrics.StatTag = "NodesStats"
 
 	//marshall the node metrics, to index into the elasticsearch
@@ -127,7 +140,7 @@ func IndexNodeStats(ctx context.Context) {
 		log.Error.Println("Error converting struct to Json: ", err)
 	}
 
-	_, err = os.IndexMetrics(ctx, nodeMetricsJson)
+	_, err = osutils.IndexMetrics(ctx, nodeMetricsJson)
 	if err != nil {
 		log.Panic.Println("Error indexing document: ", err)
 		panic(err)

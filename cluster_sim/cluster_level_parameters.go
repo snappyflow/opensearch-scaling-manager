@@ -12,8 +12,8 @@ package cluster_sim
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"scaling_manager/cluster"
 	"scaling_manager/logger"
@@ -31,24 +31,24 @@ var log logger.LOG
 // Return:
 func init() {
 	log.Init("logger")
-	log.Info.Println("Main module initialized")
+	log.Info.Println("Cluster Simulator module initialized")
 }
 
 // Input:
 //
-//		metricName: The Name of the metric for which the Cluster Average will be calculated(string).
-//		decisionPeriod: The evaluation period for which the Average will be calculated.
+//              metricName: The Name of the metric for which the Cluster Average will be calculated(string).
+//              decisionPeriod: The evaluation period for which the Average will be calculated.
 //
 // Description:
 //
-//		GetClusterAvg will use the opensearch query to find out the stats aggregation.
-//		While getting stats aggregation it will pass the metricName and decisionPeriod as an input.
-//		It will populate MetricStatsCluster struct and return it.
+//              GetClusterAvg will use the opensearch query to find out the stats aggregation.
+//              While getting stats aggregation it will pass the metricName and decisionPeriod as an input.
+//              It will populate MetricStatsCluster struct and return it.
 //
 // Return:
-//		Return populated MetricStatsCluster struct.
+//              Return populated MetricStatsCluster struct.
 
-func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, []byte) {
+func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, error) {
 	var metricStats cluster.MetricStats
 	url := fmt.Sprintf("http://localhost:5000/stats/avg?metric=%s&duration=%d", metricName, decisionPeriod)
 	client := http.Client{
@@ -62,10 +62,7 @@ func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, 
 	}
 
 	if resp.StatusCode != 200 {
-		if resp.StatusCode == 400 {
-			response, _ := ioutil.ReadAll(resp.Body)
-			return metricStats, response
-		}
+		return metricStats, errors.New(resp.Status)
 	}
 
 	defer resp.Body.Close()
@@ -83,20 +80,20 @@ func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, 
 
 // Input:
 //
-//		metricName: The Name of the metric for which the Cluster Average will be calculated(string).
-//		decisionPeriod: The evaluation period for which the Average will be calculated.(int)
-//		limit: The limit for the particular metric for which the count is calculated.(float32)
+//              metricName: The Name of the metric for which the Cluster Average will be calculated(string).
+//              decisionPeriod: The evaluation period for which the Average will be calculated.(int)
+//              limit: The limit for the particular metric for which the count is calculated.(float32)
 //
 // Description:
 //
-//		GetClusterCount will use the opensearch query to find out the stats aggregation.
-//		While getting stats aggregation it will pass the metricName, decisionPeriod and limit as an input.
-//		It will populate MetricViolatedCountCluster struct and return it.
+//              GetClusterCount will use the opensearch query to find out the stats aggregation.
+//              While getting stats aggregation it will pass the metricName, decisionPeriod and limit as an input.
+//              It will populate MetricViolatedCountCluster struct and return it.
 //
 // Return:
-//		Return populated MetricViolatedCountCluster struct.
+//              Return populated MetricViolatedCountCluster struct.
 
-func GetClusterCount(metricName string, decisonPeriod int, limit float32) (cluster.MetricViolatedCount, []byte) {
+func GetClusterCount(metricName string, decisonPeriod int, limit float32) (cluster.MetricViolatedCount, error) {
 	var metricViolatedCount cluster.MetricViolatedCount
 	url := fmt.Sprintf("http://localhost:5000/stats/violated?metric=%s&duration=%d&threshold=%f", metricName, decisonPeriod, limit)
 	client := http.Client{
@@ -111,10 +108,7 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) (clust
 	}
 
 	if resp.StatusCode != 200 {
-		if resp.StatusCode == 400 {
-			response, _ := ioutil.ReadAll(resp.Body)
-			return metricViolatedCount, response
-		}
+		return metricViolatedCount, errors.New(resp.Status)
 	}
 
 	defer resp.Body.Close()
@@ -133,12 +127,12 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) (clust
 // Input:
 // Description:
 //
-//		GetClusterCurrent will fetch the node level and cluster level metrics and fill in
-//		ClusterDynamic, clusterStatic and Node struct using the given config file.
-//		It will return the current cluster status.
+//              GetClusterCurrent will fetch the node level and cluster level metrics and fill in
+//              ClusterDynamic, clusterStatic and Node struct using the given config file.
+//              It will return the current cluster status.
 //
 // Return:
-//		Return populated ClusterDynamic struct.
+//              Return populated ClusterDynamic struct.
 
 func GetClusterCurrent() cluster.ClusterDynamic {
 	var clusterStats cluster.ClusterDynamic
