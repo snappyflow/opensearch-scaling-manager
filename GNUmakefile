@@ -64,7 +64,6 @@ check:
 pack: check
 	rm -rf $(SCALING_MANAGER_LIB) $(SCALING_MANAGER_TAR_GZ)
 	mkdir -p $(SCALING_MANAGER_LIB)
-	mkdir -p $(SCALING_MANAGER_LIB)/logger
 	cp config.yaml scaling_manager.service $(SCALING_MANAGER_LIB)
     ifeq ($(INCLUDESIM),true)
 	cp -rf simulator $(SCALING_MANAGER_LIB)
