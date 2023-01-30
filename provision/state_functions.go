@@ -36,7 +36,7 @@ func InitializeDocId() {
 func (s *State) GetCurrentState() {
 	// Get the document.
 
-	searchResponse, err := osutils.SearchDoc(docId, context.Background())
+	searchResponse, err := osutils.SearchDoc(context.Background(), docId)
 	if err != nil {
 		log.Panic.Println("failed to search document: ", err)
 		panic(err)
@@ -83,7 +83,7 @@ func (s *State) UpdateState() {
 	}
 	content := string(state)
 
-	updateResponse, err := osutils.UpdateDoc(docId, content, context.Background())
+	updateResponse, err := osutils.UpdateDoc(UpdateDoc, docId, content)
 	if err != nil {
 		log.Panic.Println("failed to update document: ", err)
 		panic(err)
