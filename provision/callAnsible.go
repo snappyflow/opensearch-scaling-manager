@@ -9,6 +9,18 @@ import (
 	"github.com/apenella/go-ansible/pkg/stdoutcallback/results"
 )
 
+// Input:
+//
+//	username (string): Username string to be used to ssh into the host inventory
+//	hosts (string): The file name of hosts file to pass to ansible playbook
+//
+// Description:
+//
+//	Calls the ansible script responsible for adding a new node into the Opensearch cluster and configuring it.
+//
+// Return:
+//
+//	(error): Returns error if any
 func CallScaleUp(username string, hosts string) error {
 
 	ansiblePlaybookConnectionOptions := &options.AnsibleConnectionOptions{
@@ -43,6 +55,18 @@ func CallScaleUp(username string, hosts string) error {
 	return nil
 }
 
+// Input:
+//
+//	username (string): Username string to be used to ssh into the host inventory
+//	hosts (string): The file name of hosts file to pass to ansible playbook
+//
+// Description:
+//
+//	Calls the ansible script responsible for removing a node from the Opensearch cluster.
+//
+// Return:
+//
+//	(error): Returns error if any
 func CallScaleDown(username string, hosts string) error {
 
 	ansiblePlaybookConnectionOptions := &options.AnsibleConnectionOptions{

@@ -13,8 +13,10 @@ var ctx = context.Background()
 
 // Input:
 //
-//	state: The current provisioning state of the system
-//	recommendationQueue: Recommendations provided by the recommendation engine in the form of an array of strings
+//	             state (*State): A pointer to the state struct which is state maintained in OS document
+//			recommendationQueue ([]map[string]string): Recommendations provided by the recommendation engine in the form of an array of strings
+//	             clusterCfg (config.ClusterDetails): Cluster Level config details
+//	             usrCfg (config.UserConfig): User defined config for applicatio behavior
 //
 // Description:
 //

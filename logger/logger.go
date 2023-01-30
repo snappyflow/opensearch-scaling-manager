@@ -35,7 +35,7 @@ type LOG struct {
 	Error  *log.Logger
 	Debug  *log.Logger
 	Fatal  *log.Logger
-	Panic *log.Logger
+	Panic  *log.Logger
 }
 
 var k = koanf.New(".")
@@ -43,6 +43,14 @@ var k = koanf.New(".")
 // Init initilise logging
 func (l *LOG) Init(module string) {
 	l.module = module
+
+	var configFile string
+	workingDir := os.Getenv("WD")
+	if workingDir != "" {
+		configFile = workingDir + "/log_config.json"
+	} else {
+		configFile = "log_config.json"
+	}
 
 	var (
 		TRACE   = fmt.Sprintf("%5s%15s ", "TRACE", module)
@@ -54,7 +62,7 @@ func (l *LOG) Init(module string) {
 		PANIC   = fmt.Sprintf("%5s%15s ", "PANIC", module)
 	)
 
-	if err := k.Load(file.Provider("log_config.json"), json.Parser()); err != nil {
+	if err := k.Load(file.Provider(configFile), json.Parser()); err != nil {
 		log.Fatalf("error loading config: %v", err)
 	}
 

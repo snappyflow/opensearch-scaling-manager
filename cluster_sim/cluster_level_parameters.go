@@ -1,13 +1,4 @@
-// This package provide the data structure needed to get the metrics.
-// There are two kind of metrics:
-//
-//	Cluster metrics: This data structure will provide cluster level metrics.
-//	Node metrics: This data structure will provide node level metrics.
-//
-// The cluster metrics contains list of the node metrics collected over all the nodes present in a cluster.
-// The package contains a struct called MetricStatsCluster which will calculate the statistics over a period of time.
-// The package contains a struct called MetricViolatedCountCluster which will calculate the violated count over a period of time.
-// The structs be used by recommendation module.
+// This package includes the methods which fetches the data from simulator
 package cluster_sim
 
 import (
@@ -26,7 +17,7 @@ var log logger.LOG
 //
 // Description:
 //
-//	Initialize the logger module.
+//	Initialize the Cluster Simulator module.
 //
 // Return:
 func init() {
@@ -35,18 +26,16 @@ func init() {
 }
 
 // Input:
-//
-//              metricName: The Name of the metric for which the Cluster Average will be calculated(string).
-//              decisionPeriod: The evaluation period for which the Average will be calculated.
+//              metricName (string): The metric name for which the Cluster Average will be calculated
+//              decisionPeriod (int): The evaluation time over which the Average will be computed
 //
 // Description:
-//
-//              GetClusterAvg will use the opensearch query to find out the stats aggregation.
-//              While getting stats aggregation it will pass the metricName and decisionPeriod as an input.
+//              GetClusterAvg will utilize an opensearch query to determine the statistic aggregation.
+//              The metricName and decisionPeriod will be supplied as inputs for getting stats aggregate.
 //              It will populate MetricStatsCluster struct and return it.
 //
 // Return:
-//              Return populated MetricStatsCluster struct.
+//              (cluster.MetricStats, error): Return a populated (MetricStats) struct, and any (errors).
 
 func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, error) {
 	var metricStats cluster.MetricStats
@@ -79,19 +68,15 @@ func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, 
 }
 
 // Input:
-//
-//              metricName: The Name of the metric for which the Cluster Average will be calculated(string).
-//              decisionPeriod: The evaluation period for which the Average will be calculated.(int)
-//              limit: The limit for the particular metric for which the count is calculated.(float32)
+//              metricName (string): The name of the metric that will be used to compute the number of times the limit is reached.
+//              decisionPeriod (int): The evaluation period for which the Count will be determined.
+//              limit (float32): The limit for the metric for which the count is calculated.
 //
 // Description:
-//
-//              GetClusterCount will use the opensearch query to find out the stats aggregation.
-//              While getting stats aggregation it will pass the metricName, decisionPeriod and limit as an input.
-//              It will populate MetricViolatedCountCluster struct and return it.
+//              GetClusterCount will return the number of times the specified metric has reached the limit.
 //
 // Return:
-//              Return populated MetricViolatedCountCluster struct.
+//              (cluster.MetricViolatedCount, error): Return populated MetricViolatedCount struct and error if any.
 
 func GetClusterCount(metricName string, decisonPeriod int, limit float32) (cluster.MetricViolatedCount, error) {
 	var metricViolatedCount cluster.MetricViolatedCount
@@ -125,14 +110,12 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) (clust
 }
 
 // Input:
-// Description:
 //
-//              GetClusterCurrent will fetch the node level and cluster level metrics and fill in
-//              ClusterDynamic, clusterStatic and Node struct using the given config file.
-//              It will return the current cluster status.
+// Description:
+//              GetClusterCurrent returns the most recent cluster level Statistics and Health in the form of a struct.
 //
 // Return:
-//              Return populated ClusterDynamic struct.
+//              (cluster.ClusterDynamic): Return populated ClusterDynamic struct.
 
 func GetClusterCurrent() cluster.ClusterDynamic {
 	var clusterStats cluster.ClusterDynamic

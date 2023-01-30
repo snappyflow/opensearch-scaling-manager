@@ -13,12 +13,25 @@ import (
 	"time"
 )
 
+// A global variable to maintain the state of current provisioning at any point by updating this in OS document.
 var state = new(provision.State)
 
+// A global logger variable used across the package for logging.
 var log logger.LOG
 
+// A global variable which lets the provision continue from where it left off if there was an abrupt stop and restart of application.
 var firstExecution bool
 
+// Input:
+//
+// Description:
+//
+//	Initializes the main module
+//	Sets the global vraible "firstExecution" to mark the start of application
+//	Calls method to initialize the Opensaerch client in osutils module by reading the config file for credentials
+//	Starts the fetchMetrics module to start collecting the data and dump into Opensearch (if userCfg.MonitorWithSimulator is false)
+//
+// Return:
 func init() {
 	log.Init("logger")
 	log.Info.Println("Main module initialized")
@@ -41,6 +54,17 @@ func init() {
 	}
 }
 
+// Input:
+//
+// Description:
+//
+//	The entry point for the execution of this application
+//	Performs a series of operations to do the following:
+//	  * Calls a goroutine to start the periodicProvisionCheck method
+//	  * In a for loop in the range of a time Ticker with interval specified in the config file:
+//		# Checks if the current node is master, reads the config file, gets the recommendation from recommendation engine and triggers provisioning
+//
+// Return:
 func main() {
 	configStruct, err := config.GetConfig("config.yaml")
 	if err != nil {
@@ -67,16 +91,16 @@ func main() {
 			task.Tasks = configStruct.TaskDetails
 			userCfg := configStruct.UserConfig
 			clusterCfg := configStruct.ClusterDetails
-			// This function is responsible for evaluating the task and recommend.
 			recommendationList := task.EvaluateTask(userCfg.MonitorWithSimulator, userCfg.PollingInterval)
-			// This function is responsible for getting the recommendation and provision.
 			provision.GetRecommendation(state, recommendationList, clusterCfg, userCfg)
 		}
 	}
 }
 
 // Input:
-// Description: It periodically checks if the master node is changed and picks up if there was any ongoing provision operation
+//		pollingInterval (int): Time in seconds which is the interval between each time the check happens
+// Description:
+//		It periodically checks if the master node is changed and picks up if there was any ongoing provision operation
 // Output:
 
 func periodicProvisionCheck(pollingInterval int) {
@@ -84,7 +108,6 @@ func periodicProvisionCheck(pollingInterval int) {
 	previousMaster := utils.CheckIfMaster(context.Background(), "")
 	for range tick {
 		state.GetCurrentState()
-		// Call a function which returns the current master node
 		currentMaster := utils.CheckIfMaster(context.Background(), "")
 		if state.CurrentState != "normal" {
 			if (!previousMaster && currentMaster) || (currentMaster && firstExecution) {
@@ -101,7 +124,6 @@ func periodicProvisionCheck(pollingInterval int) {
 					if isScaledUp {
 						log.Info.Println("Scaleup completed successfully")
 					} else {
-						// Add a retry mechanism
 						log.Warn.Println("Scaleup failed")
 					}
 				} else if strings.Contains(state.CurrentState, "scaledown") {
@@ -110,7 +132,6 @@ func periodicProvisionCheck(pollingInterval int) {
 					if isScaledDown {
 						log.Info.Println("Scaledown completed successfully")
 					} else {
-						// Add a retry mechanism
 						log.Warn.Println("Scaledown failed")
 					}
 				}

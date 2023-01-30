@@ -18,13 +18,17 @@ type NodeMetrics struct {
 	StatTag   string
 }
 
-// Input:map[string]interface which holds the node stats and nodeId which used to parse the node stats response
-// Description: The function calculates and returns disk utilization.
-// The disk utilization is fetched from the node stats response from elasticsearch, there is no difference in terms
-// of output when we fetch from linux or elasticsearch. And to fetch from the linux we need to make a call to elasticsearch
-// to find where the binary of es is installed, when we make this call we get the disk utilization along with the mount path
-// hence the overhead of calculating from linux is minimized by making use of response from elasticsearch.
-// Output: Returns the disk utilization
+// Input:
+// 		m(map[string]interface): Holds the node stats response
+//		nodeId(string): Unique id which is used to access the response of corresponding node. 
+// Description:
+// 		 The function calculates and returns disk utilization.
+// 		 The disk utilization is fetched from the node stats response from elasticsearch, there is no difference in terms
+// 		 of output when we fetch from linux or elasticsearch. And to fetch from the linux we need to make a call to elasticsearch
+// 		 to find where the binary of es is installed, when we make this call we get the disk utilization along with the mount path
+// 		 hence the overhead of calculating from linux is minimized by making use of response from elasticsearch.
+// Return:
+// 		 (float32): Returns the disk utilization of the node
 func getDiskUtil(m map[string]interface{}, nodeId string) float32 {
 	//Parse the node stats interface for required info
 	list := m["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["fs"].(map[string]interface{})["data"].([]interface{})
@@ -41,8 +45,11 @@ func getDiskUtil(m map[string]interface{}, nodeId string) float32 {
 	return float32(((listInterface["total_in_bytes"].(float64) - listInterface["available_in_bytes"].(float64)) / listInterface["total_in_bytes"].(float64)) * 100)
 }
 
-// Description: The functions fetchs the CPU utilization directly from the system through linux commands
-// Output: Returns the CPU utilization
+// Input:
+// Description:
+// 		 The functions fetchs CPU utilization directly from system through linux commands
+// Output: 
+// 		(float32): Returns CPU utilization of system
 func getCpuUtil() float32 {
 	//Executing the top command to fetch the CPU utilization
 	cmd := exec.Command("bash", "-c", "top -bn2 | grep '%Cpu' | tail -1 | awk '{print 100-$8}'")
@@ -59,11 +66,14 @@ func getCpuUtil() float32 {
 	return float32(cpuFloat)
 }
 
-// Description:The functions fetchs the Memory utilization directly from the system through linux commands
-// Output: Returns the memory utilization of the system.
+// Input:
+// Description:
+// 		The functions fetchs Memory utilization directly from system through linux commands
+// Return:
+// 		 (float32): Returns the memory utilization of the system.
 func getRamUtil() float32 {
 	//Executing the top command to fetch the memory utilization
-	cmd := exec.Command("bash", "-c", "top -bn2 | grep 'KiB Mem' | tail -1 | awk '{print ($8/$4)*100}'")
+	cmd := exec.Command("bash", "-c", "top -bn2 | grep -E '[KiB|MiB|GiB] Mem' | tail -1 | awk '{print ($8/$4)*100}'")
 	memout, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Error.Println(err)
@@ -78,8 +88,11 @@ func getRamUtil() float32 {
 	return float32(memFloat)
 }
 
-// Input: opensearch client and context
-// Description: The function fetches and indexes the node stats
+// Input: 
+// 		ctx (context.Context): Request-scoped data that transits processes and APIs.
+// Description:
+// 		 The function fetches node stats through API call and indexes it to opensearch.
+// Return:
 func IndexNodeStats(ctx context.Context) {
 
 	nodeMetrics := new(NodeMetrics)

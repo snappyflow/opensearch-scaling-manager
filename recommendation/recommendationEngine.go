@@ -23,13 +23,13 @@ var ctx = context.Background()
 // Input:
 //
 // Description:
-//
-//	Initialize the logger module.
+//		Initialize the recommendation module.
 //
 // Return:
+
 func init() {
 	log.Init("logger")
-	log.Info.Println("Main module initialized")
+	log.Info.Println("Recommendation module initialized")
 }
 
 // This struct contains the task to be perforrmed by the recommendation and set of rules wrt the action.
@@ -78,15 +78,19 @@ type TaskDetails struct {
 }
 
 // Inputs:
-// Caller: Object of TaskDetails
-// Description:
+//		simFlag (bool): A flag to check if the task needs to be evaluated from Opensearch data or simulated data.
+//		pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index.
 //
+// Caller:
+//		Object of TaskDetails
+//
+// Description:
 //              EvaluateTask will go through all the tasks one by one. and
 //              It check if the task are meeting the criteria based on rules and operator.
 //              If the task is meeting the criteria then it will push the task to recommendation queue.
 //
 // Return:
-//              Returns an array of the recommendations.
+//		([]map[string]string): Returns an array of the recommendations.
 
 func (t TaskDetails) EvaluateTask(simFlag bool, pollingInterval int) []map[string]string {
 	var recommendationArray []map[string]string
@@ -106,6 +110,9 @@ func (t TaskDetails) EvaluateTask(simFlag bool, pollingInterval int) []map[strin
 }
 
 // Inputs:
+//		simFlag (bool): A flag to check if the task needs to collect stats from Opensearch data or simulated data.
+//		pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index.
+//
 // Caller: Object of Task
 // Description:
 //
@@ -116,7 +123,7 @@ func (t TaskDetails) EvaluateTask(simFlag bool, pollingInterval int) []map[strin
 //
 // Return:
 //
-//              Return if a task can be recommended or not(bool)
+//              (bool, string): Return if a task can be recommended or not(bool) and string which says the rules responsible for that recommendation.
 
 func (t Task) GetNextTask(simFlag bool, pollingInterval int) (bool, string) {
 	var isRecommendedTask bool = true
@@ -131,11 +138,6 @@ func (t Task) GetNextTask(simFlag bool, pollingInterval int) (bool, string) {
 
 	taskOperation := subMatch[1]
 
-	// We should have a mechanism to check if we have enough data points for evaluating the rules.
-	// If we do not have enough data point for evaluating rule then we should not recommend the task.
-	// In case of AND condition if we do not have enough data point for even one rule then the for
-	// loop should be broken.
-	// This can be considered while implementation.
 	var rules []string
 	for _, v := range t.Rules {
 		// Here we can add go routine.
@@ -170,14 +172,19 @@ func (t Task) GetNextTask(simFlag bool, pollingInterval int) (bool, string) {
 }
 
 // Input:
-// Caller: Object of Rule
-// Description:
+//		taskOperation (string); Recommended operation
+//		simFlag (bool): A flag to check if the task needs to collect stats from Opensearch data or simulated data.
+//              pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index.
 //
-//              GetNextRule will fetch the metrics based on the rules MetricName and Stats using GetMetrics
-//              Then it will evaluate if the rule is meeting the criteria or not using EvaluateRule
+// Caller:
+//		Object of Rule
+//
+// Description:
+//		GetNextRule will fetch the metrics based on the rules MetricName and Stats using GetMetrics
+//		Then it will evaluate if the rule is meeting the criteria or not using EvaluateRule
 //
 // Return:
-//              Return if a rule is meeting the criteria or not(bool)
+// 		(bool, error): Return if a rule is meeting the criteria or not(bool) and error if any
 
 func (r Rule) GetNextRule(taskOperation string, simFlag bool, pollingInterval int) (bool, error) {
 	cluster, err := r.GetMetrics(simFlag, pollingInterval)
@@ -191,16 +198,20 @@ func (r Rule) GetNextRule(taskOperation string, simFlag bool, pollingInterval in
 }
 
 // Input:
-// Caller: Object of Rule
-// Description:
+//		simFlag (bool): A flag to check if the task needs to collect stats from Opensearch data or simulated data.
+//		pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index.
 //
+// Caller:
+//		Object of Rule
+//
+// Description:
 //              GetMetrics will be getting the metrics for a metricName based on its stats
 //              If the stat is Avg then it will call GetClusterAvg which will provide MetricViolatedCountCluster struct.
 //              If the stat is Count or Term then it will call GetClusterCount which will provide MetricViolatedCountCluster struct.
 //              At last it marshal the structure such that uniform data can be used across multiple methods.
 //
 // Return:
-//              Return marshal form of either MetricStatsCluster or MetricViolatedCountCluster struct([]byte)
+//              ([]byte, error): Return marshal form of either MetricStatsCluster or MetricViolatedCountCluster struct([]byte) and error if any
 
 func (r Rule) GetMetrics(simFlag bool, pollingInterval int) ([]byte, error) {
 	var clusterStats cluster.MetricStats
@@ -253,14 +264,19 @@ func (r Rule) GetMetrics(simFlag bool, pollingInterval int) ([]byte, error) {
 	return clusterMetric, nil
 }
 
-// Input: clusterMetric []byte: Marshal struct containing clusterMetric details based on stats.
-// Caller: Object of Rule
-// Description:
+// Input:
+//		clusterMetric ([]byte): Marshal struct containing clusterMetric details based on stats.
+//		taskOperation (string); Task recommended
 //
-//              EvaluateRule will be compare the collected metric and mentioned rule
-//              It will then decide if rules are meeting the criteria or not and return the result.
+// Caller:
+//		Object of Rule
+//
+// Description:
+//		EvaluateRule will be compare the collected metric and mentioned rule
+//		It will then decide if rules are meeting the criteria or not and return the result.
+//
 // Return:
-//              Return whether a rule is meeting the criteria or not(bool)
+//              (bool): Return whether a rule is meeting the criteria or not.
 
 func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 	log.Debug.Println(taskOperation)
@@ -304,10 +320,11 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 }
 
 // Input:
-// Caller: Object of Task
-// Description:
 //
-//              PushToRecommendationQueue will be pushing the task which matches the criteria to recommendation queue.
+// Caller:
+//		Object of Task
+// Description:
+//		PushToRecommendationQueue will be pushing the task which matches the criteria to recommendation queue.
 //
 // Return:
 
