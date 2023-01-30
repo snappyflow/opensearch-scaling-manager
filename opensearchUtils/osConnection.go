@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"net/http"
 	"os"
 	"scaling_manager/logger"
 
@@ -55,6 +56,10 @@ func InitializeOsClient(username string, password string) {
 		Addresses: []string{"http://localhost:9200"},
 		Username:  username,
 		Password:  password,
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
+		MaxRetries: 5,
 	})
 	if err != nil {
 		log.Fatal.Println(err)

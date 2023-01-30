@@ -24,7 +24,7 @@ func DeleteOldDocs(ctx context.Context) {
                           }
                   }
           }`)
-	deleteResp, err := osutils.DeleteWithQuery(jsonQuery, ctx)
+	deleteResp, err := osutils.DeleteWithQuery(ctx, jsonQuery)
 	if err != nil {
 		log.Panic.Println("Unable to execute request: ", err)
 		panic(err)
