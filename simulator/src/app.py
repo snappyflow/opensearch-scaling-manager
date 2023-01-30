@@ -100,7 +100,7 @@ def cluster_db_object(cluster):
     )
 
 
-def overwrite_after_node_count_change(cluster_objects):
+def overwrite_after_node_count_change(cluster_objects,time=None):
     """
     Calculate the resource utilization after node change operation
     and overwrite the saved data points in db after node change time.
@@ -109,7 +109,10 @@ def overwrite_after_node_count_change(cluster_objects):
     :param date_time: date time object to overwrite date time now
     :return: expiry time
     """
-    date_time = datetime.now()
+    if time == None:
+        date_time = datetime.now()
+    else:
+        date_time = time
     cluster_objects_post_change = []
     for cluster_obj in cluster_objects:
         if cluster_obj.date_time >= date_time:
@@ -123,20 +126,22 @@ def overwrite_after_node_count_change(cluster_objects):
     return
 
 @timeit
-def reset_load(sim):
+def reset_load(sim,time=None):
     """
     The fuction resets shard size from end of simulation
     to shard size configured at current time
     """
     sim.cluster.clear_index_size()
-
-    now = datetime.now()
+    if time==None:
+        now = datetime.now()
+    else:
+        now = time
     time_now_hour = now - timedelta(minutes=datetime.now().minute,seconds=now.second,
                 microseconds=now.microsecond)
     current_disk = (
     DataModel.query.order_by(desc(DataModel.date_created)).filter(DataModel.date_created <= now)
     .with_entities(
-        DataModel.__getattribute__(DataModel, constants.STAT_REQUEST['disk'])
+        DataModel.__getattribute__(DataModel, constants.STAT_REQUEST['DiskUtil'])
     )
     .first()
     )
@@ -160,12 +165,15 @@ def reset_load(sim):
     
     
 
-def get_duration_for_resimulation():
+def get_duration_for_resimulation(time):
     """
     Fetches duration in minutes to resimulate
     """
     app.app_context().push()
-    time_now = datetime.now()
+    if time==None:
+        time_now = datetime.now()
+    else:
+        time_now = time
     simulation_end_date_time = DataModel.query.order_by(desc(DataModel.date_created)).with_entities(
         DataModel.__getattribute__(DataModel, 'date_created')
         ).first()
@@ -183,7 +191,7 @@ def get_simulated_points():
     return data_rate,search_rate,total_minutes
 
 @timeit
-def add_node_and_rebalance(nodes):
+def add_node_and_rebalance(nodes, time=None):
     """
     Increments node count in cluster object and rebalances shards
     among available nodes. Re-Simulates data after node addition
@@ -202,19 +210,23 @@ def add_node_and_rebalance(nodes):
     sim.simulated_data_rates = data_rate
     sim.simulated_search_rates = search_rate
     sim.total_simulation_minutes = total_minutes
-    duration = get_duration_for_resimulation()
-    hour = datetime.now().hour
-    minutes = str(datetime.now().minute) if datetime.now().minute > 9 else "0" + str(datetime.now().minute)
-    reset_load(sim)
+    duration = get_duration_for_resimulation(time)
+    if time==None:
+        hour = datetime.now().hour
+        minutes = str(datetime.now().minute) if datetime.now().minute > 9 else "0" + str(datetime.now().minute)
+    else:
+        hour = time.hour
+        minutes = str(time.now().minute) if time.now().minute > 9 else "0" + str(time.now().minute)
+    reset_load(sim,time)
     sim.cluster.add_nodes(nodes)
-    cluster_objects = sim.run(duration, str(hour) + "_" + minutes + "_00",True)
-    overwrite_after_node_count_change(cluster_objects)
+    cluster_objects = sim.run(duration, str(hour) + "_" + minutes + "_00",True,time)
+    overwrite_after_node_count_change(cluster_objects,time)
     is_provisioning = get_provision_status()
     is_provisioning = False
     set_provision_status(is_provisioning)
 
 @timeit
-def rem_node_and_rebalance(nodes):
+def rem_node_and_rebalance(nodes,time=None):
     """
     Decrements node count in cluster object and rebalances the shards
     among the available nodes. Re-Simulates the data once the node is
@@ -233,14 +245,18 @@ def rem_node_and_rebalance(nodes):
     sim.simulated_data_rates = data_rate
     sim.simulated_search_rates = search_rate
     sim.total_simulation_minutes = total_minutes
-    duration = get_duration_for_resimulation()
-    hour = datetime.now().hour
-    minutes = str(datetime.now().minute) if datetime.now().minute > 9 else "0" + str(datetime.now().minute)
-    reset_load(sim)
+    duration = get_duration_for_resimulation(time)
+    if time==None:
+        hour = datetime.now().hour
+        minutes = str(datetime.now().minute) if datetime.now().minute > 9 else "0" + str(datetime.now().minute)
+    else:
+        hour = time.hour
+        minutes = str(time.now().minute) if time.now().minute > 9 else "0" + str(time.now().minute)
+    reset_load(sim,time)
     sim.cluster.remove_nodes(nodes)
     # sim.cluster.cluster_disk_size_used = sim.cluster.calculate_cluster_disk_size()
-    cluster_objects = sim.run(duration, str(hour) + "_" + minutes + "_00",True)
-    overwrite_after_node_count_change(cluster_objects)
+    cluster_objects = sim.run(duration, str(hour) + "_" + minutes + "_00",True,time)
+    overwrite_after_node_count_change(cluster_objects,time)
     is_provisioning = get_provision_status()
     is_provisioning = False
     set_provision_status(is_provisioning)
@@ -480,7 +496,12 @@ def add_node():
         is_provisioning = False
         set_provision_status(is_provisioning)
         return Response(json.dumps("expected key 'nodes'"), status=404)
-    add_node_thread = Thread(target=add_node_and_rebalance, args=(nodes,))
+    try: 
+            time_now_arg = request.json['time_now']
+            time_now = datetime.strptime(time_now_arg, constants.TIME_FORMAT)
+    except:
+            time_now = None
+    add_node_thread = Thread(target=add_node_and_rebalance, args=(nodes,time_now))
     add_node_thread.start()
     return jsonify({"nodes": node_count})
 
@@ -518,7 +539,12 @@ def remove_node():
         is_provisioning = False
         set_provision_status(is_provisioning)
         return Response(json.dumps("expected key 'nodes'"), status=404)
-    rem_node_thread = Thread(target=rem_node_and_rebalance, args=(nodes,))
+    try: 
+            time_now_arg = request.json['time_now']
+            time_now = datetime.strptime(time_now_arg, constants.TIME_FORMAT)
+    except:
+            time_now = None
+    rem_node_thread = Thread(target=rem_node_and_rebalance, args=(nodes,time_now))
     rem_node_thread.start()
     return jsonify({"nodes": node_count})
 

@@ -225,10 +225,14 @@ class Simulator:
                 self.cluster.indices[index_id].shards[shard].shard_size+= data_per_shard_gb
 
     @timeit
-    def run(self, duration_minutes, start_time="00_00_00", resimulate=False):
+    def run(self, duration_minutes, start_time="00_00_00", resimulate=False,time=None):
         resultant_cluster_objects = []
 
-        now = datetime.now()
+        if time==None:
+            now = datetime.now()
+        else:
+            now=time
+            
         if start_time == "00_00_00":
             date_obj = now - timedelta(
                 hours=now.hour,

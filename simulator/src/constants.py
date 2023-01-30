@@ -31,12 +31,12 @@ HEAP_USAGE_PERCENT = 'heap_usage_percent'
 TOTAL_NODES_COUNT = 'total_nodes_count'
 ROLLED_INDEX_SIZE = 'rolled_index_size'
 STAT_REQUEST = {
-    'cpu': CPU_USAGE_PERCENT,
-    'mem': MEMORY_USAGE_PERCENT,
-    'heap': HEAP_USAGE_PERCENT,
+    'CpuUtil': CPU_USAGE_PERCENT,
+    'RamUtil': MEMORY_USAGE_PERCENT,
+    'HeapUtil': HEAP_USAGE_PERCENT,
     'status': CLUSTER_STATE,
     'nodes': TOTAL_NODES_COUNT,
-    'disk': DISK_USAGE_PERCENT,
+    'DiskUtil': DISK_USAGE_PERCENT,
     'rolled_index_size' : ROLLED_INDEX_SIZE
 }  # Todo : Shrinidhi/Manoj Add remaining stats that will be queried from the recommendation engine
 
