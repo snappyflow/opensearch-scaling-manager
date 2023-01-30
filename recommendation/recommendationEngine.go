@@ -225,7 +225,7 @@ func (r Rule) GetMetrics(simFlag bool, pollingInterval int) ([]byte, error) {
 		if simFlag {
 			clusterStats, err = cluster_sim.GetClusterAvg(r.Metric, r.DecisionPeriod)
 		} else {
-			clusterStats, invalidDatapoints, err = cluster.GetClusterAvg(r.Metric, r.DecisionPeriod, pollingInterval, ctx)
+			clusterStats, invalidDatapoints, err = cluster.GetClusterAvg(ctx, r.Metric, r.DecisionPeriod, pollingInterval)
 		}
 
 		if err != nil || invalidDatapoints {
@@ -244,7 +244,7 @@ func (r Rule) GetMetrics(simFlag bool, pollingInterval int) ([]byte, error) {
 		if simFlag {
 			clusterCount, err = cluster_sim.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit)
 		} else {
-			clusterCount, invalidDatapoints, err = cluster.GetClusterCount(r.Metric, r.DecisionPeriod, pollingInterval, r.Limit, ctx)
+			clusterCount, invalidDatapoints, err = cluster.GetClusterCount(ctx, r.Metric, r.DecisionPeriod, pollingInterval, r.Limit)
 		}
 
 		if err != nil || invalidDatapoints {
