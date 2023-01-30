@@ -48,7 +48,7 @@ type Rule struct {
 	//      Cpu
 	//      Mem
 	//      Shard
-	Metric string `yaml:"metric" validate:"required,oneof=cpu mem heap disk shard"`
+	Metric string `yaml:"metric" validate:"required,oneof=CpuUtil RamUtil HeapUtil DiskUtil NumShards"`
 	// Limit indicates the threshold value for a metric.
 	// If this threshold is achieved for a given metric for the decision periond then the rule will be activated.
 	Limit float32 `yaml:"limit" validate:"required"`
