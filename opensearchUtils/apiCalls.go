@@ -86,7 +86,7 @@ func GetClusterState(ctx context.Context) (*osapi.Response, error) {
 // Return:
 //
 //	(*osapi.Response, error): Returns the api response and error if any
-func GetNodeStats(nodes []string, metrics []string, ctx context.Context) (*osapi.Response, error) {
+func GetNodeStats(ctx context.Context, nodes []string, metrics []string) (*osapi.Response, error) {
 	return osapi.NodesStatsRequest{
 		Pretty: true,
 		NodeID: nodes,
@@ -106,7 +106,7 @@ func GetNodeStats(nodes []string, metrics []string, ctx context.Context) (*osapi
 // Return:
 //
 //	(*osapi.Response, error): Returns the api response and error if any
-func CatAllocation(nodes []string, ctx context.Context) (*osapi.Response, error) {
+func CatAllocation(ctx context.Context, nodes []string) (*osapi.Response, error) {
 	return osapi.CatAllocationRequest{
 		Pretty: true,
 		NodeID: nodes,
@@ -125,7 +125,7 @@ func CatAllocation(nodes []string, ctx context.Context) (*osapi.Response, error)
 // Return:
 //
 //	(*osapi.Response, error): Returns the api response and error if any
-func SearchQuery(jsonQuery []byte, ctx context.Context) (*osapi.Response, error) {
+func SearchQuery(ctx context.Context, jsonQuery []byte) (*osapi.Response, error) {
 	return osapi.SearchRequest{
 		Index: []string{IndexName},
 		Body:  bytes.NewReader(jsonQuery),
@@ -144,7 +144,7 @@ func SearchQuery(jsonQuery []byte, ctx context.Context) (*osapi.Response, error)
 // Return:
 //
 //	(*osapi.Response, error): Returns the api response and error if any
-func SearchDoc(docId string, ctx context.Context) (*osapi.Response, error) {
+func SearchDoc(ctx context.Context, docId string) (*osapi.Response, error) {
 	return osapi.GetRequest{
 		Index:      IndexName,
 		DocumentID: docId,
@@ -164,7 +164,7 @@ func SearchDoc(docId string, ctx context.Context) (*osapi.Response, error) {
 // Return:
 //
 //	(*osapi.Response, error): Returns the api response and error if any
-func UpdateDoc(docId string, content string, ctx context.Context) (*osapi.Response, error) {
+func UpdateDoc(ctx context.Context, docId string, content string) (*osapi.Response, error) {
 	return osapi.IndexRequest{
 		Index:      IndexName,
 		DocumentID: docId,
@@ -184,7 +184,7 @@ func UpdateDoc(docId string, content string, ctx context.Context) (*osapi.Respon
 // Return:
 //
 //	(*osapi.Response, error): Returns the api response and error if any
-func DeleteWithQuery(jsonQuery []byte, ctx context.Context) (*osapi.Response, error) {
+func DeleteWithQuery(ctx context.Context, jsonQuery []byte) (*osapi.Response, error) {
 	return osapi.DeleteByQueryRequest{
 		Index: []string{IndexName},
 		Body:  bytes.NewReader(jsonQuery),
