@@ -55,6 +55,7 @@ type UserConfig struct {
 	MonitorWithLogs      bool `yaml:"monitor_with_logs"`
 	MonitorWithSimulator bool `yaml:"monitor_with_simulator"`
 	PollingInterval      int  `yaml:"polling_interval_in_secs"`
+	IsAccelerated        bool `yaml:"is_accelerated"`
 }
 
 // This struct contains the data structure to parse the configuration file.

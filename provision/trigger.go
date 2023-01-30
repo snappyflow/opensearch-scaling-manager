@@ -7,6 +7,7 @@ import (
 	"scaling_manager/cluster_sim"
 	"scaling_manager/config"
 	"strconv"
+	"time"
 )
 
 var ctx = context.Background()
@@ -25,7 +26,7 @@ var ctx = context.Background()
 //	Triggers the provisioning
 //
 // Return:
-func GetRecommendation(state *State, recommendationQueue []map[string]string, clusterCfg config.ClusterDetails, usrCfg config.UserConfig) {
+func GetRecommendation(state *State, recommendationQueue []map[string]string, clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *time.Time) {
 	var clusterCurrent cluster.ClusterDynamic
 	scaleRegexString := `(scale_up|scale_down)_by_([0-9]+)`
 	scaleRegex := regexp.MustCompile(scaleRegexString)
@@ -47,7 +48,7 @@ func GetRecommendation(state *State, recommendationQueue []map[string]string, cl
 
 			numNodes, _ := strconv.Atoi(subMatch[2])
 			operation := subMatch[1]
-			TriggerProvision(clusterCfg, usrCfg, state, numNodes, operation, recommendationQueue[0][task])
+			TriggerProvision(clusterCfg, usrCfg, state, numNodes, t, operation, recommendationQueue[0][task])
 		} else {
 			log.Warn.Println("Recommendation can not be provisioned as open search cluster is already in provisioning phase or the cluster isn't healthy yet")
 		}

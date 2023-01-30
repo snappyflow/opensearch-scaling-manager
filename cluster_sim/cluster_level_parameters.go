@@ -39,7 +39,10 @@ func init() {
 
 func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, error) {
 	var metricStats cluster.MetricStats
-	url := fmt.Sprintf("http://localhost:5000/stats/avg?metric=%s&duration=%d", metricName, decisionPeriod)
+	t_now := time.Now()
+	time_now := fmt.Sprintf("%02d:%02d:%02d", t_now.Hour(), t_now.Minute(), t_now.Second())
+	date_now := fmt.Sprintf("%02d-%02d-%d", t_now.Day(), t_now.Month(), t_now.Year())
+	url := fmt.Sprintf("http://localhost:5000/stats/avg?metric=%s&duration=%d&time_now=%s%s%s", metricName, decisionPeriod, date_now, "%20", time_now)
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -80,7 +83,10 @@ func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, 
 
 func GetClusterCount(metricName string, decisonPeriod int, limit float32) (cluster.MetricViolatedCount, error) {
 	var metricViolatedCount cluster.MetricViolatedCount
-	url := fmt.Sprintf("http://localhost:5000/stats/violated?metric=%s&duration=%d&threshold=%f", metricName, decisonPeriod, limit)
+	t_now := time.Now()
+	time_now := fmt.Sprintf("%02d:%02d:%02d", t_now.Hour(), t_now.Minute(), t_now.Second())
+	date_now := fmt.Sprintf("%02d-%02d-%d", t_now.Day(), t_now.Month(), t_now.Year())
+	url := fmt.Sprintf("http://localhost:5000/stats/violated?metric=%s&duration=%d&threshold=%f&time_now=%s%s%s", metricName, decisonPeriod, limit, date_now, "%20", time_now)
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
