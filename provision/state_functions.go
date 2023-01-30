@@ -83,7 +83,7 @@ func (s *State) UpdateState() {
 	}
 	content := string(state)
 
-	updateResponse, err := osutils.UpdateDoc(UpdateDoc, docId, content)
+	updateResponse, err := osutils.UpdateDoc(context.Background(), docId, content)
 	if err != nil {
 		log.Panic.Println("failed to update document: ", err)
 		panic(err)
