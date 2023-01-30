@@ -55,7 +55,7 @@ func CheckIfMaster(ctx context.Context, nodeId string) bool {
 	nodes := []string{"_local"}
 
 	//Creating node stats request and fetching the node stats for the current node
-	nodeStatReq, err := osutils.GetNodeStats(nodes, nil, ctx)
+	nodeStatReq, err := osutils.GetNodeStats(ctx, nodes, nil)
 	if err != nil {
 		log.Panic.Println("Node stat fetch error: ", err)
 		panic(err)
@@ -117,7 +117,7 @@ func GetNodes() map[string]interface{} {
 	nodes := []string{"_all"}
 	metrics := []string{}
 
-	nodeStatResp, err := osutils.GetNodeStats(nodes, metrics, context.Background())
+	nodeStatResp, err := osutils.GetNodeStats(context.Background(), nodes, metrics)
 	if err != nil {
 		log.Error.Println("Node stat fetch error: ", err)
 	}
