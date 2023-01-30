@@ -109,8 +109,8 @@ func periodicProvisionCheck(pollingInterval int) {
 	for range tick {
 		state.GetCurrentState()
 		currentMaster := utils.CheckIfMaster(context.Background(), "")
-		if state.CurrentState != "normal" {
-			if (!previousMaster && currentMaster) || (currentMaster && firstExecution) {
+		if state.CurrentState != "normal" && currentMaster {
+			if !previousMaster || firstExecution {
 				//                      if firstExecution {
 				firstExecution = false
 				configStruct, err := config.GetConfig("config.yaml")
