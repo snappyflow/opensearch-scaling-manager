@@ -100,7 +100,7 @@ func IndexNodeStats(ctx context.Context) {
 	//creating a node stats requests with filter to reduce the response to requirement
 	nodes := []string{"_local"}
 	metrics := []string{"jvm", "os", "fs", "indices"}
-	nodeStatResp, err := osutils.GetNodeStats(nodes, metrics, ctx)
+	nodeStatResp, err := osutils.GetNodeStats(ctx, nodes, metrics)
 	if err != nil {
 		log.Error.Println("Node stat fetch error: ", err)
 	}
@@ -114,7 +114,7 @@ func IndexNodeStats(ctx context.Context) {
 		log.Error.Println("decode Error: ", decodeErr)
 	}
 
-	catAllocationResp, catErr := osutils.CatAllocation(nodes, ctx)
+	catAllocationResp, catErr := osutils.CatAllocation(ctx, nodes)
 	if catErr != nil {
 		log.Error.Println("Cat allocation fetch error: ", catErr)
 	}

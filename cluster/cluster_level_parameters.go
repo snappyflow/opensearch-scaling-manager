@@ -251,14 +251,14 @@ func getClusterAvgQuery(metricName string, decisionPeriod int) string {
 // Return:
 //              (MetricStats, bool, error): Return a populated (MetricStats) struct, a (bool) value indicating whether there were enough data points to find the Stats, and any (errors).
 
-func GetClusterAvg(metricName string, decisionPeriod int, pollingInterval int, ctx context.Context) (MetricStats, bool, error) {
+func GetClusterAvg(ctx context.Context, metricName string, decisionPeriod int, pollingInterval int) (MetricStats, bool, error) {
 	//Create an object of MetricStatsCluster to populate and return
 	var metricStats MetricStats
 
 	var invalidDatapoints bool
 
 	// Check data points
-	dataPointsResp, dpErr := osutils.SearchQuery([]byte(dataPointsQuery(decisionPeriod, pollingInterval)), ctx)
+	dataPointsResp, dpErr := osutils.SearchQuery(ctx, []byte(dataPointsQuery(decisionPeriod, pollingInterval)))
 	if dpErr != nil {
 		log.Error.Println("Can't query for data points!", dpErr)
 		return metricStats, invalidDatapoints, dpErr
@@ -281,7 +281,7 @@ func GetClusterAvg(metricName string, decisionPeriod int, pollingInterval int, c
 	var jsonQuery = []byte(getClusterAvgQuery(metricName, decisionPeriod))
 
 	//create a search request and pass the query
-	searchResp, err := osutils.SearchQuery(jsonQuery, ctx)
+	searchResp, err := osutils.SearchQuery(ctx, jsonQuery)
 	if err != nil {
 		log.Error.Println("Cannot fetch cluster average: ", err)
 		return metricStats, invalidDatapoints, err
@@ -376,12 +376,12 @@ func getClusterCountQuery(metricName string, decisionPeriod int, limit float32) 
 // Return:
 //		(MetricViolatedCount, bool, error): Return populated MetricViolatedCount struct, bool which says if there were enough datapoints to calculate the count and error if any.
 
-func GetClusterCount(metricName string, decisionPeriod int, pollingInterval int, limit float32, ctx context.Context) (MetricViolatedCount, bool, error) {
+func GetClusterCount(ctx context.Context, metricName string, decisionPeriod int, pollingInterval int, limit float32) (MetricViolatedCount, bool, error) {
 	var metricViolatedCount MetricViolatedCount
 	var invalidDatapoints bool
 
 	// Check data points
-	dataPointsResp, dpErr := osutils.SearchQuery([]byte(dataPointsQuery(decisionPeriod, pollingInterval)), ctx)
+	dataPointsResp, dpErr := osutils.SearchQuery(ctx, []byte(dataPointsQuery(decisionPeriod, pollingInterval)))
 	if dpErr != nil {
 		log.Error.Println("Can't query for data points!", dpErr)
 		return metricViolatedCount, invalidDatapoints, dpErr
@@ -404,7 +404,7 @@ func GetClusterCount(metricName string, decisionPeriod int, pollingInterval int,
 	var jsonQuery = []byte(getClusterCountQuery(metricName, decisionPeriod, limit))
 
 	//create a search request and pass the query
-	searchResp, err := osutils.SearchQuery(jsonQuery, ctx)
+	searchResp, err := osutils.SearchQuery(ctx, jsonQuery)
 	if err != nil {
 		log.Error.Println("Cannot fetch cluster average: ", err)
 		return metricViolatedCount, invalidDatapoints, err
