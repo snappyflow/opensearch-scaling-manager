@@ -261,13 +261,20 @@ def violated_count():
     metric = args.get('metric', type=str)
     duration = args.get('duration', type=int)
     threshold = args.get('threshold', type=float)
-
-    if metric == None or duration == None or threshold == None or len(args)!=constants.QUERY_ARG_LENGTH_THREE:
+    time_now_arg = args.get('time_now', type=str)
+    if metric == None or duration == None or threshold == None or len(args) > constants.QUERY_ARG_LENGTH_FOUR:
         return Response(json.dumps("Invalid query parameters"), status=400)
 
+    if len(args) == constants.QUERY_ARG_LENGTH_FOUR and time_now_arg == None:
+        return Response(json.dumps("Invalid query parameters"), status=400)
     # calculate time to query for data
-    time_now = datetime.now()
-
+    if time_now_arg: 
+        try:  
+            time_now = datetime.strptime(time_now_arg, constants.TIME_FORMAT)
+        except:
+            return Response(json.dumps("Invalid query parameters"), status=400)
+    else:    
+        time_now = datetime.now()
     # Convert the minutes to time object to compare and query for required data points
     query_begin_time = time_now - timedelta(minutes=duration)
     first_data_point_time = get_first_data_point_time()
@@ -276,7 +283,7 @@ def violated_count():
         data_point_count = (
             DataModel.query.order_by(constants.STAT_REQUEST[metric])
             .filter(DataModel.date_created > query_begin_time)
-            .filter(DataModel.date_created < time_now)
+            .filter(DataModel.date_created <= time_now)
             .count()
         )
 
@@ -318,12 +325,22 @@ def average():
     args.to_dict()
     metric = args.get('metric',type=str) 
     duration = args.get('duration',type=int)
-
-    if metric == None or duration == None or len(args)!= constants.QUERY_ARG_LENGTH_TWO:
+    time_now_arg = args.get('time_now', type=str)
+    if metric == None or duration == None or len(args) > constants.QUERY_ARG_LENGTH_THREE:
         return Response(json.dumps("Invalid query parameters"), status=400)
 
+    if len(args) > constants.QUERY_ARG_LENGTH_TWO and time_now_arg == None:
+        return Response(json.dumps("Invalid query parameters"), status=400)
     # calculate time to query for data
-    time_now = datetime.now()
+
+    if time_now_arg:
+        try:   
+            time_now = datetime.strptime(time_now_arg, constants.TIME_FORMAT)
+        except:
+            return Response(json.dumps("Invalid query parameters"), status=400)
+    else:    
+        time_now = datetime.now()
+
     # Convert the minutes to time object to compare and query for required data points
     query_begin_time = time_now - timedelta(minutes=duration)
     first_data_point_time = get_first_data_point_time()
@@ -333,7 +350,7 @@ def average():
         avg_list = (
             DataModel.query.order_by(constants.STAT_REQUEST[metric])
             .filter(DataModel.date_created > query_begin_time)
-            .filter(DataModel.date_created < time_now)
+            .filter(DataModel.date_created <= time_now)
             .with_entities(text(constants.STAT_REQUEST[metric]))
             .all()
         )
@@ -372,13 +389,26 @@ def current_all():
     args = request.args
     args.to_dict()
     metric = args.get('metric', type=str)
+    time_now_arg = args.get('time_now', type=str)
 
-    if len(args) > constants.QUERY_ARG_LENGTH_ONE or (len(args) == constants.QUERY_ARG_LENGTH_ONE and metric == None):
+    if len(args) > constants.QUERY_ARG_LENGTH_TWO:
         return Response(json.dumps("Invalid query parameters"), status=400)
 
-    time_now = datetime.now()
+    if len(args) == constants.QUERY_ARG_LENGTH_TWO and (time_now_arg == None or metric == None):
+        return Response(json.dumps("Invalid query parameters"), status=400)
+    
+    if len(args) == constants.QUERY_ARG_LENGTH_ONE and (time_now_arg == None and metric == None):
+        return Response(json.dumps("Invalid query parameters"), status=400)
 
-    if len(args) == constants.QUERY_ARG_LENGTH_ONE and metric!=None:
+    if time_now_arg:
+        try:   
+            time_now = datetime.strptime(time_now_arg, constants.TIME_FORMAT)
+        except:
+            return Response(json.dumps("Invalid query parameters"), status=400)
+    else:    
+        time_now = datetime.now()
+
+    if metric!= None:
         try:
             if constants.STAT_REQUEST[metric] == constants.CLUSTER_STATE:
                 if Simulator.is_provision_in_progress():
@@ -388,7 +418,7 @@ def current_all():
                 DataModel.query.order_by(desc(DataModel.date_created))
                 .with_entities(
                     DataModel.__getattribute__(DataModel, constants.STAT_REQUEST[metric])
-                ).filter(DataModel.date_created < time_now)
+                ).filter(DataModel.date_created <= time_now)
                 .all()
             )
 
@@ -415,7 +445,7 @@ def current_all():
                     DataModel.__getattribute__(
                         DataModel, constants.STAT_REQUEST_CURRENT[key]
                     )
-                ).filter(DataModel.date_created < time_now)
+                ).filter(DataModel.date_created <= time_now)
                 .all()
             )
             stat_dict[key] = value[0][0]
