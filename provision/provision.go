@@ -104,6 +104,8 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 			state.PreviousState = state.CurrentState
 			state.CurrentState = "provisioning_scaleup_failed"
 			state.UpdateState()
+			// Set the state back to normal to continue further
+			setBackToNormal(state)
 		}
 	} else if operation == "scale_down" {
 		state.PreviousState = state.CurrentState
@@ -122,6 +124,8 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 			state.PreviousState = state.CurrentState
 			state.CurrentState = "provisioning_scaledown_failed"
 			state.UpdateState()
+			// Set the state back to normal to continue further
+			setBackToNormal(state)
 		}
 	}
 }
@@ -240,14 +244,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 		CheckClusterHealth(state, simFlag, usrCfg.PollingInterval)
 	}
 	// Setting the state back to 'normal' irrespective of successful or failed provisioning to continue further
-	state.LastProvisionedTime = time.Now()
-	state.ProvisionStartTime = time.Time{}
-	state.PreviousState = state.CurrentState
-	state.CurrentState = "normal"
-	state.RuleTriggered = ""
-	state.RemainingNodes = state.RemainingNodes - 1
-	state.UpdateState()
-	log.Info.Println("State set back to normal")
+	setBackToNormal(state)
 	return true
 }
 
@@ -353,15 +350,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 		time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 	}
 	// Setting the state back to 'normal' irrespective of successful or failed provisioning to continue further
-	state.LastProvisionedTime = time.Now()
-	state.ProvisionStartTime = time.Time{}
-	state.RuleTriggered = ""
-	state.RemainingNodes = state.RemainingNodes - 1
-	state.PreviousState = state.CurrentState
-	state.CurrentState = "normal"
-	state.UpdateState()
-	log.Info.Println("State set back to normal")
-
+	setBackToNormal(state)
 	return true
 }
 
@@ -455,4 +444,22 @@ func SimulateSharRebalancing(operation string, numNode int) {
 	}
 
 	defer resp.Body.Close()
+}
+
+// Inputs:
+//
+//		state (*State): Pointer to the State struct
+//
+//	     Sets the CurrentState to normal, updates the other fields with default and updates the opensearch document with the same
+//
+// Return:
+func setBackToNormal(state *State) {
+	state.LastProvisionedTime = time.Now()
+	state.ProvisionStartTime = time.Time{}
+	state.PreviousState = state.CurrentState
+	state.CurrentState = "normal"
+	state.RuleTriggered = ""
+	state.RemainingNodes = 0
+	state.UpdateState()
+	log.Info.Println("State set back to normal")
 }
