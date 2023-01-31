@@ -11,6 +11,8 @@ import (
 	utils "scaling_manager/utilities"
 	"strings"
 	"time"
+
+	"github.com/tkuchiki/faketime"
 )
 
 // A global variable to maintain the state of current provisioning at any point by updating this in OS document.
@@ -66,15 +68,23 @@ func init() {
 //
 // Return:
 func main() {
+	var t = new(time.Time)
+	t_now := time.Now()
+	*t = time.Date(t_now.Year(), t_now.Month(), t_now.Day(), 0, 0, 0, 0, time.UTC)
 	configStruct, err := config.GetConfig("config.yaml")
 	if err != nil {
 		log.Panic.Println("The recommendation can not be made as there is an error in the validation of config file.", err)
 		panic(err)
 	}
 	// A periodic check if there is a change in master node to pick up incomplete provisioning
-	go periodicProvisionCheck(configStruct.UserConfig.PollingInterval)
+	go periodicProvisionCheck(configStruct.UserConfig.PollingInterval, t)
 	ticker := time.Tick(time.Duration(configStruct.UserConfig.PollingInterval) * time.Second)
 	for range ticker {
+		if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
+			f := faketime.NewFaketimeWithTime(*t)
+			defer f.Undo()
+			f.Do()
+		}
 		state.GetCurrentState()
 		// The recommendation and provisioning should only happen on master node
 		if utils.CheckIfMaster(context.Background(), "") && state.CurrentState == "normal" {
@@ -92,7 +102,10 @@ func main() {
 			userCfg := configStruct.UserConfig
 			clusterCfg := configStruct.ClusterDetails
 			recommendationList := task.EvaluateTask(userCfg.MonitorWithSimulator, userCfg.PollingInterval)
-			provision.GetRecommendation(state, recommendationList, clusterCfg, userCfg)
+			provision.GetRecommendation(state, recommendationList, clusterCfg, userCfg, t)
+			if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
+				*t = t.Add(time.Minute * 5)
+			}
 		}
 	}
 }
@@ -102,8 +115,7 @@ func main() {
 // Description:
 //		It periodically checks if the master node is changed and picks up if there was any ongoing provision operation
 // Output:
-
-func periodicProvisionCheck(pollingInterval int) {
+func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 	tick := time.Tick(time.Duration(pollingInterval) * time.Second)
 	previousMaster := utils.CheckIfMaster(context.Background(), "")
 	for range tick {
@@ -140,6 +152,9 @@ func periodicProvisionCheck(pollingInterval int) {
 						provision.PushToOs(state, "Failed", err)
 					}
 					provision.SetBackToNormal(state)
+				}
+				if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
+					*t = t.Add(time.Minute * 5)
 				}
 			}
 		}
