@@ -99,7 +99,7 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 		state.RuleTriggered = "scale_up"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledUp := ScaleOut(clusterCfg, usrCfg, state, t)
+		isScaledUp, err := ScaleOut(clusterCfg, usrCfg, state, t)
 		if isScaledUp {
 			log.Info.Println("Scaleup successful")
 			PushToOs(state, "Success", err)
@@ -121,7 +121,7 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 		state.RuleTriggered = "scale_down"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledDown := ScaleIn(clusterCfg, usrCfg, state, t)
+		isScaledDown, err := ScaleIn(clusterCfg, usrCfg, state, t)
 		if isScaledDown {
 			log.Info.Println("Scaledown successful")
 			PushToOs(state, "Success", err)
@@ -537,7 +537,6 @@ func PushToOs(state *State, status string, err error) {
 		log.Panic.Println("json.Marshal ERROR: ", err)
 		panic(err)
 	}
-	log.Info.Println(string(doc))
 
 	indexResponse, err := osutils.IndexMetrics(context.Background(), doc)
 	if err != nil {

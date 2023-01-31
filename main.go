@@ -132,7 +132,7 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 				}
 				if strings.Contains(state.CurrentState, "scaleup") {
 					log.Debug.Println("Calling scaleOut")
-					isScaledUp, err := provision.ScaleOut(configStruct.ClusterDetails, configStruct.UserConfig, state)
+					isScaledUp, err := provision.ScaleOut(configStruct.ClusterDetails, configStruct.UserConfig, state, t)
 					if isScaledUp {
 						log.Info.Println("Scaleup completed successfully")
 						provision.PushToOs(state, "Success", err)
@@ -143,7 +143,7 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 					provision.SetBackToNormal(state)
 				} else if strings.Contains(state.CurrentState, "scaledown") {
 					log.Debug.Println("Calling scaleIn")
-					isScaledDown, err := provision.ScaleIn(configStruct.ClusterDetails, configStruct.UserConfig, state)
+					isScaledDown, err := provision.ScaleIn(configStruct.ClusterDetails, configStruct.UserConfig, state, t)
 					if isScaledDown {
 						log.Info.Println("Scaledown completed successfully")
 						provision.PushToOs(state, "Success", err)
