@@ -6,12 +6,14 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"scaling_manager/cluster"
 	"scaling_manager/cluster_sim"
 	"scaling_manager/config"
+	osutils "scaling_manager/opensearchUtils"
 	utils "scaling_manager/utilities"
 	"strings"
 	"time"
@@ -95,18 +97,20 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 		state.RuleTriggered = "scale_up"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledUp := ScaleOut(clusterCfg, usrCfg, state)
+		isScaledUp, err := ScaleOut(clusterCfg, usrCfg, state)
 		if isScaledUp {
 			log.Info.Println("Scaleup successful")
+			PushToOs(state, "Success", err)
 		} else {
 			state.GetCurrentState()
 			// Add a retry mechanism
 			state.PreviousState = state.CurrentState
 			state.CurrentState = "provisioning_scaleup_failed"
 			state.UpdateState()
-			// Set the state back to normal to continue further
-			setBackToNormal(state)
+			PushToOs(state, "Failed", err)
 		}
+		// Set the state back to normal to continue further
+		SetBackToNormal(state)
 	} else if operation == "scale_down" {
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaledown"
@@ -115,26 +119,28 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 		state.RuleTriggered = "scale_down"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledDown := ScaleIn(clusterCfg, usrCfg, state)
+		isScaledDown, err := ScaleIn(clusterCfg, usrCfg, state)
 		if isScaledDown {
 			log.Info.Println("Scaledown successful")
+			PushToOs(state, "Success", err)
 		} else {
 			state.GetCurrentState()
 			// Add a retry mechanism
 			state.PreviousState = state.CurrentState
 			state.CurrentState = "provisioning_scaledown_failed"
 			state.UpdateState()
-			// Set the state back to normal to continue further
-			setBackToNormal(state)
+			PushToOs(state, "Failed", err)
 		}
+		// Set the state back to normal to continue further
+		SetBackToNormal(state)
 	}
 }
 
 // Input:
 //
-//	             clusterCfg (config.ClusterDetails): Cluster Level config details
-//	             usrCfg (config.UserConfig): User defined config for applicatio behavior
-//			state (*State): A pointer to the state struct which is state maintained in OS document
+//	clusterCfg (config.ClusterDetails): Cluster Level config details
+//	usrCfg (config.UserConfig): User defined config for applicatio behavior
+//	state (*State): A pointer to the state struct which is state maintained in OS document
 //
 // Description:
 //
@@ -145,7 +151,7 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 // Return:
 //
 //	(bool): Return the status of scale out of the nodes.
-func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *State) bool {
+func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *State) (bool, error) {
 	// Read the current state of scaleup process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaleup process
 	state.GetCurrentState()
@@ -173,12 +179,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 			var err error
 			newNodeIp, err = SpinNewVm()
 			if err != nil {
-				state.LastProvisionedTime = time.Now()
-				state.ProvisionStartTime = time.Time{}
-				state.PreviousState = state.CurrentState
-				state.CurrentState = "normal"
-				state.UpdateState()
-				return false
+				return false, err
 			}
 		}
 		log.Info.Println("Spinned a new node: ", newNodeIp)
@@ -202,12 +203,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 			f, err := os.OpenFile(hostsFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 			if err != nil {
 				log.Fatal.Println(err)
-				state.LastProvisionedTime = time.Now()
-				state.ProvisionStartTime = time.Time{}
-				state.PreviousState = state.CurrentState
-				state.CurrentState = "normal"
-				state.UpdateState()
-				return false
+				return false, err
 			}
 			defer f.Close()
 			nodes := utils.GetNodes()
@@ -222,12 +218,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 			ansibleErr := CallScaleUp(username, hostsFileName)
 			if ansibleErr != nil {
 				log.Fatal.Println(err)
-				state.LastProvisionedTime = time.Now()
-				state.ProvisionStartTime = time.Time{}
-				state.PreviousState = state.CurrentState
-				state.CurrentState = "normal"
-				state.UpdateState()
-				return false
+				return false, ansibleErr
 			}
 		}
 		state.PreviousState = state.CurrentState
@@ -244,8 +235,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 		CheckClusterHealth(state, simFlag, usrCfg.PollingInterval)
 	}
 	// Setting the state back to 'normal' irrespective of successful or failed provisioning to continue further
-	setBackToNormal(state)
-	return true
+	return true, nil
 }
 
 // Input:
@@ -262,7 +252,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 // Return:
 //
 //	(bool): Return the status of scale in of the nodes.
-func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *State) bool {
+func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *State) (bool, error) {
 	// Read the current state of scaledown process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaledown process
 	state.GetCurrentState()
@@ -309,7 +299,8 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 			username := "ubuntu"
 			f, err := os.OpenFile(hostsFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 			if err != nil {
-				log.Fatal.Println(err)
+				log.Error.Println(err)
+				return false, err
 			}
 			defer f.Close()
 			dataWriter := bufio.NewWriter(f)
@@ -326,12 +317,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 			ansibleErr := CallScaleDown(username, hostsFileName)
 			if ansibleErr != nil {
 				log.Fatal.Println(err)
-				state.LastProvisionedTime = time.Now()
-				state.ProvisionStartTime = time.Time{}
-				state.PreviousState = state.CurrentState
-				state.CurrentState = "normal"
-				state.UpdateState()
-				return false
+				return false, ansibleErr
 			}
 		}
 		state.PreviousState = state.CurrentState
@@ -350,8 +336,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 		time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 	}
 	// Setting the state back to 'normal' irrespective of successful or failed provisioning to continue further
-	setBackToNormal(state)
-	return true
+	return true, nil
 }
 
 // Input:
@@ -448,12 +433,14 @@ func SimulateSharRebalancing(operation string, numNode int) {
 
 // Inputs:
 //
-//		state (*State): Pointer to the State struct
+//	state (*State): Pointer to the State struct
 //
-//	     Sets the CurrentState to normal, updates the other fields with default and updates the opensearch document with the same
+// Description:
+//
+//	Sets the CurrentState to normal, updates the other fields with default and updates the opensearch document with the same
 //
 // Return:
-func setBackToNormal(state *State) {
+func SetBackToNormal(state *State) {
 	state.LastProvisionedTime = time.Now()
 	state.ProvisionStartTime = time.Time{}
 	state.PreviousState = state.CurrentState
@@ -462,4 +449,44 @@ func setBackToNormal(state *State) {
 	state.RemainingNodes = 0
 	state.UpdateState()
 	log.Info.Println("State set back to normal")
+}
+
+// Inputs:
+//
+//	     state (*State): Pointer to the State struct
+//		status (string): Status of the Provisioning
+//		err (error): Error if any during provisioning
+//
+// Description:
+//
+//	Adds a document to Opensearch representing the status of the provisioning that took place
+//
+// Return:
+func PushToOs(state *State, status string, err error) {
+	provisionState := make(map[string]interface{}, 0)
+	provisionState["RuleTriggered"] = state.RuleTriggered
+	provisionState["ProvisionStartTime"] = state.ProvisionStartTime
+	provisionState["ProvisionEndTime"] = time.Now()
+	provisionState["NumNodes"] = state.NumNodes
+	provisionState["Status"] = status
+	if err != nil {
+		provisionState["FailureReason"] = err.Error()
+	}
+	provisionState["RulesResponsible"] = state.RulesResponsible
+	provisionState["TimeTaken"] = fmt.Sprint(provisionState["ProvisionEndTime"].(time.Time).Sub(provisionState["ProvisionStartTime"].(time.Time)))
+	provisionState["StatTag"] = "ProvisionStats"
+
+	doc, err := json.Marshal(provisionState)
+	if err != nil {
+		log.Panic.Println("json.Marshal ERROR: ", err)
+		panic(err)
+	}
+	log.Info.Println(string(doc))
+
+	indexResponse, err := osutils.IndexMetrics(context.Background(), doc)
+	if err != nil {
+		log.Panic.Println("Failed to insert provision stats document: ", err)
+		panic(err)
+	}
+	log.Debug.Println("Update resp: ", indexResponse)
 }
