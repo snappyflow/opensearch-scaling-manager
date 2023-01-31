@@ -87,7 +87,7 @@ class Index:
         by the shards of the index
         """
         if self.rolled_over:
-            return self.index_size
+            return self.shards[0].shard_size
     
         size = 0
         for shard in self.shards:

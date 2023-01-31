@@ -88,9 +88,11 @@ class Cluster:
         self.index_count = index_count
         self.index_roll_over_size_gb = index_roll_over_size_gb
         self.index_clean_up_age_in_minutes = index_clean_up_age_days
-        self.total_shard_count = total_shard_count
         self.primary_shards_per_index = primary_shards_per_index
         self.replica_shards_per_index = replica_shards_per_index
+        self.total_shard_count = (primary_shards_per_index
+                                 * (replica_shards_per_index + 1)
+                                 ) * index_count
         self.rolled_over_index_id = -1
         self.cluster_dynamic = cluster_dynamic
         self.min_nodes_in_cluster = min_nodes_in_cluster
@@ -107,6 +109,7 @@ class Cluster:
         self._simple_query_rate = 0
         self._medium_query_rate = 0
         self._complex_query_rate = 0
+        self.rolled_index_size = 0
         self.active_primary_shards = active_primary_shards
         self.nodes = self.initialize_nodes(
             total_nodes_count,
@@ -122,9 +125,13 @@ class Cluster:
     # TODO: Define methods for controlling cluster behaviour,
     #  node addition, removal etc
     def add_nodes(self, nodes):
+        """
+        Adds node to cluster and performs shards rebalancing.
+        Cluster state will be Yellow till rebalancing is complete.
+        """
         # Update the total node count in cluster dynamic
-        self.cluster_dynamic.NumMasterNodes = self.master_eligible_nodes_count + 1
-        self.cluster_dynamic.NumActiveDataNodes = self.active_data_nodes + 1
+        self.cluster_dynamic.NumMasterNodes = self.master_eligible_nodes_count + nodes
+        self.cluster_dynamic.NumActiveDataNodes = self.active_data_nodes + nodes
         self.cluster_dynamic.NumNodes = self.total_nodes_count + nodes
         self.cluster_dynamic.NumActivePrimaryShards = (
             self.primary_shards_per_index * self.index_count
@@ -142,10 +149,9 @@ class Cluster:
             new_node = Node(0, 0, 0, len(self.nodes))
             existing_node_id = self.get_available_node_id()
             self.nodes.append(new_node)
-            rebalancing_size = self.cluster_disk_size_used / self.total_nodes_count
+            rebalancing_size = self.cluster_disk_size_used / (self.total_nodes_count + nodes)
             self.total_disk_size_gb+= (self.total_disk_size_gb/self.total_nodes_count)
             rebalance_time = self.time_function_for_rebalancing(rebalancing_size)
-            self.clear_index_size()
             self.rebalance_shards(rebalance_time,existing_node_id, len(existing_node_id))
             self.total_nodes_count += 1
         self.cluster_dynamic.NumRelocatingShards = 0
@@ -160,18 +166,20 @@ class Cluster:
         # Todo - simulate effect on shards
 
     def remove_nodes(self, nodes):
-        self.total_disk_size_gb-= (self.total_disk_size_gb/self.total_nodes_count)
-        self.total_nodes_count-= nodes
+        """
+        Removes node from cluster, rebalances unassigned shards due to
+        removed node. If sufficient nodes are not present to allocate
+        unassigned shards, the cluster will be in yellow state. The
+        cluster will be in Yellow state when there is shard movement
+        to allocate unassigned shards to nodes.
+        :param nodes: count of nodes to be added to cluster
+        """
         if self.min_nodes_in_cluster > self.total_nodes_count:
             print("Cannot remove more nodes, minimum nodes required")
-            self.total_nodes_count += nodes
             return
+
         # Update the total node count in cluster dynamic
-        self.cluster_dynamic.NumNodes = self.total_nodes_count
-        self.cluster_dynamic.NumMasterNodes = self.master_eligible_nodes_count
-        self.cluster_dynamic.NumActiveDataNodes = (
-            self.total_nodes_count - self.master_eligible_nodes_count
-        )
+        self.cluster_dynamic.NumNodes = self.total_nodes_count - nodes
         self.cluster_dynamic.NumMasterNodes = self.master_eligible_nodes_count - nodes
         self.cluster_dynamic.NumActiveDataNodes = self.active_data_nodes - nodes
         # Choose a node from cluster and remove it
@@ -182,13 +190,10 @@ class Cluster:
                 node_id = random.randint(0, len(self.nodes) - 1)
 
             unassigned_shard_size = self.nodes[node_id].calculate_total_node_size()
-            self.nodes[node_id].node_available = False
 
             self.cluster_dynamic.NumActivePrimaryShards = (
                 self.primary_shards_per_index * self.index_count
             )
-
-            # Update the unassigned shard count and cluster status in the cluster dynamic
             self.cluster_dynamic.NumUnassignedShards = len(
                 self.nodes[node_id].shards_on_node
             )
@@ -200,36 +205,29 @@ class Cluster:
 
             # shards present on that node will be un-assigned
             for shard in self.nodes[node_id].shards_on_node:
-                if shard.type == "Replica":
-                    shard.state = "unassigned"
-                    self.unassigned_shards += 1
-
+                shard.state = "unassigned"
+                self.unassigned_shards += 1
                 self.unassigned_shards_list.append(shard)
 
-            self.nodes[node_id].shards_on_node.clear()
             del self.nodes[node_id]
+            self.total_disk_size_gb-= (self.total_disk_size_gb/self.total_nodes_count)
+            self.total_nodes_count-= 1
             self.update_node_id()
 
         # If sufficient nodes are present
         if self.total_nodes_count >= self.replica_shards_per_index + 1:
-            # Perform shard re-balanching
             self.rebalance_unassigned_shards(unassigned_shard_size)
-
-            # After rebalancing clear the unassigned shards list from cluster
             self.unassigned_shards_list.clear()
             self.unassigned_shards = 0
             self.cluster_dynamic.NumUnassignedShards = 0
             self.cluster_dynamic.NumRelocatingShards = 0
-            self.clear_index_size()
-            # make the cluster state green after re-balancing
             self.status = constants.CLUSTER_STATE_GREEN
             self.active_data_nodes-=nodes
             self.master_eligible_nodes_count-=nodes
             self.cluster_dynamic.ClusterStatus = constants.CLUSTER_STATE_GREEN
             return
 
-        # If sufficient nodes not present
-        # Make the cluster state as yellow
+        # If sufficient nodes not present, set cluster state yellow
         self.status = constants.CLUSTER_STATE_YELLOW
         self.cluster_dynamic.ClusterStatus = "Yellow"
         # Todo - simulate effect on shards
@@ -303,6 +301,7 @@ class Cluster:
 
     def clear_index_size(self):
         for index in self.indices:
+            index.index_size = 0
             for shard in index.shards:
                 shard.shard_size = 0
 
@@ -338,7 +337,6 @@ class Cluster:
 
         for node in self.nodes:
             total_size += node.calculate_total_node_size()
-
         return total_size
 
     def get_unassigned_shard_size(self):
@@ -370,24 +368,29 @@ class Cluster:
         node is added. It takes the rebalance time and simulates the 
         time elapsed for the rebalance of shards
         """
-        rebalance_shard_count =((
+        total_rebalance_shard_count =((
             self.primary_shards_per_index * (self.replica_shards_per_index + 1)
         ) * self.index_count) // self.total_nodes_count
         
         for node_id in existing_node_id_list:
-            for shard in range(rebalance_shard_count//self.total_nodes_count):
+            for shard in range(total_rebalance_shard_count//self.total_nodes_count):
                 rebalancing_shard = self.nodes[node_id].shards_on_node.pop()
                 rebalancing_shard.node_id = new_node_id
                 self.nodes[new_node_id].shards_on_node.append(rebalancing_shard)
                 if rebalance_time != 0:
-                    sleep_time = random.uniform(0, rebalance_time)
+                    sleep_time = random.uniform(0.5 * rebalance_time, rebalance_time)
                     rebalance_time -= sleep_time
                     time.sleep(sleep_time)
                 self.cluster_dynamic.NumRelocatingShards-=1
 
 
     def rebalance_unassigned_shards(self, unassigned_shard_size):
-
+        """
+        Rebalances unassigned shards among available nodes.
+        The time taken for shard rebalancing is simulated
+        using time function
+        :param unassigned_shard_size: size of unassigned shards 
+        """
         # Add time function to simulate the time taken for rebalancing
         rebalance_time = self.time_function_for_rebalancing(unassigned_shard_size)
 
