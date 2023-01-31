@@ -99,7 +99,7 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 		state.RuleTriggered = "scale_up"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledUp := ScaleOut(clusterCfg, usrCfg, state, t)
+		isScaledUp, err := ScaleOut(clusterCfg, usrCfg, state, t)
 		if isScaledUp {
 			log.Info.Println("Scaleup successful")
 			PushToOs(state, "Success", err)
@@ -121,7 +121,7 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 		state.RuleTriggered = "scale_down"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledDown := ScaleIn(clusterCfg, usrCfg, state, t)
+		isScaledDown, err := ScaleIn(clusterCfg, usrCfg, state, t)
 		if isScaledDown {
 			log.Info.Println("Scaledown successful")
 			PushToOs(state, "Success", err)
@@ -249,7 +249,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 	// Check cluster status after the configuration
 	case "provisioning_scaleup_completed":
 		if simFlag {
-			SimulateSharRebalancing("scaleOut", state.NumNodes)
+			SimulateSharRebalancing("scaleOut", state.NumNodes, isAccelerated)
 		}
 		log.Info.Println("Waiting for the cluster to become healthy")
 		time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
@@ -362,7 +362,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 	// Shut down the node
 	case "provisioning_scaledown_completed":
 		if simFlag {
-			SimulateSharRebalancing("scaleIn", state.NumNodes)
+			SimulateSharRebalancing("scaleIn", state.NumNodes, isAccelerated)
 		}
 		log.Info.Println("Wait for the cluster to become healthy and then proceed")
 		CheckClusterHealth(state, usrCfg, t)
@@ -396,7 +396,7 @@ func CheckClusterHealth(state *State, usrCfg config.UserConfig, t *time.Time) {
 	isAccelerated := usrCfg.IsAccelerated
 	for i := 0; i <= 12; i++ {
 		if simFlag {
-			clusterDynamic = cluster_sim.GetClusterCurrent()
+			clusterDynamic = cluster_sim.GetClusterCurrent(isAccelerated)
 		} else {
 			clusterDynamic = cluster.GetClusterCurrent()
 		}
@@ -444,10 +444,19 @@ func CheckClusterHealth(state *State, usrCfg config.UserConfig, t *time.Time) {
 //	Calls the simulator api with the details of nodes added/removed to simulate the shard rebalancing operation
 //
 // Return:
-func SimulateSharRebalancing(operation string, numNode int) {
+func SimulateSharRebalancing(operation string, numNode int, isAccelerated bool) {
 	// Add logic to call the simulator's end point
-	byteStr := fmt.Sprintf("{\"nodes\":%d}", numNode)
+	var byteStr string
+	if isAccelerated {
+		t_now := time.Now()
+		time_now := fmt.Sprintf("%02d:%02d:%02d", t_now.Hour(), t_now.Minute(), t_now.Second())
+		date_now := fmt.Sprintf("%02d-%02d-%d", t_now.Day(), t_now.Month(), t_now.Year())
+		byteStr = fmt.Sprintf("{\"nodes\":%d, \"time_now\":\"%s%s%s\"}", numNode, date_now, " ", time_now)
+	} else {
+		byteStr = fmt.Sprintf("{\"nodes\":%d}", numNode)
+	}
 	var jsonStr = []byte(byteStr)
+	log.Debug.Println(string(jsonStr))
 	var urlLink string
 	if operation == "scaleOut" {
 		urlLink = fmt.Sprintf("http://localhost:5000/provision/addnode")
@@ -475,10 +484,11 @@ func SimulateSharRebalancing(operation string, numNode int) {
 }
 
 // Inputs:
-//	state (*State): Pointer to the State struct
+//
 //	t *time.Time
 //
 // Description:
+//
 //	Accelerate the sleep to the time duration mentioned in the input.
 //
 // Return:
@@ -490,9 +500,11 @@ func fakeSleep(t *time.Time) {
 }
 
 // Inputs:
-//		state (*State): Pointer to the State struct
+//
+//	state (*State): Pointer to the State struct
 //
 // Description:
+//
 //	Sets the CurrentState to normal, updates the other fields with default and updates the opensearch document with the same
 //
 // Return:

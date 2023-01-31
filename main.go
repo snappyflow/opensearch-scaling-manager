@@ -101,7 +101,7 @@ func main() {
 			task.Tasks = configStruct.TaskDetails
 			userCfg := configStruct.UserConfig
 			clusterCfg := configStruct.ClusterDetails
-			recommendationList := task.EvaluateTask(userCfg.MonitorWithSimulator, userCfg.PollingInterval)
+			recommendationList := task.EvaluateTask(userCfg.PollingInterval, userCfg.MonitorWithSimulator, userCfg.IsAccelerated)
 			provision.GetRecommendation(state, recommendationList, clusterCfg, userCfg, t)
 			if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
 				*t = t.Add(time.Minute * 5)
@@ -111,9 +111,13 @@ func main() {
 }
 
 // Input:
-//		pollingInterval (int): Time in seconds which is the interval between each time the check happens
+//
+//	pollingInterval (int): Time in seconds which is the interval between each time the check happens
+//
 // Description:
-//		It periodically checks if the master node is changed and picks up if there was any ongoing provision operation
+//
+//	It periodically checks if the master node is changed and picks up if there was any ongoing provision operation
+//
 // Output:
 func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 	tick := time.Tick(time.Duration(pollingInterval) * time.Second)
@@ -132,7 +136,7 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 				}
 				if strings.Contains(state.CurrentState, "scaleup") {
 					log.Debug.Println("Calling scaleOut")
-					isScaledUp, err := provision.ScaleOut(configStruct.ClusterDetails, configStruct.UserConfig, state)
+					isScaledUp, err := provision.ScaleOut(configStruct.ClusterDetails, configStruct.UserConfig, state, t)
 					if isScaledUp {
 						log.Info.Println("Scaleup completed successfully")
 						provision.PushToOs(state, "Success", err)
@@ -143,7 +147,7 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 					provision.SetBackToNormal(state)
 				} else if strings.Contains(state.CurrentState, "scaledown") {
 					log.Debug.Println("Calling scaleIn")
-					isScaledDown, err := provision.ScaleIn(configStruct.ClusterDetails, configStruct.UserConfig, state)
+					isScaledDown, err := provision.ScaleIn(configStruct.ClusterDetails, configStruct.UserConfig, state, t)
 					if isScaledDown {
 						log.Info.Println("Scaledown completed successfully")
 						provision.PushToOs(state, "Success", err)

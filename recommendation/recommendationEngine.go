@@ -92,12 +92,12 @@ type TaskDetails struct {
 // Return:
 //		([]map[string]string): Returns an array of the recommendations.
 
-func (t TaskDetails) EvaluateTask(simFlag bool, pollingInterval int) []map[string]string {
+func (t TaskDetails) EvaluateTask(pollingInterval int, simFlag, isAccelerated bool) []map[string]string {
 	var recommendationArray []map[string]string
 	var isRecommendedTask bool
 	for _, v := range t.Tasks {
 		var rulesResponsibleMap = make(map[string]string)
-		isRecommendedTask, rulesResponsibleMap[v.TaskName] = v.GetNextTask(simFlag, pollingInterval)
+		isRecommendedTask, rulesResponsibleMap[v.TaskName] = v.GetNextTask(pollingInterval, simFlag, isAccelerated)
 		log.Debug.Println(rulesResponsibleMap)
 		if isRecommendedTask {
 			v.PushToRecommendationQueue()
@@ -125,7 +125,7 @@ func (t TaskDetails) EvaluateTask(simFlag bool, pollingInterval int) []map[strin
 //
 //              (bool, string): Return if a task can be recommended or not(bool) and string which says the rules responsible for that recommendation.
 
-func (t Task) GetNextTask(simFlag bool, pollingInterval int) (bool, string) {
+func (t Task) GetNextTask(pollingInterval int, simFlag, isAccelerated bool) (bool, string) {
 	var isRecommendedTask bool = true
 	var isRecommendedRule bool
 	var rulesResponsible string
@@ -145,7 +145,7 @@ func (t Task) GetNextTask(simFlag bool, pollingInterval int) (bool, string) {
 		// There is a possibility that each rule is taking time.
 		// What if in the case of AND the non matching rule is present at the last.
 		// What if in the case of OR the matching rule is present at the last.
-		isRecommendedRule, err = v.GetNextRule(taskOperation, simFlag, pollingInterval)
+		isRecommendedRule, err = v.GetNextRule(taskOperation, pollingInterval, simFlag, isAccelerated)
 		if err != nil {
 			log.Warn.Println(fmt.Sprintf("%s for the rule: %v", err, v))
 		}
@@ -186,8 +186,8 @@ func (t Task) GetNextTask(simFlag bool, pollingInterval int) (bool, string) {
 // Return:
 // 		(bool, error): Return if a rule is meeting the criteria or not(bool) and error if any
 
-func (r Rule) GetNextRule(taskOperation string, simFlag bool, pollingInterval int) (bool, error) {
-	cluster, err := r.GetMetrics(simFlag, pollingInterval)
+func (r Rule) GetNextRule(taskOperation string, pollingInterval int, simFlag, isAccelerated bool) (bool, error) {
+	cluster, err := r.GetMetrics(pollingInterval, simFlag, isAccelerated)
 	if err != nil {
 		return false, err
 	}
@@ -213,7 +213,7 @@ func (r Rule) GetNextRule(taskOperation string, simFlag bool, pollingInterval in
 // Return:
 //              ([]byte, error): Return marshal form of either MetricStatsCluster or MetricViolatedCountCluster struct([]byte) and error if any
 
-func (r Rule) GetMetrics(simFlag bool, pollingInterval int) ([]byte, error) {
+func (r Rule) GetMetrics(pollingInterval int, simFlag, isAccelerated bool) ([]byte, error) {
 	var clusterStats cluster.MetricStats
 	var clusterCount cluster.MetricViolatedCount
 	var clusterMetric []byte
@@ -223,7 +223,7 @@ func (r Rule) GetMetrics(simFlag bool, pollingInterval int) ([]byte, error) {
 
 	if r.Stat == "AVG" {
 		if simFlag {
-			clusterStats, err = cluster_sim.GetClusterAvg(r.Metric, r.DecisionPeriod)
+			clusterStats, err = cluster_sim.GetClusterAvg(r.Metric, r.DecisionPeriod, isAccelerated)
 		} else {
 			clusterStats, invalidDatapoints, err = cluster.GetClusterAvg(ctx, r.Metric, r.DecisionPeriod, pollingInterval)
 		}
@@ -242,7 +242,7 @@ func (r Rule) GetMetrics(simFlag bool, pollingInterval int) ([]byte, error) {
 		}
 	} else if r.Stat == "COUNT" || r.Stat == "TERM" {
 		if simFlag {
-			clusterCount, err = cluster_sim.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit)
+			clusterCount, err = cluster_sim.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit, isAccelerated)
 		} else {
 			clusterCount, invalidDatapoints, err = cluster.GetClusterCount(ctx, r.Metric, r.DecisionPeriod, pollingInterval, r.Limit)
 		}
