@@ -154,7 +154,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 	var newNodeIp string
 	simFlag := usrCfg.MonitorWithSimulator
 	monitorWithLogs := usrCfg.MonitorWithLogs
-	isAccelerated := usrCfg.isAccelerated
+	isAccelerated := usrCfg.IsAccelerated
 
 	switch state.CurrentState {
 	case "provisioning_scaleup":
@@ -294,7 +294,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 	var nodes map[string]interface{}
 	monitorWithLogs := usrCfg.MonitorWithLogs
 	simFlag := usrCfg.MonitorWithSimulator
-	isAccelerated := usrCfg.isAccelerated
+	isAccelerated := usrCfg.IsAccelerated
 	if state.CurrentState == "provisioning_scaledown" {
 		log.Info.Println("Staring scaleDown process")
 		state.PreviousState = state.CurrentState
