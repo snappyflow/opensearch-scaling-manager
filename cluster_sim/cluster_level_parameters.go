@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"scaling_manager/cluster"
 	"scaling_manager/logger"
@@ -37,12 +38,19 @@ func init() {
 // Return:
 //              (cluster.MetricStats, error): Return a populated (MetricStats) struct, and any (errors).
 
-func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, error) {
+func GetClusterAvg(metricName string, decisionPeriod int, isAccelerated bool) (cluster.MetricStats, error) {
 	var metricStats cluster.MetricStats
-	t_now := time.Now()
-	time_now := fmt.Sprintf("%02d:%02d:%02d", t_now.Hour(), t_now.Minute(), t_now.Second())
-	date_now := fmt.Sprintf("%02d-%02d-%d", t_now.Day(), t_now.Month(), t_now.Year())
-	url := fmt.Sprintf("http://localhost:5000/stats/avg?metric=%s&duration=%d&time_now=%s%s%s", metricName, decisionPeriod, date_now, "%20", time_now)
+	var url string
+	if isAccelerated {
+		t_now := time.Now()
+		time_now := fmt.Sprintf("%02d:%02d:%02d", t_now.Hour(), t_now.Minute(), t_now.Second())
+		date_now := fmt.Sprintf("%02d-%02d-%d", t_now.Day(), t_now.Month(), t_now.Year())
+		url = fmt.Sprintf("http://localhost:5000/stats/avg?metric=%s&duration=%d&time_now=%s%s%s", metricName, decisionPeriod, date_now, "%20", time_now)
+	} else {
+		url = fmt.Sprintf("http://localhost:5000/stats/avg?metric=%s&duration=%d", metricName, decisionPeriod)
+	}
+
+	log.Debug.Println(url)
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -54,7 +62,8 @@ func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, 
 	}
 
 	if resp.StatusCode != 200 {
-		return metricStats, errors.New(resp.Status)
+		response, _ := ioutil.ReadAll(resp.Body)
+		return metricStats, errors.New(string(response))
 	}
 
 	defer resp.Body.Close()
@@ -81,12 +90,19 @@ func GetClusterAvg(metricName string, decisionPeriod int) (cluster.MetricStats, 
 // Return:
 //              (cluster.MetricViolatedCount, error): Return populated MetricViolatedCount struct and error if any.
 
-func GetClusterCount(metricName string, decisonPeriod int, limit float32) (cluster.MetricViolatedCount, error) {
+func GetClusterCount(metricName string, decisonPeriod int, limit float32, isAccelerated bool) (cluster.MetricViolatedCount, error) {
 	var metricViolatedCount cluster.MetricViolatedCount
-	t_now := time.Now()
-	time_now := fmt.Sprintf("%02d:%02d:%02d", t_now.Hour(), t_now.Minute(), t_now.Second())
-	date_now := fmt.Sprintf("%02d-%02d-%d", t_now.Day(), t_now.Month(), t_now.Year())
-	url := fmt.Sprintf("http://localhost:5000/stats/violated?metric=%s&duration=%d&threshold=%f&time_now=%s%s%s", metricName, decisonPeriod, limit, date_now, "%20", time_now)
+	var url string
+	if isAccelerated {
+		t_now := time.Now()
+		time_now := fmt.Sprintf("%02d:%02d:%02d", t_now.Hour(), t_now.Minute(), t_now.Second())
+		date_now := fmt.Sprintf("%02d-%02d-%d", t_now.Day(), t_now.Month(), t_now.Year())
+		url = fmt.Sprintf("http://localhost:5000/stats/violated?metric=%s&duration=%d&threshold=%f&time_now=%s%s%s", metricName, decisonPeriod, limit, date_now, "%20", time_now)
+	} else {
+		url = fmt.Sprintf("http://localhost:5000/stats/violated?metric=%s&duration=%d&threshold=%f", metricName, decisonPeriod, limit)
+	}
+
+	log.Debug.Println(url)
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -99,7 +115,8 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) (clust
 	}
 
 	if resp.StatusCode != 200 {
-		return metricViolatedCount, errors.New(resp.Status)
+		response, _ := ioutil.ReadAll(resp.Body)
+		return metricViolatedCount, errors.New(string(response))
 	}
 
 	defer resp.Body.Close()
@@ -123,10 +140,17 @@ func GetClusterCount(metricName string, decisonPeriod int, limit float32) (clust
 // Return:
 //              (cluster.ClusterDynamic): Return populated ClusterDynamic struct.
 
-func GetClusterCurrent() cluster.ClusterDynamic {
+func GetClusterCurrent(isAccelerated bool) cluster.ClusterDynamic {
 	var clusterStats cluster.ClusterDynamic
-
-	url := fmt.Sprintf("http://localhost:5000/stats/current")
+	var url string
+	if isAccelerated {
+		t_now := time.Now()
+		time_now := fmt.Sprintf("%02d:%02d:%02d", t_now.Hour(), t_now.Minute(), t_now.Second())
+		date_now := fmt.Sprintf("%02d-%02d-%d", t_now.Day(), t_now.Month(), t_now.Year())
+		url = fmt.Sprintf("http://localhost:5000/stats/current?time_now=%s%s%s", date_now, "%20", time_now)
+	} else {
+		url = fmt.Sprintf("http://localhost:5000/stats/current")
+	}
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
