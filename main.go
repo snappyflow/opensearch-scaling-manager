@@ -101,7 +101,7 @@ func main() {
 			task.Tasks = configStruct.TaskDetails
 			userCfg := configStruct.UserConfig
 			clusterCfg := configStruct.ClusterDetails
-			recommendationList := task.EvaluateTask(userCfg.MonitorWithSimulator, userCfg.PollingInterval)
+			recommendationList := task.EvaluateTask(userCfg.PollingInterval, userCfg.MonitorWithSimulator, userCfg.IsAccelerated)
 			provision.GetRecommendation(state, recommendationList, clusterCfg, userCfg, t)
 			if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
 				*t = t.Add(time.Minute * 5)
@@ -122,8 +122,8 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 	for range tick {
 		state.GetCurrentState()
 		currentMaster := utils.CheckIfMaster(context.Background(), "")
-		if state.CurrentState != "normal" {
-			if (!previousMaster && currentMaster) || (currentMaster && firstExecution) {
+		if state.CurrentState != "normal" && currentMaster {
+			if !previousMaster || firstExecution {
 				//                      if firstExecution {
 				firstExecution = false
 				configStruct, err := config.GetConfig("config.yaml")
@@ -133,7 +133,7 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 				}
 				if strings.Contains(state.CurrentState, "scaleup") {
 					log.Debug.Println("Calling scaleOut")
-					isScaledUp := provision.ScaleOut(configStruct.ClusterDetails, configStruct.UserConfig, state)
+					isScaledUp := provision.ScaleOut(configStruct.ClusterDetails, configStruct.UserConfig, state, t)
 					if isScaledUp {
 						log.Info.Println("Scaleup completed successfully")
 					} else {
@@ -141,7 +141,7 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 					}
 				} else if strings.Contains(state.CurrentState, "scaledown") {
 					log.Debug.Println("Calling scaleIn")
-					isScaledDown := provision.ScaleIn(configStruct.ClusterDetails, configStruct.UserConfig, state)
+					isScaledDown := provision.ScaleIn(configStruct.ClusterDetails, configStruct.UserConfig, state, t)
 					if isScaledDown {
 						log.Info.Println("Scaledown completed successfully")
 					} else {

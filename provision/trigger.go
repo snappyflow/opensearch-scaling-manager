@@ -32,7 +32,7 @@ func GetRecommendation(state *State, recommendationQueue []map[string]string, cl
 	scaleRegex := regexp.MustCompile(scaleRegexString)
 	if len(recommendationQueue) > 0 {
 		if usrCfg.MonitorWithSimulator {
-			clusterCurrent = cluster_sim.GetClusterCurrent()
+			clusterCurrent = cluster_sim.GetClusterCurrent(usrCfg.IsAccelerated)
 		} else {
 			clusterCurrent = cluster.GetClusterCurrent()
 		}
