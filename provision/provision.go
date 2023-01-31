@@ -549,7 +549,6 @@ func PushToOs(state *State, status string, err error) {
 		log.Panic.Println("json.Marshal ERROR: ", err)
 		panic(err)
 	}
-	log.Info.Println(string(doc))
 
 	indexResponse, err := osutils.IndexMetrics(context.Background(), doc)
 	if err != nil {
