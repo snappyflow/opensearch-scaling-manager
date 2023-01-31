@@ -54,9 +54,8 @@ class Node:
         """
         size = 0
 
-        if self.node_available:
-            for shard in self.shards_on_node:
-                size+=shard.shard_size
+        for shard in self.shards_on_node:
+            size+=shard.shard_size
 
         return size 
 

@@ -21,6 +21,7 @@ INITIAL_DISK_SPACE_FACTOR = 0.01
 
 HIGH_INGESTION_RATE_GB_PER_HOUR = 60
 
+TIME_FORMAT = "%d-%m-%Y %H:%M:%S"
 # mapping inputs for API endpoints
 CLUSTER_STATE = 'status'
 CPU_USAGE_PERCENT = 'cpu_usage_percent'
@@ -28,13 +29,15 @@ MEMORY_USAGE_PERCENT = 'memory_usage_percent'
 DISK_USAGE_PERCENT = 'disk_usage_percent'
 HEAP_USAGE_PERCENT = 'heap_usage_percent'
 TOTAL_NODES_COUNT = 'total_nodes_count'
+ROLLED_INDEX_SIZE = 'rolled_index_size'
 STAT_REQUEST = {
-    'cpu': CPU_USAGE_PERCENT,
-    'mem': MEMORY_USAGE_PERCENT,
-    'heap': HEAP_USAGE_PERCENT,
+    'CpuUtil': CPU_USAGE_PERCENT,
+    'RamUtil': MEMORY_USAGE_PERCENT,
+    'HeapUtil': HEAP_USAGE_PERCENT,
     'status': CLUSTER_STATE,
     'nodes': TOTAL_NODES_COUNT,
-    'disk': DISK_USAGE_PERCENT
+    'DiskUtil': DISK_USAGE_PERCENT,
+    'rolled_index_size' : ROLLED_INDEX_SIZE
 }  # Todo : Shrinidhi/Manoj Add remaining stats that will be queried from the recommendation engine
 
 CLUSTER_STATE = "status"
@@ -63,5 +66,6 @@ APP_PORT = 5000
 QUERY_ARG_LENGTH_ONE = 1
 QUERY_ARG_LENGTH_TWO = 2
 QUERY_ARG_LENGTH_THREE = 3
+QUERY_ARG_LENGTH_FOUR = 4
 PRIMARY_SHARDS_IN_ROLLOVER_INDEX = 1
 REPLICA_SHARDS_IN_ROLLOVER_INDEX = 1

@@ -52,6 +52,9 @@ class Simulator:
         self.elapsed_time_minutes = elapsed_time_minutes
         self.frequency_minutes = frequency_minutes
         self.searches = searches
+        self.simulated_data_rates = []
+        self.simulated_search_rates = {}
+        self.total_simulation_minutes = 0
 
     def aggregate_data(
             self,
@@ -92,8 +95,10 @@ class Simulator:
             cpu_rate = random.uniform(80,90)
             return  round(cpu_rate,2)
 
-        if data_rate < 0:
+        if data_rate <= 0:
             return round(random.uniform(5,20),2)
+        
+        return round(random.uniform(5,10),2)
 
     def cpu_used_for_ingestion(self, ingestion, search_count, index):
         # cpu_util = ingestion / self.cluster.total_nodes_count * random.randrange(1, 15) / 100 * 100
@@ -135,11 +140,10 @@ class Simulator:
             [constants.CLUSTER_STATE_GREEN] * 20 + [constants.CLUSTER_STATE_YELLOW] * 10 + [constants.CLUSTER_STATE_RED])
     
     def disk_utilization_for_ingestion(self):
-        return self.cluster.calculate_cluster_disk_size()
+            return self.cluster.calculate_cluster_disk_size()
 
     def disk_util_for_index_roll_over(self):
         for index in range(len(self.cluster.indices)):
-
             index_size = self.cluster.indices[index].get_index_primary_size()
 
             if index_size >= self.cluster.index_roll_over_size_gb and not self.cluster.indices[index].rolled_over:
@@ -147,52 +151,44 @@ class Simulator:
                     # Roll over index already exists
                     # Add the size of index with roll over index size
                     self.cluster.indices[self.cluster.rolled_over_index_id].index_size+= index_size
-
+                    self.cluster.indices[self.cluster.rolled_over_index_id].shards[0].shard_size+= index_size
+                    self.cluster.rolled_index_size=self.cluster.indices[self.cluster.rolled_over_index_id].shards[0].shard_size
                     # discard the shards of roll over index
                     for shard in range(len(self.cluster.indices[index].shards)):
-                        # if self.cluster.indices[index].shards[shard].type == "Replica":
+                        self.cluster.indices[index].shards[shard].shard_size = 0
+                
+                # If it is first roll over, discard replicas and retain primaries
+                else:
+                    node_id = self.cluster.get_available_node_id()
+                    id = random.choice(node_id)
+                    for shard in range(len(self.cluster.indices[index].shards)):
+                        #  if self.cluster.indices[index].shards[shard].type == "Replica":
                         del self.cluster.indices[index].shards[0]
-                            # shard-=1
-                    # delete the index
-                    del self.cluster.indices[index]
-                    # create another index with similar configuration
+                        shard-=1
+
+                    # Merge the primaries
+                    shard = self.cluster.indices[index].initialize_shards(1,0)
+                    shard[0].node_id = id
+                    shard[0].index_id = self.cluster.indices[index].index_id
+                    shard[0].shard_size = index_size
+                    self.cluster.nodes[id].shards_on_node.append(shard[0])
+
+                    # Add the primary size to roll over index size
+                    self.cluster.indices[index].index_size+= index_size
+                    self.cluster.rolled_index_size+=index_size
+
+                    # mark the index is rolled over
+                    self.cluster.indices[index].rolled_over = True
+
+                    # set the index roll over id 
+                    self.cluster.rolled_over_index_id = self.cluster.indices[index].index_id
+                    self.cluster.indices[index].shards.append(shard[0])
+
+                    # create a new index with similar configuration of rolled over index
                     self.cluster.create_index(self.cluster.primary_shards_per_index, self.cluster.replica_shards_per_index)
 
                     # allocate the shards
                     self.cluster.allocate_shards_to_node()
-
-                    # update the cluster size after index roll over
-                    self.cluster.cluster_disk_size_used = self.cluster.calculate_cluster_disk_size()
-
-                    return self.cluster.calculate_cluster_disk_size() 
-                
-                # If it is first roll over, discard replicas and retain primaries
-                # Discard the shards of roll over index
-                for shard in range(len(self.cluster.indices[index].shards)):
-                    #  if self.cluster.indices[index].shards[shard].type == "Replica":
-                    del self.cluster.indices[index].shards[0]
-                    shard-=1
-
-                # Merge the primaries
-                shard = self.cluster.indices[index].initialize_shards(1,0)
-                self.cluster.indices[index].shards.append(shard[0])
-                
-                (self.cluster.indices[index].shards[0]).shard_size = index_size
-
-                # Add the primary size to roll over index size
-                self.cluster.indices[index].index_size+= index_size
-
-                # mark the index is rolled over
-                self.cluster.indices[index].rolled_over = True
-
-                # set the index roll over id 
-                self.cluster.rolled_over_index_id = self.cluster.indices[index].index_id
-                
-                # create a new index with similar configuration of rolled over index
-                self.cluster.create_index(self.cluster.primary_shards_per_index, self.cluster.replica_shards_per_index)
-
-                # allocate the shards
-                self.cluster.allocate_shards_to_node()
 
         return self.cluster.calculate_cluster_disk_size()            
 
@@ -203,8 +199,10 @@ class Simulator:
         data in an arbitrary fashion.
         """
         # Repeat the process till data distribution is complete
+
+        # if not resimulation:
         ingestion = (ingestion/60)*self.frequency_minutes
-        while ingestion > 0:
+        while int(ingestion) > 0:
             # Select an index 
             index_id = random.randint(0, len(self.cluster.indices) - 1)
            
@@ -213,7 +211,7 @@ class Simulator:
                 index_id = random.randint(0, len(self.cluster.indices) - 1)
         
             # Choose a part of the data and push it to index
-            data_pushed_to_index_gb = random.uniform(0.5*ingestion, ingestion)
+            data_pushed_to_index_gb = random.uniform(0.1*ingestion, ingestion)
             
             # subtract from the total 
             ingestion-=data_pushed_to_index_gb 
@@ -227,11 +225,14 @@ class Simulator:
                 self.cluster.indices[index_id].shards[shard].shard_size+= data_per_shard_gb
 
     @timeit
-    def run(self, duration_minutes, start_time="00_00_00"):
+    def run(self, duration_minutes, start_time="00_00_00", resimulate=False,time=None):
         resultant_cluster_objects = []
-        data_x, data_y = self.aggregate_data(duration_minutes)
-        data_x1, data_y1 = self.aggregate_data_searches(duration_minutes)
-        now = datetime.now()
+
+        if time==None:
+            now = datetime.now()
+        else:
+            now=time
+            
         if start_time == "00_00_00":
             date_obj = now - timedelta(
                 hours=now.hour,
@@ -241,6 +242,23 @@ class Simulator:
             )
         else:
             date_obj = now
+
+        if resimulate:
+            start_time_simulate = self.total_simulation_minutes - duration_minutes
+            start_time_minute = int((start_time_simulate - (start_time_simulate % self.frequency_minutes))/self.frequency_minutes)
+            data_y = self.simulated_data_rates[start_time_minute-1:]
+            data_y1 ={}
+            data_y1['simple'] = self.simulated_search_rates['simple'][start_time_minute-1:]
+            data_y1["medium"] = self.simulated_search_rates['medium'][start_time_minute-1:]
+            data_y1['complex'] = self.simulated_search_rates['complex'][start_time_minute-1:]
+
+        else:
+            data_x, data_y = self.aggregate_data(duration_minutes, start_time)
+            data_x1, data_y1 = self.aggregate_data_searches(duration_minutes,start_time)
+            self.simulated_data_rates = data_y.copy()
+            self.simulated_search_rates = data_y1.copy()
+            self.total_simulation_minutes = duration_minutes
+
         for index, instantaneous_data_ingestion_rate in enumerate(data_y):
             self.cluster._ingestion_rate = instantaneous_data_ingestion_rate
             self.cluster._simple_query_rate = data_y1["simple"][index]
@@ -256,10 +274,10 @@ class Simulator:
             self.cluster.status = self.cluster_state_for_ingestion(instantaneous_data_ingestion_rate)
             self.distribute_load(instantaneous_data_ingestion_rate)
             # Todo: simulate effect on remaining cluster parameters
-            self.cluster.cluster_disk_size_used+= self.disk_utilization_for_ingestion()
+            self.cluster.cluster_disk_size_used = self.disk_utilization_for_ingestion()
             self.cluster.cluster_disk_size_used = self.disk_util_for_index_roll_over()
-            self.cluster.cluster_disk_size_used+= (constants.INITIAL_DISK_SPACE_FACTOR * self.cluster.total_disk_size_gb) 
-            self.cluster.disk_usage_percent = min((self.cluster.cluster_disk_size_used/self.cluster.total_disk_size_gb) * 100, 100)   
+            # self.cluster.cluster_disk_size_used+= (constants.INITIAL_DISK_SPACE_FACTOR * self.cluster.total_disk_size_gb)
+            self.cluster.disk_usage_percent = min((self.cluster.cluster_disk_size_used/self.cluster.total_disk_size_gb) * 100, 100)  
             date_time = date_obj + timedelta(minutes=self.elapsed_time_minutes)
             self.cluster.date_time = date_time
             self.cluster.active_primary_shards = self.cluster.primary_shards_per_index * self.cluster.index_count
@@ -278,36 +296,11 @@ class Simulator:
         # print("======= Size of Indexes ========")
         # for index in range(len(self.cluster.indices)):
         #     print("Size of index "+str(index)+" : ",self.cluster.indices[index].get_index_primary_size())
+
+        print("========= Index Roll over size ========")
+        print(self.cluster.rolled_index_size)
         
         print("========= Size of Cluster ========")
         print(self.cluster.cluster_disk_size_used)
-
         print("")
         return resultant_cluster_objects
-
-    @staticmethod
-    def create_provisioning_lock():
-        lock_file_path = os.path.join(get_source_code_dir(), constants.PROVISION_LOCK_FILE_NAME)
-        expiry_time = datetime.now() + timedelta(seconds=random.randint(15, 65))
-        with open(lock_file_path, 'w') as file_handler:
-            file_handler.write(expiry_time.isoformat())
-        return expiry_time.isoformat()
-
-    @staticmethod
-    def is_provision_in_progress():
-        lock_file_path = os.path.join(get_source_code_dir(), constants.PROVISION_LOCK_FILE_NAME)
-        if os.path.exists(lock_file_path):
-            with open(lock_file_path, 'r') as file_handler:
-                if datetime.now() > datetime.fromisoformat(file_handler.read()):
-                    file_handler.close()
-                    Simulator.remove_provisioning_lock()
-                    return False
-                else:
-                    return True
-        return False
-
-    @staticmethod
-    def remove_provisioning_lock():
-        lock_file_path = os.path.join(get_source_code_dir(), constants.PROVISION_LOCK_FILE_NAME)
-        if os.path.exists(lock_file_path):
-            os.remove(lock_file_path)
