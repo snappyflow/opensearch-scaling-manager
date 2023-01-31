@@ -115,7 +115,6 @@ func main() {
 // Description:
 //		It periodically checks if the master node is changed and picks up if there was any ongoing provision operation
 // Output:
-
 func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 	tick := time.Tick(time.Duration(pollingInterval) * time.Second)
 	previousMaster := utils.CheckIfMaster(context.Background(), "")
@@ -133,20 +132,26 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 				}
 				if strings.Contains(state.CurrentState, "scaleup") {
 					log.Debug.Println("Calling scaleOut")
-					isScaledUp := provision.ScaleOut(configStruct.ClusterDetails, configStruct.UserConfig, state)
+					isScaledUp, err := provision.ScaleOut(configStruct.ClusterDetails, configStruct.UserConfig, state)
 					if isScaledUp {
 						log.Info.Println("Scaleup completed successfully")
+						provision.PushToOs(state, "Success", err)
 					} else {
-						log.Warn.Println("Scaleup failed")
+						log.Warn.Println("Scaleup failed", err)
+						provision.PushToOs(state, "Failed", err)
 					}
+					provision.SetBackToNormal(state)
 				} else if strings.Contains(state.CurrentState, "scaledown") {
 					log.Debug.Println("Calling scaleIn")
-					isScaledDown := provision.ScaleIn(configStruct.ClusterDetails, configStruct.UserConfig, state)
+					isScaledDown, err := provision.ScaleIn(configStruct.ClusterDetails, configStruct.UserConfig, state)
 					if isScaledDown {
 						log.Info.Println("Scaledown completed successfully")
+						provision.PushToOs(state, "Success", err)
 					} else {
-						log.Warn.Println("Scaledown failed")
+						log.Warn.Println("Scaledown failed", err)
+						provision.PushToOs(state, "Failed", err)
 					}
+					provision.SetBackToNormal(state)
 				}
 				if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
 					*t = t.Add(time.Minute * 5)
