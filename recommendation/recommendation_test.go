@@ -4,9 +4,6 @@ import (
 	"net/http"
 	"testing"
 
-	// "time"
-	// "fmt"
-
 	"github.com/jarcoal/httpmock"
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/opensearchtransport"
@@ -22,9 +19,6 @@ type Client struct {
 func TestTaskNotRecommendedOr(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
-	// t_now := time.Now()
-	// time_now := fmt.Sprintf("%02d:%02d:%02d", t_now.Hour(), t_now.Minute(), t_now.Second())
-	// date_now := fmt.Sprintf("%02d-%02d-%d", t_now.Day(), t_now.Month(), t_now.Year())
 
 	yamlString := `{task_name: scale_up_by_1, operator: OR, rules: [{metric: CpuUtil, limit: 2, stat: AVG, decision_period: 9}, {metric: MemUtil, limit: 59, stat: AVG, decision_period: 9}]}`
 	var task = new(Task)
@@ -55,7 +49,7 @@ func TestTaskNotRecommendedOr(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -83,7 +77,7 @@ func TestTaskRecommendedOr(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, true, isRecommendedTask)
 }
@@ -111,7 +105,7 @@ func TestTaskRecommendedOr1(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, true, isRecommendedTask)
 }
@@ -150,7 +144,7 @@ func TestTaskNotRecommendedOr1(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -189,7 +183,7 @@ func TestTaskNotRecommendedAnd(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -228,7 +222,7 @@ func TestTaskNotRecommendedAnd1(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -267,7 +261,7 @@ func TestTaskNotRecommendedAnd2(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -306,7 +300,7 @@ func TestTaskRecommendedAnd(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, true, isRecommendedTask)
 }
@@ -345,7 +339,7 @@ func TestTaskRecommendedAnd1(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, true, isRecommendedTask)
 }
@@ -380,7 +374,7 @@ func TestTaskNotEnoughDataAnd(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -426,7 +420,7 @@ func TestTaskNotEnoughDataAnd1(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -461,7 +455,7 @@ func TestTaskNotEnoughDataOr(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -496,7 +490,7 @@ func TestTaskDecisionPeriodSmallAnd(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -531,7 +525,7 @@ func TestTaskDecisionPeriodSmallOr(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -566,7 +560,7 @@ func TestTaskNotRecommendedOrCountTerm(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -602,7 +596,7 @@ func TestTaskRecommendedOrCountTerm(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -637,7 +631,7 @@ func TestTaskNotRecommendedOrCountTerm1(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -673,7 +667,7 @@ func TestTaskRecommendedOrCountTerm1(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -708,7 +702,7 @@ func TestTaskRecommendedAndCountTerm(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -742,7 +736,7 @@ func TestTaskNotRecommendedAndCountTerm(t *testing.T) {
 			return resp, err
 		},
 	)
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -777,7 +771,7 @@ func TestTaskRecommendedAndCountTerm1(t *testing.T) {
 		},
 	)
 
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
@@ -811,7 +805,7 @@ func TestTaskNotRecommendedAndCountTerm1(t *testing.T) {
 			return resp, err
 		},
 	)
-	isRecommendedTask, _ := task.GetNextTask(true, 5)
+	isRecommendedTask, _ := task.GetNextTask(5, true, false)
 	t.Log(isRecommendedTask)
 	assert.Equal(t, false, isRecommendedTask)
 }
