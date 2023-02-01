@@ -263,6 +263,7 @@ func GetClusterAvg(ctx context.Context, metricName string, decisionPeriod int, p
 		log.Error.Println("Can't query for data points!", dpErr)
 		return metricStats, invalidDatapoints, dpErr
 	}
+	defer dataPointsResp.Body.Close()
 
 	var dpRespInterface map[string]interface{}
 
@@ -286,6 +287,7 @@ func GetClusterAvg(ctx context.Context, metricName string, decisionPeriod int, p
 		log.Error.Println("Cannot fetch cluster average: ", err)
 		return metricStats, invalidDatapoints, err
 	}
+	defer searchResp.Body.Close()
 	//Interface to dump the response
 	var queryResultInterface map[string]interface{}
 
@@ -386,6 +388,7 @@ func GetClusterCount(ctx context.Context, metricName string, decisionPeriod int,
 		log.Error.Println("Can't query for data points!", dpErr)
 		return metricViolatedCount, invalidDatapoints, dpErr
 	}
+	defer dataPointsResp.Body.Close()
 
 	var dpRespInterface map[string]interface{}
 
@@ -409,6 +412,7 @@ func GetClusterCount(ctx context.Context, metricName string, decisionPeriod int,
 		log.Error.Println("Cannot fetch cluster average: ", err)
 		return metricViolatedCount, invalidDatapoints, err
 	}
+	defer searchResp.Body.Close()
 
 	//Interface to dump the response
 	var queryResultInterface map[string]interface{}
@@ -446,6 +450,7 @@ func GetClusterCurrent() ClusterDynamic {
 	if err != nil {
 		log.Error.Println("cluster Stats fetch ERROR:", err)
 	}
+	defer resp.Body.Close()
 
 	//decode and dump the cluster stats response into interface
 	decodeErr := json.NewDecoder(resp.Body).Decode(&clusterStatsInterface)
@@ -462,6 +467,7 @@ func GetClusterCurrent() ClusterDynamic {
 	if err != nil {
 		log.Error.Println("cluster Health fetch ERROR:", err)
 	}
+	defer clusterHealthRequest.Body.Close()
 
 	//Decode the response and dump the response into the cluster health interface
 	decodeErr2 := json.NewDecoder(clusterHealthRequest.Body).Decode(&clusterHealthInterface)
