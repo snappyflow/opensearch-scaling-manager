@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"os/exec"
 	"scaling_manager/config"
 	fetch "scaling_manager/fetchmetrics"
 	"scaling_manager/logger"
@@ -11,6 +14,8 @@ import (
 	utils "scaling_manager/utilities"
 	"strings"
 	"time"
+
+	"github.com/tkuchiki/faketime"
 )
 
 // A global variable to maintain the state of current provisioning at any point by updating this in OS document.
@@ -66,15 +71,23 @@ func init() {
 //
 // Return:
 func main() {
+	var t = new(time.Time)
+	t_now := time.Now()
+	*t = time.Date(t_now.Year(), t_now.Month(), t_now.Day(), 0, 0, 0, 0, time.UTC)
 	configStruct, err := config.GetConfig("config.yaml")
 	if err != nil {
 		log.Panic.Println("The recommendation can not be made as there is an error in the validation of config file.", err)
 		panic(err)
 	}
 	// A periodic check if there is a change in master node to pick up incomplete provisioning
-	go periodicProvisionCheck(configStruct.UserConfig.PollingInterval)
+	go periodicProvisionCheck(configStruct.UserConfig.PollingInterval, t)
 	ticker := time.Tick(time.Duration(configStruct.UserConfig.PollingInterval) * time.Second)
 	for range ticker {
+		if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
+			f := faketime.NewFaketimeWithTime(*t)
+			defer f.Undo()
+			f.Do()
+		}
 		state.GetCurrentState()
 		// The recommendation and provisioning should only happen on master node
 		if utils.CheckIfMaster(context.Background(), "") && state.CurrentState == "normal" {
@@ -91,23 +104,30 @@ func main() {
 			task.Tasks = configStruct.TaskDetails
 			userCfg := configStruct.UserConfig
 			clusterCfg := configStruct.ClusterDetails
-			recommendationList := task.EvaluateTask(userCfg.MonitorWithSimulator, userCfg.PollingInterval)
-			provision.GetRecommendation(state, recommendationList, clusterCfg, userCfg)
+			recommendationList := task.EvaluateTask(userCfg.PollingInterval, userCfg.MonitorWithSimulator, userCfg.IsAccelerated)
+			provision.GetRecommendation(state, recommendationList, clusterCfg, userCfg, t)
+			if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
+				*t = t.Add(time.Minute * 5)
+			}
 		}
 	}
 }
 
 // Input:
-//		pollingInterval (int): Time in seconds which is the interval between each time the check happens
+//
+//	pollingInterval (int): Time in seconds which is the interval between each time the check happens
+//
 // Description:
-//		It periodically checks if the master node is changed and picks up if there was any ongoing provision operation
+//
+//	It periodically checks if the master node is changed and picks up if there was any ongoing provision operation
+//
 // Output:
-
-func periodicProvisionCheck(pollingInterval int) {
+func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 	tick := time.Tick(time.Duration(pollingInterval) * time.Second)
 	previousMaster := utils.CheckIfMaster(context.Background(), "")
 	for range tick {
 		state.GetCurrentState()
+		log.Info.Println("No of open files: ", countOpenFiles())
 		currentMaster := utils.CheckIfMaster(context.Background(), "")
 		if state.CurrentState != "normal" && currentMaster {
 			if !previousMaster || firstExecution {
@@ -120,7 +140,7 @@ func periodicProvisionCheck(pollingInterval int) {
 				}
 				if strings.Contains(state.CurrentState, "scaleup") {
 					log.Debug.Println("Calling scaleOut")
-					isScaledUp, err := provision.ScaleOut(configStruct.ClusterDetails, configStruct.UserConfig, state)
+					isScaledUp, err := provision.ScaleOut(configStruct.ClusterDetails, configStruct.UserConfig, state, t)
 					if isScaledUp {
 						log.Info.Println("Scaleup completed successfully")
 						provision.PushToOs(state, "Success", err)
@@ -131,7 +151,7 @@ func periodicProvisionCheck(pollingInterval int) {
 					provision.SetBackToNormal(state)
 				} else if strings.Contains(state.CurrentState, "scaledown") {
 					log.Debug.Println("Calling scaleIn")
-					isScaledDown, err := provision.ScaleIn(configStruct.ClusterDetails, configStruct.UserConfig, state)
+					isScaledDown, err := provision.ScaleIn(configStruct.ClusterDetails, configStruct.UserConfig, state, t)
 					if isScaledDown {
 						log.Info.Println("Scaledown completed successfully")
 						provision.PushToOs(state, "Success", err)
@@ -141,9 +161,25 @@ func periodicProvisionCheck(pollingInterval int) {
 					}
 					provision.SetBackToNormal(state)
 				}
+				if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
+					*t = t.Add(time.Minute * 5)
+				}
 			}
 		}
 		// Update the previousMaster for next loop
 		previousMaster = currentMaster
 	}
+}
+
+// To be removed after testing
+func countOpenFiles() int {
+	out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("lsof -p %v", os.Getpid())).Output()
+	if err != nil {
+		log.Fatal.Println(err)
+	}
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		log.Info.Println(line)
+	}
+	return len(lines) - 1
 }

@@ -41,6 +41,7 @@ func (s *State) GetCurrentState() {
 		log.Panic.Println("failed to search document: ", err)
 		panic(err)
 	}
+	defer searchResponse.Body.Close()
 	var stateInterface map[string]interface{}
 	log.Debug.Println("Get resp: ", searchResponse)
 	if searchResponse.Status() == "404 Not Found" {
@@ -88,5 +89,6 @@ func (s *State) UpdateState() {
 		log.Panic.Println("failed to update document: ", err)
 		panic(err)
 	}
+	defer updateResponse.Body.Close()
 	log.Debug.Println("Update resp: ", updateResponse)
 }
