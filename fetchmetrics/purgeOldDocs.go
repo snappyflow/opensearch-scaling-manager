@@ -6,9 +6,13 @@ import (
 )
 
 // Input:
-//      ctx (context.Context): Request-scoped data that transits processes and APIs.
-// Description: 
-//      Deletes documents that older than 72 hours
+//
+//	ctx (context.Context): Request-scoped data that transits processes and APIs.
+//
+// Description:
+//
+//	Deletes documents that older than 72 hours
+//
 // Return:
 func DeleteOldDocs(ctx context.Context) {
 	var jsonQuery = []byte(`{
@@ -29,5 +33,6 @@ func DeleteOldDocs(ctx context.Context) {
 		log.Panic.Println("Unable to execute request: ", err)
 		panic(err)
 	}
+	defer deleteResp.Body.Close()
 	log.Info.Println("Document deleted: ", deleteResp)
 }
