@@ -124,19 +124,19 @@ class Cluster:
 
     # TODO: Define methods for controlling cluster behaviour,
     #  node addition, removal etc
-    def add_nodes(self, nodes):
+    def add_nodes(self, nodes, accelerate=False):
         """
         Adds node to cluster and performs shards rebalancing.
         Cluster state will be Yellow till rebalancing is complete.
         """
         # Update the total node count in cluster dynamic
+        self.cluster_dynamic.ClusterStatus = constants.CLUSTER_STATE_YELLOW
         self.cluster_dynamic.NumMasterNodes = self.master_eligible_nodes_count + nodes
         self.cluster_dynamic.NumActiveDataNodes = self.active_data_nodes + nodes
         self.cluster_dynamic.NumNodes = self.total_nodes_count + nodes
         self.cluster_dynamic.NumActivePrimaryShards = (
             self.primary_shards_per_index * self.index_count
         )
-        self.cluster_dynamic.ClusterStatus = constants.CLUSTER_STATE_YELLOW
         self.cluster_dynamic.NumActiveShards = (
             self.primary_shards_per_index * (self.replica_shards_per_index + 1)
         ) * self.index_count
@@ -151,7 +151,7 @@ class Cluster:
             self.nodes.append(new_node)
             rebalancing_size = self.cluster_disk_size_used / (self.total_nodes_count + nodes)
             self.total_disk_size_gb+= (self.total_disk_size_gb/self.total_nodes_count)
-            rebalance_time = self.time_function_for_rebalancing(rebalancing_size)
+            rebalance_time = self.time_function_for_rebalancing(rebalancing_size,accelerate)
             self.rebalance_shards(rebalance_time,existing_node_id, len(existing_node_id))
             self.total_nodes_count += 1
         self.cluster_dynamic.NumRelocatingShards = 0
@@ -165,7 +165,7 @@ class Cluster:
         self.status = constants.CLUSTER_STATE_YELLOW
         # Todo - simulate effect on shards
 
-    def remove_nodes(self, nodes):
+    def remove_nodes(self, nodes, accelerate):
         """
         Removes node from cluster, rebalances unassigned shards due to
         removed node. If sufficient nodes are not present to allocate
@@ -216,7 +216,7 @@ class Cluster:
 
         # If sufficient nodes are present
         if self.total_nodes_count >= self.replica_shards_per_index + 1:
-            self.rebalance_unassigned_shards(unassigned_shard_size)
+            self.rebalance_unassigned_shards(unassigned_shard_size, accelerate)
             self.unassigned_shards_list.clear()
             self.unassigned_shards = 0
             self.cluster_dynamic.NumUnassignedShards = 0
@@ -348,7 +348,7 @@ class Cluster:
 
         return size
 
-    def time_function_for_rebalancing(self, unassigned_shard_size):
+    def time_function_for_rebalancing(self, unassigned_shard_size,accelerate):
         """
         Simulates the time taken for rebalancing the shard
         The time evaluation is based on the size of unassigned shards.
@@ -359,6 +359,8 @@ class Cluster:
         5 minutes to rebalance, it takes 1/12 seconds per GB of data
         The time to rebalance is evaluated for unassigned shards size.
         """
+        if accelerate:
+            return random.randint(0, 5)
         rebalancing_time = unassigned_shard_size * (1 / 12)
         return rebalancing_time
 
@@ -378,13 +380,13 @@ class Cluster:
                 rebalancing_shard.node_id = new_node_id
                 self.nodes[new_node_id].shards_on_node.append(rebalancing_shard)
                 if rebalance_time != 0:
-                    sleep_time = random.uniform(0.5 * rebalance_time, rebalance_time)
+                    sleep_time = random.uniform(0, rebalance_time)
                     rebalance_time -= sleep_time
                     time.sleep(sleep_time)
                 self.cluster_dynamic.NumRelocatingShards-=1
 
 
-    def rebalance_unassigned_shards(self, unassigned_shard_size):
+    def rebalance_unassigned_shards(self, unassigned_shard_size, accelerate):
         """
         Rebalances unassigned shards among available nodes.
         The time taken for shard rebalancing is simulated
@@ -392,7 +394,7 @@ class Cluster:
         :param unassigned_shard_size: size of unassigned shards 
         """
         # Add time function to simulate the time taken for rebalancing
-        rebalance_time = self.time_function_for_rebalancing(unassigned_shard_size)
+        rebalance_time = self.time_function_for_rebalancing(unassigned_shard_size, accelerate)
 
         # Assign the shards to the available nodes on the cluster
         for shard in self.unassigned_shards_list:
