@@ -3,6 +3,7 @@ package fetchmetrics
 import (
 	"context"
 	osutils "scaling_manager/opensearchUtils"
+	"strconv"
 )
 
 // Input:
@@ -14,20 +15,20 @@ import (
 //	Deletes documents that older than 72 hours
 //
 // Return:
-func DeleteOldDocs(ctx context.Context) {
+func DeleteOldDocs(ctx context.Context, purgeAfter int) {
 	var jsonQuery = []byte(`{
-                "query": {
-                  "bool": {
-                          "filter": {
-                                  "range": {
-                                                  "Timestamp": {
-                                                                  "lte":"now-72h"
-                                                  }
-                                          }
-                                  }
-                          }
-                  }
-          }`)
+				  "query": {
+				    "bool": {
+				      "filter": {
+				        "range": {
+				          "Timestamp": {
+				            "lte": "now-` + strconv.Itoa(purgeAfter) + `h"
+				          }
+				        }
+				      }
+				    }
+				  }
+				}`)
 	deleteResp, err := osutils.DeleteWithQuery(ctx, jsonQuery)
 	if err != nil {
 		log.Panic.Println("Unable to execute request: ", err)
