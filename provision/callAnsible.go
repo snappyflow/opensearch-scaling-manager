@@ -36,7 +36,7 @@ func CallScaleUp(username string, hosts string) error {
 	}
 
 	playbook := &playbook.AnsiblePlaybookCmd{
-		Playbooks:                  []string{"provision/ansible_scripts/scaleUpPlaybook.yml"},
+		Playbooks:                  []string{"ansible_scripts/scaleUpPlaybook.yml"},
 		ConnectionOptions:          ansiblePlaybookConnectionOptions,
 		PrivilegeEscalationOptions: ansiblePlaybookPrivilegeEscalationOptions,
 		Options:                    ansiblePlaybookOptions,
@@ -82,7 +82,7 @@ func CallScaleDown(username string, hosts string) error {
 	}
 
 	playbook := &playbook.AnsiblePlaybookCmd{
-		Playbooks:                  []string{"provision/ansible_scripts/scaleDownPlaybook.yml"},
+		Playbooks:                  []string{"ansible_scripts/scaleDownPlaybook.yml"},
 		ConnectionOptions:          ansiblePlaybookConnectionOptions,
 		PrivilegeEscalationOptions: ansiblePlaybookPrivilegeEscalationOptions,
 		Options:                    ansiblePlaybookOptions,

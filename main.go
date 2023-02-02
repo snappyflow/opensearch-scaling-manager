@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"os/exec"
 	"scaling_manager/config"
 	fetch "scaling_manager/fetchmetrics"
 	"scaling_manager/logger"
@@ -52,7 +55,7 @@ func init() {
 	userCfg := configStruct.UserConfig
 
 	if !userCfg.MonitorWithSimulator {
-		go fetch.FetchMetrics(int(userCfg.PollingInterval))
+		go fetch.FetchMetrics(userCfg.PollingInterval, userCfg.PurgeAfter)
 	}
 }
 
@@ -124,6 +127,7 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 	previousMaster := utils.CheckIfMaster(context.Background(), "")
 	for range tick {
 		state.GetCurrentState()
+		log.Info.Println("No of open files: ", countOpenFiles())
 		currentMaster := utils.CheckIfMaster(context.Background(), "")
 		if state.CurrentState != "normal" && currentMaster {
 			if !previousMaster || firstExecution {
@@ -165,4 +169,17 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 		// Update the previousMaster for next loop
 		previousMaster = currentMaster
 	}
+}
+
+// To be removed after testing
+func countOpenFiles() int {
+	out, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("lsof -p %v", os.Getpid())).Output()
+	if err != nil {
+		log.Fatal.Println(err)
+	}
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		log.Info.Println(line)
+	}
+	return len(lines) - 1
 }
