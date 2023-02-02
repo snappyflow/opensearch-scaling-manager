@@ -2,6 +2,7 @@
 user_config:
   monitor_with_logs: true
   monitor_with_simulator: false
+  purge_old_docs_after_hours: 72
   polling_interval_in_secs: 10
   is_accelerated: false
 cluster_details:

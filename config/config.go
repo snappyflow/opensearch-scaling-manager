@@ -54,6 +54,7 @@ type ClusterDetails struct {
 type UserConfig struct {
 	MonitorWithLogs      bool `yaml:"monitor_with_logs"`
 	MonitorWithSimulator bool `yaml:"monitor_with_simulator"`
+	PurgeAfter           int  `yaml:"purge_old_docs_after_hours"`
 	PollingInterval      int  `yaml:"polling_interval_in_secs"`
 	IsAccelerated        bool `yaml:"is_accelerated"`
 }
