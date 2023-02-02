@@ -60,6 +60,12 @@ def set_provision_status(provisioning):
     global is_provisioning
     is_provisioning = provisioning
 
+def get_accelerate_flag():
+    return accelerate_flag
+
+def set_accelerate_flag(is_accelerated):
+    global accelerate_flag
+    accelerate_flag = is_accelerated
 
 def get_first_data_point_time():
     """
@@ -218,7 +224,9 @@ def add_node_and_rebalance(nodes, time=None):
         hour = time.hour
         minutes = str(time.now().minute) if time.now().minute > 9 else "0" + str(time.now().minute)
     reset_load(sim,time)
-    sim.cluster.add_nodes(nodes)
+    is_accelerated = get_accelerate_flag()
+    sim.cluster.add_nodes(nodes, is_accelerated)
+    set_accelerate_flag(False)
     cluster_objects = sim.run(duration, str(hour) + "_" + minutes + "_00",True,time)
     overwrite_after_node_count_change(cluster_objects,time)
     is_provisioning = get_provision_status()
@@ -253,7 +261,9 @@ def rem_node_and_rebalance(nodes,time=None):
         hour = time.hour
         minutes = str(time.now().minute) if time.now().minute > 9 else "0" + str(time.now().minute)
     reset_load(sim,time)
-    sim.cluster.remove_nodes(nodes)
+    is_accelerated = get_accelerate_flag()
+    sim.cluster.remove_nodes(nodes, is_accelerated)
+    set_accelerate_flag(False)
     # sim.cluster.cluster_disk_size_used = sim.cluster.calculate_cluster_disk_size()
     cluster_objects = sim.run(duration, str(hour) + "_" + minutes + "_00",True,time)
     overwrite_after_node_count_change(cluster_objects,time)
@@ -427,7 +437,9 @@ def current_all():
     if metric!= None:
         try:
             if constants.STAT_REQUEST[metric] == constants.CLUSTER_STATE:
-                if Simulator.is_provision_in_progress():
+                # is_provisioning = get_provision_status()
+                if get_provision_status():
+                # if Simulator.is_provision_in_progress():
                     return jsonify({"current": constants.CLUSTER_STATE_YELLOW})
             # Fetches the stat_name for the latest poll
             current_stat = (
@@ -499,6 +511,7 @@ def add_node():
     try: 
             time_now_arg = request.json['time_now']
             time_now = datetime.strptime(time_now_arg, constants.TIME_FORMAT)
+            set_accelerate_flag(True)
     except:
             time_now = None
     add_node_thread = Thread(target=add_node_and_rebalance, args=(nodes,time_now))
@@ -542,6 +555,7 @@ def remove_node():
     try: 
             time_now_arg = request.json['time_now']
             time_now = datetime.strptime(time_now_arg, constants.TIME_FORMAT)
+            set_accelerate_flag(True)
     except:
             time_now = None
     rem_node_thread = Thread(target=rem_node_and_rebalance, args=(nodes,time_now))
@@ -566,6 +580,7 @@ if __name__ == "__main__":
     cluster_dynamic = ClusterDynamic()
     # remove any existing provision lock
     is_provisioning = False
+    accelerate_flag = False
     # get configs from config yaml
     configs = parse_config(
         os.path.join(get_source_code_dir(), constants.CONFIG_FILE_PATH)
@@ -580,7 +595,8 @@ if __name__ == "__main__":
     )
     sim.cluster.cluster_dynamic = cluster_dynamic
     # generate the data points from simulator
-    cluster_objects = sim.run(24 * 60 * 3)
+    days = len(sim.data_ingestion.states)
+    cluster_objects = sim.run(24 * 60 * days)
     # save the generated data points to png
     plot_data_points(cluster_objects)
     # save data points inside db
