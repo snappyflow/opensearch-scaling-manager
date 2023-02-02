@@ -219,7 +219,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 				fakeSleep(t)
 			}
 		} else {
-			hostsFileName := "provision/ansible_scripts/hosts"
+			hostsFileName := "ansible_scripts/hosts"
 			username := "ubuntu"
 			f, err := os.OpenFile(hostsFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 			if err != nil {
@@ -329,7 +329,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 				fakeSleep(t)
 			}
 		} else {
-			hostsFileName := "provision/ansible_scripts/hosts"
+			hostsFileName := "ansible_scripts/hosts"
 			username := "ubuntu"
 			f, err := os.OpenFile(hostsFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 			if err != nil {
