@@ -54,8 +54,8 @@ type ClusterDetails struct {
 type UserConfig struct {
 	MonitorWithLogs      bool `yaml:"monitor_with_logs"`
 	MonitorWithSimulator bool `yaml:"monitor_with_simulator"`
-	PollingInterval      int  `yaml:"polling_interval_in_secs"`
 	PurgeAfter           int  `yaml:"purge_old_docs_after_hours"`
+	PollingInterval      int  `yaml:"polling_interval_in_secs"`
 }
 
 // This struct contains the data structure to parse the configuration file.
