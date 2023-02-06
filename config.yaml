@@ -11,8 +11,8 @@ cluster_details:
   cluster_name: cluster.1
   # opensearch credentials
   os_credentials:
-    os_admin_username: elastic
-    os_admin_password: changeMe
+    os_admin_username: admin
+    os_admin_password: admin
   # ssh login username
   os_user: ubuntu
   # opensearch version
