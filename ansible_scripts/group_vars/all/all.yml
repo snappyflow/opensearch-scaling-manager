@@ -12,21 +12,9 @@ os_master_nodes: |-
         {%- endfor %}
 
 ## Common opensearch configuration parameters ##
-#
-
-# os_cluster_name: "{{ cluster_name }}"
-os_cluster_name: "opensearch-es-cluster"
 
 # opensearch download
 os_download_url: https://artifacts.opensearch.org/releases/bundle/opensearch
-
-# opensearch version
-os_version: "2.3.0"
-
-# Configure hostnames for opensearch nodes
-# It is required to configure SSL
-# Example es1.example.com, es2.example.com
-domain_name: snappyflow.com
 
 # Cluster type whether its single node or multi-node
 cluster_type: multi-node
@@ -35,17 +23,10 @@ cluster_type: multi-node
 xms_value: "{{ RAMGB | int }}"
 xmx_value: "{{ RAMGB | int }}"
 
-# Default opensearch user info. To replaced later from config
-os_user: ubuntu
-admin_user: admin
-admin_password: admin
-
-
-os_home: /usr/share/opensearch
-os_conf_dir: /usr/share/opensearch/config
-os_plugin_bin_path: /usr/share/opensearch/bin/opensearch-plugin
-os_sec_plugin_conf_path: /usr/share/opensearch/config/opensearch-security
-os_sec_plugin_tools_path: /usr/share/opensearch/plugins/opensearch-security/tools
+os_conf_dir: "{{ os_home }}/config"
+os_plugin_bin_path: "{{ os_home }}/bin/opensearch-plugin"
+os_sec_plugin_conf_path: "{{ os_home }}/config/opensearch-security"
+os_sec_plugin_tools_path: "{{ os_home }}/plugins/opensearch-security/tools"
 os_api_port: 9200
 
 systemctl_path: /etc/systemd/system
