@@ -29,7 +29,7 @@ func init() {
 // This struct contains the OS Admin Username and OS Admin Password via which we can connect to OS cluster.
 type OsCredentials struct {
 	// OsAdminUsername indicates the OS Admin Username via which OS client can connect to OS Cluster.
-	OsAdminUsername string `yaml:"os_admin_user" validate:"required"`
+	OsAdminUsername string `yaml:"os_admin_username" validate:"required"`
 	// OsAdminPassword indicates the OS Admin Password via which OS client can connect to OS Cluster.
 	OsAdminPassword string `yaml:"os_admin_password" validate:"required"`
 }
