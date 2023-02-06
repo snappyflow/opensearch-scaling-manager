@@ -29,7 +29,7 @@ func init() {
 // This struct contains the OS Admin Username and OS Admin Password via which we can connect to OS cluster.
 type OsCredentials struct {
 	// OsAdminUsername indicates the OS Admin Username via which OS client can connect to OS Cluster.
-	OsAdminUsername string `yaml:"os_admin_username" validate:"required"`
+	OsAdminUsername string `yaml:"os_admin_user" validate:"required"`
 	// OsAdminPassword indicates the OS Admin Password via which OS client can connect to OS Cluster.
 	OsAdminPassword string `yaml:"os_admin_password" validate:"required"`
 }
@@ -46,6 +46,10 @@ type CloudCredentials struct {
 type ClusterDetails struct {
 	// ClusterStatic indicates the static configuration for the cluster.
 	cluster.ClusterStatic `yaml:",inline"`
+	SshUser               string           `yaml:"os_user" validate:"required"`
+	OpensearchVersion     string           `yaml:"os_version" validate:"required"`
+	OpensearchHome        string           `yaml:"os_home" validate:"required"`
+	DomainName            string           `yaml:"domain_name" validate:"required"`
 	OsCredentials         OsCredentials    `yaml:"os_credentials"`
 	CloudCredentials      CloudCredentials `yaml:"cloud_credentials"`
 }
@@ -56,6 +60,7 @@ type UserConfig struct {
 	MonitorWithSimulator bool `yaml:"monitor_with_simulator"`
 	PurgeAfter           int  `yaml:"purge_old_docs_after_hours"`
 	PollingInterval      int  `yaml:"polling_interval_in_secs"`
+	IsAccelerated        bool `yaml:"is_accelerated"`
 }
 
 // This struct contains the data structure to parse the configuration file.

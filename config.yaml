@@ -4,12 +4,23 @@ user_config:
   monitor_with_simulator: false
   purge_old_docs_after_hours: 72
   polling_interval_in_secs: 10
+  is_accelerated: false
 cluster_details:
   ip_address: 10.81.1.250
+  # opensearch cluster name
   cluster_name: cluster.1
-  os_credentials: 
-    os_admin_username: elastic
-    os_admin_password: changeme
+  # opensearch credentials
+  os_credentials:
+    os_admin_user: admin
+    os_admin_password: admin
+  # ssh login username
+  os_user: ubuntu
+  # opensearch version
+  os_version: 2.3.0
+  # Default opensearch user info.
+  os_home: /usr/share/opensearch
+  # Configure hostnames for opensearch nodes. It is required to configure SSL. Example es1.example.com, es2.example.com
+  domain_name: snappyflow.com
   cloud_type: AWS
   cloud_credentials:
     secret_key: secret_key
