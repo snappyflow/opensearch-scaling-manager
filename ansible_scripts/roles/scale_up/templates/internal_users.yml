@@ -7,8 +7,8 @@ _meta:
   config_version: 2
 
 # Define your internal users here
-{{ admin_user }}:
-  hash: "{{ admin_password }}"
+{{ os_credentials.os_admin_username }}:
+  hash: "{{ os_credentials.os_admin_password }}"
   reserved: false
   backend_roles:
   - "admin"
