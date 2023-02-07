@@ -52,6 +52,7 @@ func GetRecommendation(state *State, recommendationQueue []map[string]string, cl
 				log.Warn.Println("Recommendation can not be provisioned as open search cluster is unhealthy for a scale_down. \n Discarding this recommendation")
 				return
 			}
+
 			TriggerProvision(clusterCfg, usrCfg, state, numNodes, t, operation, recommendationQueue[0][task])
 		} else {
 			log.Warn.Println("Recommendation can not be provisioned as open search cluster is already in provisioning phase.")
