@@ -12,6 +12,7 @@ from search import SearchState, SearchStat
 from search import Search
 from search import SearchDescription
 from errors import ValidationError
+from index_addittion import IndexAddition
 
 
 class Config:
@@ -20,12 +21,12 @@ class Config:
     """
 
     def __init__(
-            self,
-            stats: dict,
-            states: list[dict],
-            search_description: dict[dict],
-            simulation_frequency_minutes: int,
-            randomness_percentage: int,
+        self,
+        stats: dict,
+        states: list[dict],
+        search_description: dict[dict],
+        simulation_frequency_minutes: int,
+        randomness_percentage: int,
     ):
         """
         Initialise the Config object
@@ -37,41 +38,41 @@ class Config:
         """
         self.cluster = Cluster(**stats)
         self.simulation_frequency_minutes = simulation_frequency_minutes
-        # all_states = [
-        #     State(position=state["position"],
-        #           time_hh_mm_ss=state["time_hh_mm_ss"],
-        #           ingestion_rate_gb_per_hr=state["ingestion_rate_gb_per_hr"])
-        #     for state in states
-        # ]
         all_states = []
-        day_state=[]
+        day_state = []
         for state in states:
             for position in state["pattern"]:
-                day_state.append(State(position=position['position'],
+                day_state.append(
+                    State(
+                        position=position["position"],
                         time_hh_mm_ss=position["time_hh_mm_ss"],
-                        ingestion_rate_gb_per_hr=position["ingestion_rate_gb_per_hr"]))
+                        ingestion_rate_gb_per_hr=position["ingestion_rate_gb_per_hr"],
+                    )
+                )
             all_states.append(copy.deepcopy(day_state))
             day_state.clear()
         self.data_function = DataIngestion(all_states, randomness_percentage)
-        self.search_description = {search_type:
-                                       SearchDescription(search_stat=SearchStat(**specs), search_type=search_type)
-                                   for search_type, specs in search_description.items()
-                                   }
-        # self.searches = Search([
-        #     SearchState(position=state["position"],
-        #                 time_hh_mm_ss=state["time_hh_mm_ss"],
-        #                 searches=state["searches"])
-        #     for state in states
-        # ])
-        search=[]
+        self.search_description = {
+            search_type: SearchDescription(
+                search_stat=SearchStat(**specs), search_type=search_type
+            )
+            for search_type, specs in search_description.items()
+        }
+        search = []
         for state in states:
-            searches_day =[]
+            searches_day = []
             for position in state["pattern"]:
-                searches_day.append(SearchState(position=position['position'],
-                                time_hh_mm_ss=position["time_hh_mm_ss"],
-                                searches=position['searches']))
-            search.append(searches_day)  
+                searches_day.append(
+                    SearchState(
+                        position=position["position"],
+                        time_hh_mm_ss=position["time_hh_mm_ss"],
+                        searches=position["searches"],
+                    )
+                )
+            search.append(searches_day)
         self.searches = Search(search)
+        self.index_addition = IndexAddition(states)
+
 
 def get_source_code_dir():
     """
@@ -79,6 +80,7 @@ def get_source_code_dir():
     :return: parent directory of simulator code
     """
     return Path(__file__).parent.resolve()
+
 
 def validate_config(all_configs: dict):
     """
@@ -96,6 +98,7 @@ def validate_config(all_configs: dict):
     # validating config file against the schema
     validator = Validator(schema)
     return validator.validate(all_configs, schema), validator.errors
+
 
 def parse_config(config_file_path: str):
     """
@@ -119,7 +122,7 @@ def parse_config(config_file_path: str):
 
     # Perform Validation of the config file
     is_valid, errors = validate_config(all_configs)
-
+    
     if not is_valid:
         raise ValidationError("Error validating config file - " + str(errors))
 

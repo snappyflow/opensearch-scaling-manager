@@ -16,7 +16,7 @@ fig, axes = plt.subplots(1, 7, figsize=(20, 15), dpi=150)
 
 @timeit
 def plot_data_points(cluster_objects, skip_data_ingestion=False, skip_search_query=False):
-    graph_count = 7
+    graph_count = 8
     data_ingestion_over_time = []
     simple_search_query_over_time = []
     medium_search_query_over_time = []
@@ -28,6 +28,7 @@ def plot_data_points(cluster_objects, skip_data_ingestion=False, skip_search_que
     cluster_status_over_time = []
     nodes_over_time = []
     date_time_points = []
+    index_count = []
     for cluster_obj in cluster_objects:
         date_time_points.append(cluster_obj.date_time)
         simple_search_query_over_time.append(cluster_obj._simple_query_rate)
@@ -40,6 +41,7 @@ def plot_data_points(cluster_objects, skip_data_ingestion=False, skip_search_que
         disk_util_over_time.append(cluster_obj.disk_usage_percent)
         cluster_status_over_time.append(cluster_obj.status)
         nodes_over_time.append(cluster_obj.total_nodes_count)
+        index_count.append(cluster_obj.instantaneous_index_count)
 
     if not skip_data_ingestion:
         plt.subplot(graph_count, 1, 1)
@@ -76,6 +78,10 @@ def plot_data_points(cluster_objects, skip_data_ingestion=False, skip_search_que
     plt.subplot(graph_count, 1, 7)
     plt.ylabel('Node Count', font2)
     plt.plot(date_time_points, nodes_over_time)
+
+    plt.subplot(graph_count, 1, 8)
+    plt.ylabel('Index Count', font2)
+    plt.plot(date_time_points, index_count)
 
     plt.subplots_adjust(hspace=0.1)
     plt.xlabel('Datetime -->', font2)
