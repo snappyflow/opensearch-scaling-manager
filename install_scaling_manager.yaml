@@ -32,12 +32,15 @@
     become: yes
     command: dpkg-query -W -f='${Status}' make | grep 'install ok installed'
     register: is_installed
-   - name: Install make only if installed
-      apt:
-        name: make
-        state: latest
-        update_cache: yes
-      when: is_installed.rc != 0
+    failed_when: no
+    changed_when: no
+  - name: Install make if not installed
+    become: yes
+    apt:
+      name: make
+      state: latest
+      update_cache: yes
+    when: is_installed.rc != 0
   - name: Installing Scalling Manager
     shell:
     args:
