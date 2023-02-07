@@ -9,6 +9,14 @@
     command: make pack
     become: yes
   tags: build_and_pack
+- name: Install make
+  hosts: all
+  tasks:
+  - name: Install make
+    become: yes
+    shell:
+      cmd: apt install make
+  tags: install_make
 - name: Install Scaling Manager
   hosts: all
   tasks:
@@ -20,6 +28,19 @@
     with_items:
       - scaling_manager.tar.gz
       - GNUmakefile
+  - name: Check if make is installed
+    become: yes
+    command: dpkg-query -W -f='${Status}' make | grep 'install ok installed'
+    register: is_installed
+    failed_when: no
+    changed_when: no
+  - name: Install make if not installed
+    become: yes
+    apt:
+      name: make
+      state: latest
+      update_cache: yes
+    when: is_installed.rc != 0
   - name: Installing Scalling Manager
     shell:
     args:
@@ -33,7 +54,7 @@
   - name: Transfer the Config file
     become: yes
     copy:
-        src: "/usr/local/scaling_manager_lib/config.yaml"
+        src: "{{ config_path | default('/usr/local/scaling_manager_lib/config.yaml') }}"
         dest: /usr/local/scaling_manager_lib
   tags: update_config
 - name: Start Scaling manager

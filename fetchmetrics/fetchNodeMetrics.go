@@ -19,16 +19,21 @@ type NodeMetrics struct {
 }
 
 // Input:
-// 		m(map[string]interface): Holds the node stats response
-//		nodeId(string): Unique id which is used to access the response of corresponding node. 
+//
+//	m(map[string]interface): Holds the node stats response
+//	nodeId(string): Unique id which is used to access the response of corresponding node.
+//
 // Description:
-// 		 The function calculates and returns disk utilization.
-// 		 The disk utilization is fetched from the node stats response from elasticsearch, there is no difference in terms
-// 		 of output when we fetch from linux or elasticsearch. And to fetch from the linux we need to make a call to elasticsearch
-// 		 to find where the binary of es is installed, when we make this call we get the disk utilization along with the mount path
-// 		 hence the overhead of calculating from linux is minimized by making use of response from elasticsearch.
+//
+//	The function calculates and returns disk utilization.
+//	The disk utilization is fetched from the node stats response from elasticsearch, there is no difference in terms
+//	of output when we fetch from linux or elasticsearch. And to fetch from the linux we need to make a call to elasticsearch
+//	to find where the binary of es is installed, when we make this call we get the disk utilization along with the mount path
+//	hence the overhead of calculating from linux is minimized by making use of response from elasticsearch.
+//
 // Return:
-// 		 (float32): Returns the disk utilization of the node
+//
+//	(float32): Returns the disk utilization of the node
 func getDiskUtil(m map[string]interface{}, nodeId string) float32 {
 	//Parse the node stats interface for required info
 	list := m["nodes"].(map[string]interface{})[nodeId].(map[string]interface{})["fs"].(map[string]interface{})["data"].([]interface{})
@@ -47,9 +52,12 @@ func getDiskUtil(m map[string]interface{}, nodeId string) float32 {
 
 // Input:
 // Description:
-// 		 The functions fetchs CPU utilization directly from system through linux commands
-// Output: 
-// 		(float32): Returns CPU utilization of system
+//
+//	The functions fetchs CPU utilization directly from system through linux commands
+//
+// Output:
+//
+//	(float32): Returns CPU utilization of system
 func getCpuUtil() float32 {
 	//Executing the top command to fetch the CPU utilization
 	cmd := exec.Command("bash", "-c", "top -bn2 | grep '%Cpu' | tail -1 | awk '{print 100-$8}'")
@@ -68,9 +76,12 @@ func getCpuUtil() float32 {
 
 // Input:
 // Description:
-// 		The functions fetchs Memory utilization directly from system through linux commands
+//
+//	The functions fetchs Memory utilization directly from system through linux commands
+//
 // Return:
-// 		 (float32): Returns the memory utilization of the system.
+//
+//	(float32): Returns the memory utilization of the system.
 func getRamUtil() float32 {
 	//Executing the top command to fetch the memory utilization
 	cmd := exec.Command("bash", "-c", "top -bn2 | grep -E '[KiB|MiB|GiB] Mem' | tail -1 | awk '{print ($8/$4)*100}'")
@@ -88,10 +99,14 @@ func getRamUtil() float32 {
 	return float32(memFloat)
 }
 
-// Input: 
-// 		ctx (context.Context): Request-scoped data that transits processes and APIs.
+// Input:
+//
+//	ctx (context.Context): Request-scoped data that transits processes and APIs.
+//
 // Description:
-// 		 The function fetches node stats through API call and indexes it to opensearch.
+//
+//	The function fetches node stats through API call and indexes it to opensearch.
+//
 // Return:
 func IndexNodeStats(ctx context.Context) {
 
@@ -104,6 +119,7 @@ func IndexNodeStats(ctx context.Context) {
 	if err != nil {
 		log.Error.Println("Node stat fetch error: ", err)
 	}
+	defer nodeStatResp.Body.Close()
 
 	//A map to dump the values from node stats response
 	var nodeStatsInterface map[string]interface{}
@@ -118,6 +134,7 @@ func IndexNodeStats(ctx context.Context) {
 	if catErr != nil {
 		log.Error.Println("Cat allocation fetch error: ", catErr)
 	}
+	defer catAllocationResp.Body.Close()
 
 	var catAllocationInterface interface{}
 
@@ -148,15 +165,16 @@ func IndexNodeStats(ctx context.Context) {
 	nodeMetrics.StatTag = "NodesStats"
 
 	//marshall the node metrics, to index into the elasticsearch
-	nodeMetricsJson, err := json.MarshalIndent(nodeMetrics, "", "\t")
-	if err != nil {
-		log.Error.Println("Error converting struct to Json: ", err)
+	nodeMetricsJson, jsonErr := json.MarshalIndent(nodeMetrics, "", "\t")
+	if jsonErr != nil {
+		log.Error.Println("Error converting struct to Json: ", jsonErr)
 	}
 
-	_, err = osutils.IndexMetrics(ctx, nodeMetricsJson)
+	resp, err := osutils.IndexMetrics(ctx, nodeMetricsJson)
 	if err != nil {
 		log.Panic.Println("Error indexing document: ", err)
 		panic(err)
 	}
+	defer resp.Body.Close()
 	log.Info.Println("Node document indexed successfully")
 }

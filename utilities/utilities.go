@@ -37,6 +37,7 @@ func CheckIfMaster(ctx context.Context, nodeId string) bool {
 	if err != nil {
 		panic(err)
 	}
+	defer clusterState.Body.Close()
 
 	//Decoding the response and dumping in the cluster state interface
 	decodeErr := json.NewDecoder(clusterState.Body).Decode(&clusterStateInterface)
@@ -60,6 +61,7 @@ func CheckIfMaster(ctx context.Context, nodeId string) bool {
 		log.Panic.Println("Node stat fetch error: ", err)
 		panic(err)
 	}
+	defer nodeStatReq.Body.Close()
 
 	//Decoding the response and dumping the node stats in the interface
 	nodeDecodeErr := json.NewDecoder(nodeStatReq.Body).Decode(&nodeStatsInterface)
@@ -92,6 +94,7 @@ func GetClusterId() string {
 	if err != nil {
 		log.Error.Println("cluster Stats fetch ERROR:", err)
 	}
+	defer resp.Body.Close()
 
 	decodeErr := json.NewDecoder(resp.Body).Decode(&clusterStatsInterface)
 	if decodeErr != nil {
@@ -121,6 +124,7 @@ func GetNodes() map[string]interface{} {
 	if err != nil {
 		log.Error.Println("Node stat fetch error: ", err)
 	}
+	defer nodeStatResp.Body.Close()
 
 	decodeErr := json.NewDecoder(nodeStatResp.Body).Decode(&nodeStatsInterface)
 	if decodeErr != nil {
@@ -130,6 +134,7 @@ func GetNodes() map[string]interface{} {
 	for node, nodeInfo := range nodeStatsInterface["nodes"].(map[string]interface{}) {
 		var nodeMap map[string]interface{}
 		nodeInfoMap := nodeInfo.(map[string]interface{})
+		nodeMap[node] = make(map[string]string)
 		nodeMap[node] = map[string]string{"name": nodeInfoMap["name"].(string), "hostIp": nodeInfoMap["ip"].(string)}
 	}
 

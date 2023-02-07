@@ -219,7 +219,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 				fakeSleep(t)
 			}
 		} else {
-			hostsFileName := "provision/ansible_scripts/hosts"
+			hostsFileName := "ansible_scripts/hosts"
 			username := "ubuntu"
 			f, err := os.OpenFile(hostsFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 			if err != nil {
@@ -236,7 +236,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 			dataWriter.WriteString("[new-node]\n")
 			dataWriter.WriteString("new-node-" + fmt.Sprint(len(nodes)+1) + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + newNodeIp + " ansible_ssh_private_key_file=./testing-scaling-manager.pem\n")
 			dataWriter.Flush()
-			ansibleErr := CallScaleUp(username, hostsFileName)
+			ansibleErr := CallScaleUp(username, hostsFileName, clusterCfg)
 			if ansibleErr != nil {
 				log.Fatal.Println(err)
 				return false, ansibleErr
@@ -329,7 +329,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 				fakeSleep(t)
 			}
 		} else {
-			hostsFileName := "provision/ansible_scripts/hosts"
+			hostsFileName := "ansible_scripts/hosts"
 			username := "ubuntu"
 			f, err := os.OpenFile(hostsFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 			if err != nil {
@@ -348,7 +348,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 			dataWriter.WriteString(removeNodeName + " " + "ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + removeNodeIp + " ansible_ssh_private_key_file=./testing-scaling-manager.pem\n")
 			dataWriter.Flush()
 			log.Info.Println("Removing node ***********************************:", removeNodeName)
-			ansibleErr := CallScaleDown(username, hostsFileName)
+			ansibleErr := CallScaleDown(username, hostsFileName, clusterCfg)
 			if ansibleErr != nil {
 				log.Fatal.Println(err)
 				return false, ansibleErr
@@ -555,5 +555,6 @@ func PushToOs(state *State, status string, err error) {
 		log.Panic.Println("Failed to insert provision stats document: ", err)
 		panic(err)
 	}
+	defer indexResponse.Body.Close()
 	log.Debug.Println("Update resp: ", indexResponse)
 }

@@ -46,6 +46,10 @@ type CloudCredentials struct {
 type ClusterDetails struct {
 	// ClusterStatic indicates the static configuration for the cluster.
 	cluster.ClusterStatic `yaml:",inline"`
+	SshUser               string           `yaml:"os_user" validate:"required"`
+	OpensearchVersion     string           `yaml:"os_version" validate:"required"`
+	OpensearchHome        string           `yaml:"os_home" validate:"required"`
+	DomainName            string           `yaml:"domain_name" validate:"required"`
 	OsCredentials         OsCredentials    `yaml:"os_credentials"`
 	CloudCredentials      CloudCredentials `yaml:"cloud_credentials"`
 }
@@ -54,6 +58,7 @@ type ClusterDetails struct {
 type UserConfig struct {
 	MonitorWithLogs      bool `yaml:"monitor_with_logs"`
 	MonitorWithSimulator bool `yaml:"monitor_with_simulator"`
+	PurgeAfter           int  `yaml:"purge_old_docs_after_hours"`
 	PollingInterval      int  `yaml:"polling_interval_in_secs"`
 	IsAccelerated        bool `yaml:"is_accelerated"`
 }

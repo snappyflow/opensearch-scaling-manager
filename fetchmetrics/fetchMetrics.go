@@ -25,7 +25,7 @@ func init() {
 // 		parameters to opensearch index and deletes documents that are older than
 // 	    72 hours
 // Return:
-func FetchMetrics(pollingInterval int) {
+func FetchMetrics(pollingInterval int, purgeAfter int) {
 	ticker := time.Tick(time.Duration(pollingInterval) * time.Second)
 	for range ticker {
 		//check if current node is the master node and update the cluster stats if it is master
@@ -35,6 +35,6 @@ func FetchMetrics(pollingInterval int) {
 		//Index the the node stats
 		IndexNodeStats(ctx)
 		//Purge documents from elasticsearch index that are older than 72 hours
-		// DeleteOldDocs(ctx)
+		// DeleteOldDocs(ctx, purgeAfter)
 	}
 }

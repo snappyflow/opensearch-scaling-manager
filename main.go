@@ -52,7 +52,7 @@ func init() {
 	userCfg := configStruct.UserConfig
 
 	if !userCfg.MonitorWithSimulator {
-		go fetch.FetchMetrics(int(userCfg.PollingInterval))
+		go fetch.FetchMetrics(userCfg.PollingInterval, userCfg.PurgeAfter)
 	}
 }
 

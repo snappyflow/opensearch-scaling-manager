@@ -16,12 +16,17 @@ type ClusterMetrics struct {
 	ClusterName string
 }
 
-// Input: 
-// 		ctx (context.Context): Request-scoped data that transits processes and APIs. 			
-// Description: 
-// 		Fetches cluster level info and populates ClusterMetrics struct
-// Return: 
-// 		(ClusterMetrics): Returns cluster metrics struct
+// Input:
+//
+//	ctx (context.Context): Request-scoped data that transits processes and APIs.
+//
+// Description:
+//
+//	Fetches cluster level info and populates ClusterMetrics struct
+//
+// Return:
+//
+//	(ClusterMetrics): Returns cluster metrics struct
 func FetchClusterHealthMetrics(ctx context.Context) ClusterMetrics {
 
 	//Create an interface to capture the response from cluster health and cluster stats API
@@ -35,6 +40,7 @@ func FetchClusterHealthMetrics(ctx context.Context) ClusterMetrics {
 	if err != nil {
 		log.Error.Println("cluster Stats fetch ERROR:", err)
 	}
+	defer resp.Body.Close()
 
 	//decode and dump the cluster stats response into interface
 	decodeErr := json.NewDecoder(resp.Body).Decode(&clusterStatsInterface)
@@ -52,6 +58,7 @@ func FetchClusterHealthMetrics(ctx context.Context) ClusterMetrics {
 	if err != nil {
 		log.Error.Println("cluster Health fetch ERROR:", err)
 	}
+	defer clusterHealthRequest.Body.Close()
 
 	//Decode the response and dump the response into the cluster health interface
 	decodeErr2 := json.NewDecoder(clusterHealthRequest.Body).Decode(&clusterHealthInterface)
@@ -72,10 +79,14 @@ func FetchClusterHealthMetrics(ctx context.Context) ClusterMetrics {
 	return *clusterStats
 }
 
-// Input: 
-// 		ctx (context.Context): Request-scoped data that transits processes and APIs.
-// Description: 
-// 		Converts ClusterMetrics struct to Json and indexes it to opensearch
+// Input:
+//
+//	ctx (context.Context): Request-scoped data that transits processes and APIs.
+//
+// Description:
+//
+//	Converts ClusterMetrics struct to Json and indexes it to opensearch
+//
 // Return:
 func IndexClusterHealth(ctx context.Context) {
 	var clusterHealth = ClusterMetrics{}
@@ -90,10 +101,11 @@ func IndexClusterHealth(ctx context.Context) {
 	}
 
 	//Check and index the Json document into opensearch
-	_, err := osutils.IndexMetrics(ctx, clusterHealthJson)
+	resp, err := osutils.IndexMetrics(ctx, clusterHealthJson)
 	if err != nil {
 		log.Panic.Println("Error indexing cluster document: ", err)
 		panic(err)
 	}
+	defer resp.Body.Close()
 	log.Info.Println("Cluster document indexed successfull")
 }
