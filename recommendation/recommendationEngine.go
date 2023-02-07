@@ -103,7 +103,7 @@ func (t TaskDetails) EvaluateTask(simFlag bool, pollingInterval int) []map[strin
 			v.PushToRecommendationQueue()
 			recommendationArray = append(recommendationArray, rulesResponsibleMap)
 		} else {
-			log.Warn.Println(fmt.Sprintf("The %s task is not recommended as rules are not satisfied", v.TaskName))
+			log.Debug.Println(fmt.Sprintf("The %s task is not recommended as rules are not satisfied", v.TaskName))
 		}
 	}
 	return recommendationArray
