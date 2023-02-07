@@ -1,5 +1,5 @@
 from shard import Shard
-
+import datetime
 
 class Index:
     """
@@ -12,7 +12,8 @@ class Index:
             self,
             primary_shards_count: int,
             replica_shards_count: int,
-            index_id: int
+            index_id: int,
+            time: datetime.datetime
     ):
         """
         Initialize the index object
@@ -25,6 +26,8 @@ class Index:
         self.index_id = index_id
         self.rolled_over = False
         self.index_size = 0
+        self.created_at = time
+        self.time_elapsed_last_roll_over = time
         self.shards = self.initialize_shards(primary_shards_count, replica_shards_count)
         
 

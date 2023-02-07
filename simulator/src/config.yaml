@@ -12,7 +12,8 @@ index_count: 100
 primary_shards_per_index: 2
 replica_shards_per_index: 1
 index_roll_over_size_gb: 10
-index_clean_up_age_days: 20
+# index_clean_up_age_days: 20
+index_roll_over_hours: 12
 total_disk_size_gb: 14000
 simulation_frequency_minutes: 5
 
@@ -79,6 +80,8 @@ states:
         simple: 110000
         medium: 80000
         complex: 55000
+      index:
+        count: 10
     - position: 10
       time_hh_mm_ss: '13_00_00'
       ingestion_rate_gb_per_hr: 20
@@ -199,6 +202,8 @@ states:
         simple: 100000
         medium: 80000
         complex: 50000
+      index:
+        count: 10
     - position: 8
       time_hh_mm_ss: '11_00_00'
       ingestion_rate_gb_per_hr: 24
@@ -306,6 +311,8 @@ states:
       searches:
         simple: 50000
         medium: 2000
+      index:
+        count: 10
     - position: 4
       time_hh_mm_ss: '06_00_00'
       ingestion_rate_gb_per_hr: 3
