@@ -55,16 +55,16 @@ task_details:
   operator: AND
   rules:
   - metric: CpuUtil
-    limit: 90
+    limit: 40
     stat: AVG
     decision_period: 300
   - metric: CpuUtil
-    limit: 90
+    limit: 40
     stat: COUNT
     occurrences: 6
     decision_period: 300
   - metric: RamUtil
-    limit: 99
+    limit: 45
     stat: AVG
     decision_period: 300
   #- metric: shard
