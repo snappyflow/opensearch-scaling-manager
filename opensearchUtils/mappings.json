@@ -127,6 +127,9 @@
       "ProvisionStartTime": {
         "type": "date"
       },
+      "ProvisionEndTime": {
+        "type": "date"
+      },
       "RamUtil": {
         "type": "double"
       },

@@ -18,7 +18,7 @@ var mappingsFile []byte
 
 // Index used by the application
 const (
-	IndexName string = "monitor-stats-1"
+	IndexName string = "monitor-stats"
 )
 
 // A global logger variable used across the package for logging.
