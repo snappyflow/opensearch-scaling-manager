@@ -11,9 +11,10 @@ import (
 // ClusterMetrics holds the cluster level parameters that are to be populated and indexed into opensearch
 type ClusterMetrics struct {
 	cluster.ClusterDynamic
-	Timestamp   int64
-	StatTag     string
-	ClusterName string
+	Timestamp     int64
+	StatTag       string
+	_documentType string
+	ClusterName   string
 }
 
 // Input:
@@ -74,7 +75,8 @@ func FetchClusterHealthMetrics(ctx context.Context) ClusterMetrics {
 	clusterStats.NumInitializingShards = int(clusterHealthInterface["initializing_shards"].(float64))
 	clusterStats.NumUnassignedShards = int(clusterHealthInterface["unassigned_shards"].(float64))
 	clusterStats.NumRelocatingShards = int(clusterHealthInterface["relocating_shards"].(float64))
-	clusterStats.StatTag = "ClusterStats"
+	clusterStats.StatTag = "ClusterStatistics"
+	clusterStats._documentType = "ClusterStatistics"
 	clusterStats.ClusterName = clusterHealthInterface["cluster_name"].(string)
 	return *clusterStats
 }

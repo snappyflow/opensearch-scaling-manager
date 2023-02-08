@@ -14,8 +14,9 @@ import (
 // Description: NodeMetrics struct holds the node level metrics that are to be populated and indexed to elasticsearch
 type NodeMetrics struct {
 	cluster.Node
-	Timestamp int64
-	StatTag   string
+	Timestamp     int64
+	StatTag       string
+	_documentType string
 }
 
 // Input:
@@ -162,7 +163,8 @@ func IndexNodeStats(ctx context.Context) {
 	nodeMetrics.RamUtil = getRamUtil()
 	nodeMetrics.HeapUtil = float32(nodeInfo["jvm"].(map[string]interface{})["mem"].(map[string]interface{})["heap_used_percent"].(float64))
 	nodeMetrics.DiskUtil = getDiskUtil(nodeStatsInterface, nodeId)
-	nodeMetrics.StatTag = "NodesStats"
+	nodeMetrics.StatTag = "NodeStatistics"
+	nodeMetrics._documentType = "NodeStatistics"
 
 	//marshall the node metrics, to index into the elasticsearch
 	nodeMetricsJson, jsonErr := json.MarshalIndent(nodeMetrics, "", "\t")
