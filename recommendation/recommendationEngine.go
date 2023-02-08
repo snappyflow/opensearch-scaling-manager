@@ -151,9 +151,9 @@ func (t Task) GetNextTask(simFlag bool, pollingInterval int) (bool, string) {
 		}
 		if isRecommendedRule {
 			if v.Stat == "AVG" {
-				rules = append(rules, fmt.Sprintf("%s-%s-%f", v.Metric, v.Stat, v.Limit))
+				rules = append(rules, fmt.Sprintf("%s-%s-%f-%d", v.Metric, v.Stat, v.Limit, v.DecisionPeriod))
 			} else {
-				rules = append(rules, fmt.Sprintf("%s-%s-%f-%d", v.Metric, v.Stat, v.Limit, v.Occurrences))
+				rules = append(rules, fmt.Sprintf("%s-%s-%f-%d-%d", v.Metric, v.Stat, v.Limit, v.Occurrences, v.DecisionPeriod))
 			}
 
 		}
