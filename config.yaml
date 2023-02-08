@@ -1,0 +1,73 @@
+---
+user_config:
+  monitor_with_logs: true
+  monitor_with_simulator: false
+  purge_old_docs_after_hours: 72
+  polling_interval_in_secs: 10
+  is_accelerated: false
+cluster_details:
+  ip_address: 10.81.1.250
+  # opensearch cluster name
+  cluster_name: cluster.1
+  # opensearch credentials
+  os_credentials:
+    os_admin_username: admin
+    os_admin_password: admin
+  # ssh login username
+  os_user: ubuntu
+  # opensearch version
+  os_version: 2.3.0
+  # Default opensearch user info.
+  os_home: /usr/share/opensearch
+  # Configure hostnames for opensearch nodes. It is required to configure SSL. Example es1.example.com, es2.example.com
+  domain_name: snappyflow.com
+  cloud_type: AWS
+  cloud_credentials:
+    secret_key: secret_key
+    access_key: access_key
+  base_node_type: t2x.large
+  number_cpus_per_node: 5
+  ram_per_node_in_gb: 10
+  disk_per_node_in_gb: 100
+  number_max_nodes_allowed: 2
+task_details:
+- task_name: scale_up_by_1
+  operator: OR
+  rules:
+  - metric: CpuUtil
+    limit: 55
+    stat: AVG
+    decision_period: 300
+  - metric: CpuUtil
+    limit: 50
+    stat: COUNT
+    occurrences: 10
+    decision_period: 300
+  - metric: RamUtil
+    limit: 90
+    stat: AVG
+    decision_period: 300
+  #- metric: shard
+  #  stat: TERM
+  #  limit: 900
+  #  decision_period: 9
+- task_name: scale_down_by_1
+  operator: AND
+  rules:
+  - metric: CpuUtil
+    limit: 90
+    stat: AVG
+    decision_period: 300
+  - metric: CpuUtil
+    limit: 90
+    stat: COUNT
+    occurrences: 6
+    decision_period: 300
+  - metric: RamUtil
+    limit: 99
+    stat: AVG
+    decision_period: 300
+  #- metric: shard
+  #  stat: TERM
+  #  limit: 800
+  #  decision_period: 9
