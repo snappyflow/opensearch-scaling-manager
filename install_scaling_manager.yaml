@@ -71,6 +71,20 @@
     become: yes
     shell: systemctl stop scaling_manager.service
   tags: stop
+- name: Restart Scaling manager
+  hosts: all
+  tasks:
+  - name: Restarting Scaling Manager Service
+    become: yes
+    shell: systemctl restart scaling_manager.service
+  tags: restart
+- name: Scaling manager status
+  hosts: all
+  tasks:
+  - name: Getting the status of Scaling Manager Service
+    become: yes
+    shell: systemctl status scaling_manager.service
+  tags: status
 - name: Uninstall Scaling Manager
   hosts: all
   tasks:
