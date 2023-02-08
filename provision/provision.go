@@ -45,9 +45,9 @@ type State struct {
 	// Remark indicates the additional remarks for the state of the scaling manager
 	Remark string
 	// Last Provisioned time is when the last successful provision was completed
-	LastProvisionedTime time.Time
+	LastProvisionedTime int64
 	// Start time of the current provisioning in place
-	ProvisionStartTime time.Time
+	ProvisionStartTime int64
 	// Rule triggered for provisioning. i.e., scale_up/scale_down
 	RuleTriggered string
 	// Rule Responsible for provisioning. i.e., cpu, mem, heap, shard, disk.
@@ -56,6 +56,10 @@ type State struct {
 	NumNodes int
 	// Number of nodes remaining to be scaled up/scaled down
 	RemainingNodes int
+	// StatTag
+	StatTag string
+	// For snappyflow dashboard
+	_documentType string
 }
 
 // Input:
@@ -171,7 +175,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 		}
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "start_scaleup_process"
-		state.ProvisionStartTime = time.Now()
+		state.ProvisionStartTime = time.Now().UnixMilli()
 		state.UpdateState()
 		fallthrough
 		// Spin new VMs based on number of nodes and cloud type
@@ -289,7 +293,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 		log.Info.Println("Staring scaleDown process")
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "start_scaledown_process"
-		state.ProvisionStartTime = time.Now()
+		state.ProvisionStartTime = time.Now().UnixMilli()
 		state.UpdateState()
 	}
 	// Identify the node which can be removed from the cluster.
@@ -509,8 +513,8 @@ func fakeSleep(t *time.Time) {
 //
 // Return:
 func SetBackToNormal(state *State) {
-	state.LastProvisionedTime = time.Now()
-	state.ProvisionStartTime = time.Time{}
+	state.LastProvisionedTime = time.Now().UnixMilli()
+	state.ProvisionStartTime = 0
 	state.PreviousState = state.CurrentState
 	state.CurrentState = "normal"
 	state.RuleTriggered = ""
@@ -534,15 +538,17 @@ func PushToOs(state *State, status string, err error) {
 	provisionState := make(map[string]interface{}, 0)
 	provisionState["RuleTriggered"] = state.RuleTriggered
 	provisionState["ProvisionStartTime"] = state.ProvisionStartTime
-	provisionState["ProvisionEndTime"] = time.Now()
+	provisionState["ProvisionEndTime"] = time.Now().UnixMilli()
 	provisionState["NumNodes"] = state.NumNodes
 	provisionState["Status"] = status
 	if err != nil {
 		provisionState["FailureReason"] = err.Error()
 	}
 	provisionState["RulesResponsible"] = state.RulesResponsible
-	provisionState["TimeTaken"] = fmt.Sprint(provisionState["ProvisionEndTime"].(time.Time).Sub(provisionState["ProvisionStartTime"].(time.Time)))
+	provisionState["TimeTaken"] = fmt.Sprint((time.UnixMilli(provisionState["ProvisionEndTime"].(int64))).Sub(time.UnixMilli(provisionState["ProvisionStartTime"].(int64))))
 	provisionState["StatTag"] = "ProvisionStats"
+	provisionState["_documentType"] = "ProvisionStats"
+	provisionState["Timestamp"] = time.Now().UnixMilli()
 
 	doc, err := json.Marshal(provisionState)
 	if err != nil {

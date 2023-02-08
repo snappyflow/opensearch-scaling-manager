@@ -25,7 +25,7 @@ func InitializeDocId() {
 // Input:
 //
 // Caller:
-//		Object of type State
+//	Object of type State
 //
 // Description:
 //      GetCurrentState will update the state variable pointer such that it is in sync with the updated values.
@@ -47,6 +47,8 @@ func (s *State) GetCurrentState() {
 	if searchResponse.Status() == "404 Not Found" {
 		//Setting the initial state
 		s.CurrentState = "normal"
+		s._documentType = "State"
+		s.StatTag = "State"
 		s.UpdateState()
 		return
 	}
