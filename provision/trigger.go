@@ -163,6 +163,7 @@ func comparePreviousProvision(ruleResponsible string, operation string) bool {
 	resp, err := osutils.SearchQuery(context.Background(), []byte(getLatestProvisionQuery()))
 	if err != nil {
 		log.Error.Println("Error querying the last provision document frm Opensearch", err)
+		return false
 	}
 	defer resp.Body.Close()
 
