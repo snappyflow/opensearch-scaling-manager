@@ -117,8 +117,14 @@ func getLatestProvisionQuery() string {
 // Return:
 //
 //	(bool): Returns a bool value to decide to proceed with provisioning or drop the recommendation
-func checkNumNodesCondition(operation string, clusterCfg config.ClusterDetails) bool {
-	numNodes := len(utils.GetNodes())
+func checkNumNodesCondition(operation string, clusterCfg config.ClusterDetails, usrCfg config.UserConfig) bool {
+	var numNodes int
+	if usrCfg.MonitorWithSimulator {
+		clusterDynamic := cluster_sim.GetClusterCurrent(usrCfg.IsAccelerated)
+		numNodes = clusterDynamic.NumNodes
+	} else {
+		numNodes = len(utils.GetNodes())
+	}
 	switch operation {
 	case "scale_up":
 		if numNodes+1 > clusterCfg.MaxNodesAllowed {
