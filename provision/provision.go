@@ -262,14 +262,13 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 		}
 		CheckClusterHealth(state, usrCfg, t)
 	}
-	// Setting the state back to 'normal' irrespective of successful or failed provisioning to continue further
 	return true, nil
 }
 
 // Input:
 //
 //	clusterCfg (config.ClusterDetails): Cluster Level config details
-//	usrCfg (config.UserConfig): User defined config for applicatio behavior
+//	usrCfg (config.UserConfig): User defined config for application behavior
 //	state (*State): A pointer to the state struct which is state maintained in OS document
 //
 // Description:
@@ -383,8 +382,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 // Input:
 //
 //	state (*State): A pointer to the state struct which is state maintained in OS document
-//	simFlag (bool): A flag to check if the task needs to collect stats from Opensearch data or simulated data.
-//	pollingInterval (int): The time interval in seconds to wait until the next cluster health check happens
+//	usrCfg (config.UserConfig): User defined config for application behavior
 //
 // Description:
 //
@@ -396,17 +394,15 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 func CheckClusterHealth(state *State, usrCfg config.UserConfig, t *time.Time) {
 	var clusterDynamic cluster.ClusterDynamic
 	simFlag := usrCfg.MonitorWithSimulator
-	pollingInterval := usrCfg.PollingInterval
 	isAccelerated := usrCfg.IsAccelerated
-	for i := 0; i <= 12; i++ {
+	state.GetCurrentState()
+	for {
 		if simFlag {
 			clusterDynamic = cluster_sim.GetClusterCurrent(isAccelerated)
 		} else {
 			clusterDynamic = cluster.GetClusterCurrent()
 		}
-		log.Debug.Println(clusterDynamic.ClusterStatus)
-		if clusterDynamic.ClusterStatus == "green" {
-			state.GetCurrentState()
+		if clusterDynamic.NumRelocatingShards == 0 {
 			state.PreviousState = state.CurrentState
 			if strings.Contains(state.PreviousState, "scaleup") {
 				state.CurrentState = "provisioned_scaleup_successfully"
@@ -415,27 +411,14 @@ func CheckClusterHealth(state *State, usrCfg config.UserConfig, t *time.Time) {
 			}
 			state.UpdateState()
 			break
-		}
-		log.Info.Println("Waiting for cluster to be healthy.......")
-		time.Sleep(time.Duration(pollingInterval) * time.Second)
-		if simFlag && isAccelerated {
-			fakeSleep(t)
-		}
-	}
-	state.GetCurrentState()
-	if !(strings.Contains(state.CurrentState, "success")) {
-		state.PreviousState = state.CurrentState
-		if strings.Contains(state.PreviousState, "scaleup") {
-			state.CurrentState = "provisioning_scaleup_failed"
 		} else {
-			state.CurrentState = "provisioning_scaledown_failed"
+			log.Info.Println("Waiting for cluster to be healthy.......")
+			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
+			if simFlag && isAccelerated {
+				fakeSleep(t)
+			}
 		}
-		state.UpdateState()
-		log.Warn.Println("Cluster hasn't come back to healthy state.")
 	}
-	// We should wait for buffer period after provisioned_successfully state to stablize the cluster.
-	// After that buffer period we should change the state to normal, which can tell trigger module to trigger
-	// the recommendation.
 }
 
 // Inputs:
