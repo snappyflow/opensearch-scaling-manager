@@ -135,14 +135,17 @@ func checkNumNodesCondition(operation string, clusterCfg config.ClusterDetails) 
 }
 
 // Input:
+//
 //	ruleResponsible (string): The rule responsible for recommendation with delimiters. The last value would contain the decision period of the rule
 //	operation (string): The operation recommended (scale_up or scale_down)
 //
 // Description:
+//
 //	Compares if the the largest decision period of the rules responsible for recommendation overlaps with the previous Provision
 //	Returns false if the above condition is met, as no provision should take place in this case. Return true otherwise
 //
 // Return:
+//
 //	(bool): Returns a bool value to decide to proceed with provisioning or drop the recommendation
 func comparePreviousProvision(ruleResponsible string, operation string) bool {
 	// Split the rules if more than one rule is responsible for recommendation
