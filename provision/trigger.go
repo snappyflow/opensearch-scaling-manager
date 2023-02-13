@@ -57,7 +57,7 @@ func GetRecommendation(state *State, recommendationQueue []map[string]string, cl
 			}
 
 			ruleResponsible := recommendationQueue[0][task]
-			numNodesProceed := checkNumNodesCondition(operation, clusterCfg)
+			numNodesProceed := checkNumNodesCondition(operation, clusterCfg, usrCfg)
 			previousProvisionProceed := comparePreviousProvision(ruleResponsible, operation)
 			if !numNodesProceed || !previousProvisionProceed {
 				return
