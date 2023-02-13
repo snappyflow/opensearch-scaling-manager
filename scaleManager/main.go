@@ -1,4 +1,4 @@
-package main
+package scaleManager
 
 import (
 	"context"
@@ -34,7 +34,7 @@ var firstExecution bool
 //	Starts the fetchMetrics module to start collecting the data and dump into Opensearch (if userCfg.MonitorWithSimulator is false)
 //
 // Return:
-func init() {
+func Initialize() {
 	log.Init("logger")
 	log.Info.Println("Main module initialized")
 
@@ -67,7 +67,7 @@ func init() {
 //		# Checks if the current node is master, reads the config file, gets the recommendation from recommendation engine and triggers provisioning
 //
 // Return:
-func main() {
+func Run() {
 	var t = new(time.Time)
 	t_now := time.Now()
 	*t = time.Date(t_now.Year(), t_now.Month(), t_now.Day(), 0, 0, 0, 0, time.UTC)
