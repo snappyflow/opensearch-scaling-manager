@@ -4,10 +4,12 @@ import (
 	"context"
 
 	"encoding/json"
+	"errors"
 	"github.com/apenella/go-ansible/pkg/execute"
 	"github.com/apenella/go-ansible/pkg/options"
 	"github.com/apenella/go-ansible/pkg/playbook"
 	"github.com/apenella/go-ansible/pkg/stdoutcallback/results"
+	"regexp"
 	"scaling_manager/config"
 )
 
@@ -16,25 +18,33 @@ import (
 //	username (string): Username string to be used to ssh into the host inventory
 //	hosts (string): The file name of hosts file to pass to ansible playbook
 //	clusterCfg (config.ClusterDetails): Opensearch cluster details for configuring
+//	operation (string): Operation called scale_up/scale_down
 //
 // Description:
 //
-//	Calls the ansible script responsible for adding a new node into the Opensearch cluster and configuring it.
+//	Calls the ansible script responsible for adding a new node into the Opensearch cluster and configuring it or removing a node and shut it down
 //
 // Return:
 //
 //	(error): Returns error if any
-func CallScaleUp(username string, hosts string, clusterCfg config.ClusterDetails) error {
+func CallAnsible(username string, hosts string, clusterCfg config.ClusterDetails, operation string) error {
 
+	var fileName string
+	switch operation {
+	case "scale_up":
+		fileName = "ansible_scripts/scaleUpPlaybook.yml"
+	case "scale_down":
+		fileName = "ansible_scripts/scaleDownPlaybook.yml"
+	}
+
+	var variablesMap map[string]interface{}
 	jsonData, err := json.Marshal(&clusterCfg)
 	if err != nil {
-		log.Error.Println("Error while Marshaling. %v", err)
+		log.Error.Println("Error while Marshaling")
 		return err
 	}
 
-	var jsonMap map[string]interface{}
-
-	err = json.Unmarshal(jsonData, &jsonMap)
+	err = json.Unmarshal(jsonData, &variablesMap)
 	if err != nil {
 		log.Error.Println("json parsing error")
 		return err
@@ -46,7 +56,7 @@ func CallScaleUp(username string, hosts string, clusterCfg config.ClusterDetails
 
 	ansiblePlaybookOptions := &playbook.AnsiblePlaybookOptions{
 		Inventory: hosts,
-		ExtraVars: jsonMap,
+		ExtraVars: variablesMap,
 	}
 
 	ansiblePlaybookPrivilegeEscalationOptions := &options.AnsiblePrivilegeEscalationOptions{
@@ -54,7 +64,7 @@ func CallScaleUp(username string, hosts string, clusterCfg config.ClusterDetails
 	}
 
 	playbook := &playbook.AnsiblePlaybookCmd{
-		Playbooks:                  []string{"ansible_scripts/scaleUpPlaybook.yml"},
+		Playbooks:                  []string{fileName},
 		ConnectionOptions:          ansiblePlaybookConnectionOptions,
 		PrivilegeEscalationOptions: ansiblePlaybookPrivilegeEscalationOptions,
 		Options:                    ansiblePlaybookOptions,
@@ -68,69 +78,26 @@ func CallScaleUp(username string, hosts string, clusterCfg config.ClusterDetails
 
 	err = playbook.Run(context.TODO())
 	if err != nil {
-		return err
+		return maskCredentials(err)
 	}
 	return nil
 }
 
 // Input:
 //
-//	username (string): Username string to be used to ssh into the host inventory
-//	hosts (string): The file name of hosts file to pass to ansible playbook
-//	clusterCfg (config.ClusterDetails): Opensearch cluster details for configuring
+//	err (error): Error from which credentials are to be masked
 //
 // Description:
 //
-//	Calls the ansible script responsible for removing a node from the Opensearch cluster.
+//	Masks the credentials from error string.
 //
 // Return:
 //
-//	(error): Returns error if any
-func CallScaleDown(username string, hosts string, clusterCfg config.ClusterDetails) error {
-
-	jsonData, err := json.Marshal(&clusterCfg)
-	if err != nil {
-		log.Error.Println("Error while Marshaling. %v", err)
-		return err
-	}
-
-	var jsonMap map[string]interface{}
-
-	err = json.Unmarshal(jsonData, &jsonMap)
-	if err != nil {
-		log.Error.Println("json parsing error")
-		return err
-	}
-
-	ansiblePlaybookConnectionOptions := &options.AnsibleConnectionOptions{
-		User: username,
-	}
-
-	ansiblePlaybookOptions := &playbook.AnsiblePlaybookOptions{
-		Inventory: hosts,
-		ExtraVars: jsonMap,
-	}
-
-	ansiblePlaybookPrivilegeEscalationOptions := &options.AnsiblePrivilegeEscalationOptions{
-		Become: true,
-	}
-
-	playbook := &playbook.AnsiblePlaybookCmd{
-		Playbooks:                  []string{"ansible_scripts/scaleDownPlaybook.yml"},
-		ConnectionOptions:          ansiblePlaybookConnectionOptions,
-		PrivilegeEscalationOptions: ansiblePlaybookPrivilegeEscalationOptions,
-		Options:                    ansiblePlaybookOptions,
-		Exec: execute.NewDefaultExecute(
-			execute.WithEnvVar("ANSIBLE_FORCE_COLOR", "true"),
-			execute.WithTransformers(
-				results.Prepend("Go-ansible with become"),
-			),
-		),
-	}
-
-	err = playbook.Run(context.TODO())
-	if err != nil {
-		return err
-	}
-	return nil
+//	(error): Returns custom error
+func maskCredentials(err error) error {
+	errString := err.Error()
+	m1 := regexp.MustCompile("\"*credentials\":.*?}")
+	errString = m1.ReplaceAllString(errString, "credentials\":{*********}")
+	err = errors.New(errString)
+	return err
 }
