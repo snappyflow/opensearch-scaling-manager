@@ -2,13 +2,12 @@ package provision
 
 import (
 	"context"
-	"io/ioutil"
 
+	"encoding/json"
 	"github.com/apenella/go-ansible/pkg/execute"
 	"github.com/apenella/go-ansible/pkg/options"
 	"github.com/apenella/go-ansible/pkg/playbook"
 	"github.com/apenella/go-ansible/pkg/stdoutcallback/results"
-	"gopkg.in/yaml.v2"
 	"scaling_manager/config"
 )
 
@@ -27,17 +26,17 @@ import (
 //	(error): Returns error if any
 func CallScaleUp(username string, hosts string, clusterCfg config.ClusterDetails) error {
 
-	// Create varsFile.yml
-	yamlData, err := yaml.Marshal(&clusterCfg)
+	jsonData, err := json.Marshal(&clusterCfg)
 	if err != nil {
 		log.Error.Println("Error while Marshaling. %v", err)
 		return err
 	}
 
-	varsFile := "varsFile.yaml"
-	err = ioutil.WriteFile(varsFile, yamlData, 0644)
+	var jsonMap map[string]interface{}
+
+	err = json.Unmarshal(jsonData, &jsonMap)
 	if err != nil {
-		log.Panic.Println("Error while Marshaling. %v", err)
+		log.Error.Println("json parsing error")
 		return err
 	}
 
@@ -46,8 +45,8 @@ func CallScaleUp(username string, hosts string, clusterCfg config.ClusterDetails
 	}
 
 	ansiblePlaybookOptions := &playbook.AnsiblePlaybookOptions{
-		Inventory:     hosts,
-		ExtraVarsFile: []string{"@" + varsFile},
+		Inventory: hosts,
+		ExtraVars: jsonMap,
 	}
 
 	ansiblePlaybookPrivilegeEscalationOptions := &options.AnsiblePrivilegeEscalationOptions{
@@ -89,17 +88,17 @@ func CallScaleUp(username string, hosts string, clusterCfg config.ClusterDetails
 //	(error): Returns error if any
 func CallScaleDown(username string, hosts string, clusterCfg config.ClusterDetails) error {
 
-	// Create varsFile.yml
-	yamlData, err := yaml.Marshal(&clusterCfg)
+	jsonData, err := json.Marshal(&clusterCfg)
 	if err != nil {
 		log.Error.Println("Error while Marshaling. %v", err)
 		return err
 	}
 
-	varsFile := "varsFile.yaml"
-	err = ioutil.WriteFile(varsFile, yamlData, 0644)
+	var jsonMap map[string]interface{}
+
+	err = json.Unmarshal(jsonData, &jsonMap)
 	if err != nil {
-		log.Panic.Println("Error while Marshaling. %v", err)
+		log.Error.Println("json parsing error")
 		return err
 	}
 
@@ -108,8 +107,8 @@ func CallScaleDown(username string, hosts string, clusterCfg config.ClusterDetai
 	}
 
 	ansiblePlaybookOptions := &playbook.AnsiblePlaybookOptions{
-		Inventory:     hosts,
-		ExtraVarsFile: []string{"@" + varsFile},
+		Inventory: hosts,
+		ExtraVars: jsonMap,
 	}
 
 	ansiblePlaybookPrivilegeEscalationOptions := &options.AnsiblePrivilegeEscalationOptions{
