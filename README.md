@@ -111,7 +111,7 @@ Specify data ingestion with respect to time of the day to represent pattern for 
 
 
 ### Sample cofig.yaml
-
+------
 https://maplelabsblr-my.sharepoint.com/:u:/g/personal/manojkumar_chandru_maplelabs_com/EQPZRuAbifdLroP1VHH8HMYBv4RyCaBgsMqsccdPFNSzOw?e=kYqzXb
 
 
@@ -232,6 +232,7 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
   
 
 ### Sample config.yaml
+------
 
 https://maplelabsblr-my.sharepoint.com/:u:/g/personal/manojkumar_chandru_maplelabs_com/ET7yN3tdkHpNi5VjWOjPxd0BvaQ99auatK82GOhC2-ejIA?e=TGy93z
 
@@ -270,6 +271,8 @@ Scaling manager has following modules
 
 
 ### Scaling Manager Flow Diagram 
+
+------
 
 https://lucid.app/publicSegments/view/b8e022c2-8adf-4737-82d8-f3869d61a86a/image.png
 
