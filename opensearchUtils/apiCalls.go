@@ -25,6 +25,7 @@ func IndexMetrics(ctx context.Context, jsonDoc []byte) (*osapi.Response, error) 
 		Index:        IndexName,
 		DocumentType: "_doc",
 		Body:         bytes.NewReader(jsonDoc),
+		Refresh:        "wait_for",
 	}.Do(ctx, osClient)
 }
 
@@ -159,7 +160,7 @@ func SearchDoc(ctx context.Context, docId string) (*osapi.Response, error) {
 //
 // Description:
 //
-//	Calls the osapi IndexRequest and returns the response
+//	Calls the osapi IndexRequest along with document ID to update and returns the response
 //
 // Return:
 //
@@ -169,6 +170,7 @@ func UpdateDoc(ctx context.Context, docId string, content string) (*osapi.Respon
 		Index:      IndexName,
 		DocumentID: docId,
 		Body:       strings.NewReader(content),
+		Refresh:        "wait_for",
 	}.Do(ctx, osClient)
 }
 

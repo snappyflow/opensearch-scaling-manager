@@ -80,6 +80,12 @@ func main() {
 	go periodicProvisionCheck(configStruct.UserConfig.PollingInterval, t)
 	ticker := time.Tick(time.Duration(configStruct.UserConfig.PollingInterval) * time.Second)
 	for range ticker {
+		var isMaster bool
+		if configStruct.UserConfig.MonitorWithSimulator {
+			isMaster = true
+		} else {
+			isMaster = utils.CheckIfMaster(context.Background(), "")
+		}
 		if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
 			f := faketime.NewFaketimeWithTime(*t)
 			defer f.Undo()
@@ -87,7 +93,7 @@ func main() {
 		}
 		state.GetCurrentState()
 		// The recommendation and provisioning should only happen on master node
-		if utils.CheckIfMaster(context.Background(), "") && state.CurrentState == "normal" {
+		if isMaster && state.CurrentState == "normal" {
 			//              if firstExecution || state.CurrentState == "normal" {
 			firstExecution = false
 			// This function will be responsible for parsing the config file and fill in task_details struct.

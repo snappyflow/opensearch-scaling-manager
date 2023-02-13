@@ -29,7 +29,8 @@ cluster_details:
   number_cpus_per_node: 5
   ram_per_node_in_gb: 10
   disk_per_node_in_gb: 100
-  number_max_nodes_allowed: 2
+  max_nodes_allowed: 10
+  min_nodes_allowed: 3
 task_details:
 - task_name: scale_up_by_1
   operator: OR

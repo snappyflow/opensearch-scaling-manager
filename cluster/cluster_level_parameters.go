@@ -75,7 +75,10 @@ type ClusterStatic struct {
 	DiskPerNodeInGB int `yaml:"disk_per_node_in_gb" validate:"required,min=1"`
 	// NumMaxNodesAllowed indicates the number of maximum allowed node present in the cluster.
 	// Based on this value we will determine whether to scale out further or not.
-	NumMaxNodesAllowed int `yaml:"number_max_nodes_allowed" validate:"required,min=1"`
+	MaxNodesAllowed int `yaml:"max_nodes_allowed" validate:"required,min=1"`
+	// MinNodesAllowed indicates the number of minimum nodes a cluster should have at any point
+	// Based on this value we will determine whether to scale in further or not.
+	MinNodesAllowed int `yaml:"min_nodes_allowed" validate:"required,min=1"`
 }
 
 // This struct will contain the dynamic metrics of the cluster.

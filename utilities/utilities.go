@@ -132,9 +132,8 @@ func GetNodes() map[string]interface{} {
 	}
 
 	for node, nodeInfo := range nodeStatsInterface["nodes"].(map[string]interface{}) {
-		var nodeMap map[string]interface{}
+		nodeMap := make(map[string]interface{},0)
 		nodeInfoMap := nodeInfo.(map[string]interface{})
-		nodeMap[node] = make(map[string]string)
 		nodeMap[node] = map[string]string{"name": nodeInfoMap["name"].(string), "hostIp": nodeInfoMap["ip"].(string)}
 	}
 
