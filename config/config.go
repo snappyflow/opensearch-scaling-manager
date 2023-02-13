@@ -29,29 +29,29 @@ func init() {
 // This struct contains the OS Admin Username and OS Admin Password via which we can connect to OS cluster.
 type OsCredentials struct {
 	// OsAdminUsername indicates the OS Admin Username via which OS client can connect to OS Cluster.
-	OsAdminUsername string `yaml:"os_admin_username" validate:"required"`
+	OsAdminUsername string `yaml:"os_admin_username" validate:"required" json:"os_admin_username"`
 	// OsAdminPassword indicates the OS Admin Password via which OS client can connect to OS Cluster.
-	OsAdminPassword string `yaml:"os_admin_password" validate:"required"`
+	OsAdminPassword string `yaml:"os_admin_password" validate:"required" json:"os_admin_password"`
 }
 
 // This struct contains the Cloud Secret Key and Access Key via which we can connect to the cloud.
 type CloudCredentials struct {
 	// SecretKey indicates the Secret key for connecting to the cloud.
-	SecretKey string `yaml:"secret_key" validate:"required"`
+	SecretKey string `yaml:"secret_key" validate:"required" json:"secret_key"`
 	// AccessKey indicates the Access key for connecting to the cloud.
-	AccessKey string `yaml:"access_key" validate:"required"`
+	AccessKey string `yaml:"access_key" validate:"required" json:"access_key"`
 }
 
 // This struct contains the data structure to parse the cluster details present in the configuration file.
 type ClusterDetails struct {
 	// ClusterStatic indicates the static configuration for the cluster.
 	cluster.ClusterStatic `yaml:",inline"`
-	SshUser               string           `yaml:"os_user" validate:"required"`
-	OpensearchVersion     string           `yaml:"os_version" validate:"required"`
-	OpensearchHome        string           `yaml:"os_home" validate:"required"`
-	DomainName            string           `yaml:"domain_name" validate:"required"`
-	OsCredentials         OsCredentials    `yaml:"os_credentials"`
-	CloudCredentials      CloudCredentials `yaml:"cloud_credentials"`
+	SshUser               string           `yaml:"os_user" validate:"required" json:"os_user"`
+	OpensearchVersion     string           `yaml:"os_version" validate:"required" json:"os_version"`
+	OpensearchHome        string           `yaml:"os_home" validate:"required" json:"os_home"`
+	DomainName            string           `yaml:"domain_name" validate:"required" json:"domain_name"`
+	OsCredentials         OsCredentials    `yaml:"os_credentials" json:"os_credentials"`
+	CloudCredentials      CloudCredentials `yaml:"cloud_credentials" json:"cloud_credentials"`
 }
 
 // Config for application behaviour from user
@@ -59,7 +59,7 @@ type UserConfig struct {
 	MonitorWithLogs      bool `yaml:"monitor_with_logs"`
 	MonitorWithSimulator bool `yaml:"monitor_with_simulator"`
 	PurgeAfter           int  `yaml:"purge_old_docs_after_hours"`
-	PollingInterval      int  `yaml:"polling_interval_in_secs"`
+	PollingInterval      int  `yaml:"polling_interval_in_secs" validate:"required"`
 	IsAccelerated        bool `yaml:"is_accelerated"`
 }
 
