@@ -46,6 +46,8 @@ type CloudCredentials struct {
 type ClusterDetails struct {
 	// ClusterStatic indicates the static configuration for the cluster.
 	cluster.ClusterStatic `yaml:",inline"`
+	LaunchTemplateId      string           `yaml:"launch_template_id" validate:"required" json:"launch_template_id"`
+	LaunchTemplateVersion string           `yaml:"launch_template_version" validate:"required" json:"launch_template_version"`
 	SshUser               string           `yaml:"os_user" validate:"required" json:"os_user"`
 	OpensearchVersion     string           `yaml:"os_version" validate:"required" json:"os_version"`
 	OpensearchHome        string           `yaml:"os_home" validate:"required" json:"os_home"`
