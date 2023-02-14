@@ -1,7 +1,7 @@
 package main
   
 import (
-        "scaling_manager/cmd"
+        "github.com/maplelabs/opensearch-scaling-manager/cmd"
         "os"
         "os/signal"
         "log"

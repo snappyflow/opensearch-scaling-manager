@@ -13,8 +13,8 @@ package cluster
 import (
 	"context"
 	"encoding/json"
-	"scaling_manager/logger"
-	osutils "scaling_manager/opensearchUtils"
+	"github.com/maplelabs/opensearch-scaling-manager/logger"
+	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
 	"strconv"
 )
 

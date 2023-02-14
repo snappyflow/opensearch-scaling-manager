@@ -2,13 +2,13 @@ package scaleManager
 
 import (
 	"context"
-	"scaling_manager/config"
-	fetch "scaling_manager/fetchmetrics"
-	"scaling_manager/logger"
-	osutils "scaling_manager/opensearchUtils"
-	"scaling_manager/provision"
-	"scaling_manager/recommendation"
-	utils "scaling_manager/utilities"
+	"github.com/maplelabs/opensearch-scaling-manager/config"
+	fetch "github.com/maplelabs/opensearch-scaling-manager/fetchmetrics"
+	"github.com/maplelabs/opensearch-scaling-manager/logger"
+	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
+	"github.com/maplelabs/opensearch-scaling-manager/provision"
+	"github.com/maplelabs/opensearch-scaling-manager/recommendation"
+	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
 	"strings"
 	"time"
 

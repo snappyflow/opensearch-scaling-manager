@@ -4,9 +4,9 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
-	"scaling_manager/cluster"
-	"scaling_manager/logger"
-	"scaling_manager/recommendation"
+	"github.com/maplelabs/opensearch-scaling-manager/cluster"
+	"github.com/maplelabs/opensearch-scaling-manager/logger"
+	"github.com/maplelabs/opensearch-scaling-manager/recommendation"
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"

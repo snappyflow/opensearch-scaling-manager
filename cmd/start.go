@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"log"
-	app "scaling_manager/scaleManager"
+	app "github.com/maplelabs/opensearch-scaling-manager/scaleManager"
 )
 
 // Start Command to start the Scaling Manager service

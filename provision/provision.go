@@ -10,15 +10,15 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"scaling_manager/cluster"
-	"scaling_manager/cluster_sim"
-	"scaling_manager/config"
-	osutils "scaling_manager/opensearchUtils"
-	utils "scaling_manager/utilities"
+	"github.com/maplelabs/opensearch-scaling-manager/cluster"
+	"github.com/maplelabs/opensearch-scaling-manager/cluster_sim"
+	"github.com/maplelabs/opensearch-scaling-manager/config"
+	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
+	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
 	"strings"
 	"time"
 
-	"scaling_manager/logger"
+	"github.com/maplelabs/opensearch-scaling-manager/logger"
 
 	"github.com/tkuchiki/faketime"
 )
