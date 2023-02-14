@@ -193,7 +193,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 			}
 		} else {
 			var err error
-			newNodeIp, err = SpinNewVm()
+			newNodeIp, err = SpinNewVm(clusterCfg.LaunchTemplateId, clusterCfg.LaunchTemplateVersion)
 			if err != nil {
 				return false, err
 			}
@@ -356,6 +356,16 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 				log.Fatal.Println(err)
 				return false, ansibleErr
 			}
+		}
+		state.PreviousState = state.CurrentState
+		state.CurrentState = "provisioned_scaledown_on_cluster"
+		state.UpdateState()
+		fallthrough
+	case "provisioned_scaledown_on_cluster":
+		terminateErr := TerminateInstance(removeNodeIp)
+		if terminateErr != nil {
+			log.Fatal.Println(terminateErr)
+			return false, terminateErr
 		}
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaledown_completed"
