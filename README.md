@@ -16,37 +16,37 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 ------
 
-**cluster_name:** Name of the cluster that is to be used.
+**cluster_name:** Name of the cluster that is to be used
 
-**cluster_hostname:** Host name of the cluster.
+**cluster_hostname:** Host name of the cluster
 
-**cluster_ip_address:** IP address of the cluster.
+**cluster_ip_address:** IP address of the cluster
 
-**node_machine_type_identifier:** Defines the type of the instance or node deployed in a cluster.
+**node_machine_type_identifier:** Defines the type of the instance or node deployed in a cluster
 
-**total_nodes_count:** Total number of nodes present in the cluster.
+**total_nodes_count:** Total number of nodes present in the cluster
 
-**active_data_nodes:** Number of active data nodes in total number of nodes present in cluster.
+**active_data_nodes:** Number of active data nodes in total number of nodes present in cluster
 
-**min_nodes_in_cluster:** Minimum number of nodes that the cluster must have to perform the necessary tasks.
+**min_nodes_in_cluster:** Minimum number of nodes that the cluster must have to perform the necessary tasks
 
-**master_eligible_nodes_count:** Nodes that are eligible to become master whenever the present master node goes down.  
+**master_eligible_nodes_count:** Nodes that are eligible to become master whenever the present master node goes down
 
 **heap_memory_factor:**
 
-**index_count:** Number of index that cluster must have.
+**index_count:** Number of index that cluster must have
 
-**primary_shards_per_index:** Number of primary shards that is present in index.
+**primary_shards_per_index:** Number of primary shards that is present in index
 
-**replica_shards_per_index:** Number of replica shards that is present in index(replica of data that represents each primary shard).
+**replica_shards_per_index:** Number of replica shards that is present in index(replica of data that represents each primary shard)
 
-**index_roll_over_size_gb:** Specific size at where index will roll over to new index when it exceeds.
+**index_roll_over_size_gb:** Specific size at which index will roll over to new index when it exceeds
 
-**index_clean_up_age_days:** Duration at which index cleanup happens.
+**index_roll_over_hours:** Specific time in hour at which index will roll over to new index when it exceeds
 
-**total_disk_size_gb:** Total number of size in GB that the disk should have.
+**total_disk_size_gb:** Total number of size in GB that the disk should have
 
-**simulation_frequency_minutes:** Time interval that the simulator will run the data simulation.
+**simulation_frequency_minutes:** Time interval that the simulator will run the data simulation
 
 
 
@@ -54,19 +54,23 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 ------
 
-Specify data ingestion with respect to time of the day to represent pattern for entire day(24hrs).
+Specify data ingestion with respect to time of the day to represent pattern for entire day(24hrs)
 
-**states:** States is an array where user can provide multiple data points through out a day.
+**states:** States is an array where user can provide multiple data points through out a day
 
-**day:** Day is an array which contains multiple hour of for the day and also can contain multiple days.
+**day:** Day is an array which contains multiple hour of for the day and also can contain multiple days
 
-**position:** For a day there can be any number of position where it contains time_hh_mm_ss, ingestion_rate_gb_per_hr, searches.
+**position:** For a day there can be any number of position where it contains time_hh_mm_ss, ingestion_rate_gb_per_hr, searches
 
-**time_hh_mm_ss:** Time interval of the position. 
+**time_hh_mm_ss:** Time interval of the position
 
-**ingestion_rate_gb_per_hr:** Amount of data that has been ingested for the particular interval of time that is defined in time_hh_mm_ss.
+**ingestion_rate_gb_per_hr:** Amount of data that has been ingested for the particular interval of time that is defined in time_hh_mm_ss
 
-**searches:** Contains the types of searches that needs to be made, if the config has certain searches it takes the corresponding values. Three types of searches are simple, medium, complex.
+**searches:** Contains the types of searches that needs to be made, if the config has certain searches it takes the corresponding values. Three types of searches are simple, medium, complex
+
+**index:**
+
+​	**count:** Number of index to add at the specified time interval
 
 
 
@@ -86,33 +90,35 @@ Specify data ingestion with respect to time of the day to represent pattern for 
 
 **simple:**
 
-​	**cpu_load_percent:** Percentage at which cpu must be used if search_description is simple.
+​	**cpu_load_percent:** Percentage at which cpu must be used if search_description is simple
 
-​	**memory_load_percent: **Percentage at which memory must be used if search_description is simple.
+​	**memory_load_percent: **Percentage at which memory must be used if search_description is simple
 
-​	**heap_load_percent: **Percentage at which heap must be used  if search_description is simple.
+​	**heap_load_percent: **Percentage at which heap must be used  if search_description is simple
 
 **medium:**
 
-​	**cpu_load_percent:** Percentage at which cpu must be used if search_description is medium.
+​	**cpu_load_percent:** Percentage at which cpu must be used if search_description is medium
 
-​	**memory_load_percent: **Percentage at which memory must be used if search_description is medium.
+​	**memory_load_percent: **Percentage at which memory must be used if search_description is medium
 
-​	**heap_load_percent: **Percentage at which heap must be used if search_description is medium.
+​	**heap_load_percent: **Percentage at which heap must be used if search_description is medium
 
 **complex:**
 
-​	**cpu_load_percent:** Percentage at which cpu must be used if search_description is complex.
+​	**cpu_load_percent:** Percentage at which cpu must be used if search_description is complex
 
-​	**memory_load_percent: **Percentage at which memory must be used if search_description is complex.
+​	**memory_load_percent: **Percentage at which memory must be used if search_description is complex
 
-​	**heap_load_percent: **Percentage at which heap must be used if search_description is complex.
+​	**heap_load_percent: **Percentage at which heap must be used if search_description is complex
 
 
 
 ### Sample cofig.yaml
+
 ------
-https://maplelabsblr-my.sharepoint.com/:u:/g/personal/manojkumar_chandru_maplelabs_com/EQPZRuAbifdLroP1VHH8HMYBv4RyCaBgsMqsccdPFNSzOw?e=kYqzXb
+
+https://maplelabsblr-my.sharepoint.com/:u:/g/personal/manojkumar_chandru_maplelabs_com/Efh45zUUBO1NsYKrZX6ycRIB14WPcLR7NQ-RRMXKRqqAqw?e=E63khe
 
 
 
@@ -186,6 +192,8 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 ​	**monitor_with_simulator:** Field that contains bool value which specifies whether to monitor with simulator or not
 
+​	**purge_old_docs_after_hours:** Duration which indicates to delete the documents once it exceed the specified hours
+
 ​	**polling_interval_in_secs:**  polling_interval_in_secs indicates the time in seconds for which polling will be repeated
 
 ​	**is_accelerated:** Field that contains bool value which accelerates the time
@@ -194,13 +202,27 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 ​	**ip_address:** IP address of the cluster 
 
+​	**launch_template_id:** 
+
+​	**launch_template_version:** 
+
 ​	**cluster_name:** Name of the cluster 
 
 ​	**os_credentials:** 
 
-​		**os_admin_username:** Username for the OpenSearch for connecting. This can be set to empty if the security is disable in OpenSearch.
+​		**os_admin_username:** Username for the OpenSearch for connecting. This can be set to empty if the security is disable in OpenSearch
 
-​		**os_admin_password:** Password for the OpenSearch for connecting. This can be set to empty if the security is disable in OpenSearch.
+​		**os_admin_password:** Password for the OpenSearch for connecting. This can be set to empty if the security is disable in OpenSearch
+
+​	**os_user:** SSH login username
+
+​	**os_version:** OpenSearch version
+
+​	**os_home: **Default OpenSearch user info
+
+​	**domain_name:** Configure hostnames for OpenSearch nodes which is required to configure SSL
+
+​	**cloud_type:** Name of the cloud infrastructure
 
 ​	 **cloud_credentials:**
 
@@ -214,9 +236,11 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 ​	 **ram_per_node_in_gb:** Size of RAM used per node (GB)
 
-​	 **disk_per_node_in_gb:** Size of DISK used per node (GB)
+​	**disk_per_node_in_gb:** Size of DISK used per node (GB)
 
-**number_max_nodes_allowed:** Maximum number of nodes allowed for the cluster
+​	**max_nodes_allowed:** Maximum number of nodes allowed for the cluster
+
+​	**min_nodes_allowed:** Minimum number of nodes allowed for the cluster
 
 **task_details:** Field that contains details on what task should be performed i.e scale_up_by_1 or scale_down_by_1
 
@@ -232,9 +256,10 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
   
 
 ### Sample config.yaml
+
 ------
 
-https://maplelabsblr-my.sharepoint.com/:u:/g/personal/manojkumar_chandru_maplelabs_com/ET7yN3tdkHpNi5VjWOjPxd0BvaQ99auatK82GOhC2-ejIA?e=TGy93z
+https://maplelabsblr-my.sharepoint.com/:u:/g/personal/manojkumar_chandru_maplelabs_com/EaY5h9sz2qJAruB2SzaR15UBABaJB3TVOsTE3V4E_G_Rnw?e=n5dgTk
 
 
 
