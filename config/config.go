@@ -36,6 +36,7 @@ type OsCredentials struct {
 
 // This struct contains the Cloud Secret Key and Access Key via which we can connect to the cloud.
 type CloudCredentials struct {
+	PemFilePath string `yaml:"pem_file_path" validate:"required" json:"pem_file_path"`
 	// SecretKey indicates the Secret key for connecting to the cloud.
 	SecretKey string `yaml:"secret_key" validate:"required" json:"secret_key"`
 	// AccessKey indicates the Access key for connecting to the cloud.
