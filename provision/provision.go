@@ -236,10 +236,10 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 			dataWriter := bufio.NewWriter(f)
 			dataWriter.WriteString("[current-nodes]\n")
 			for _, nodeIdMap := range nodes {
-				_, _ = dataWriter.WriteString(nodeIdMap.(map[string]interface{})["name"].(string) + " " + "ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + nodeIdMap.(map[string]interface{})["hostIp"].(string) + " ansible_ssh_private_key_file=./testing-scaling-manager.pem\n")
+				_, _ = dataWriter.WriteString(nodeIdMap.(map[string]interface{})["name"].(string) + " " + "ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + nodeIdMap.(map[string]interface{})["hostIp"].(string) + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 			}
 			dataWriter.WriteString("[new-node]\n")
-			dataWriter.WriteString("new-node-" + fmt.Sprint(len(nodes)+1) + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + newNodeIp + " ansible_ssh_private_key_file=./testing-scaling-manager.pem\n")
+			dataWriter.WriteString("new-node-" + fmt.Sprint(len(nodes)+1) + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + newNodeIp + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 			dataWriter.Flush()
 			ansibleErr := ansibleutils.CallAnsible(username, hostsFileName, clusterCfg, "scale_up")
 			if ansibleErr != nil {
@@ -345,11 +345,11 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 			dataWriter.WriteString("[current-nodes]\n")
 			for _, nodeIdInfo := range nodes {
 				if nodeIdInfo.(map[string]interface{})["hostIp"].(string) != removeNodeIp {
-					_, _ = dataWriter.WriteString(nodeIdInfo.(map[string]interface{})["name"].(string) + " " + "ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + nodeIdInfo.(map[string]interface{})["hostIp"].(string) + " ansible_ssh_private_key_file=./testing-scaling-manager.pem\n")
+					_, _ = dataWriter.WriteString(nodeIdInfo.(map[string]interface{})["name"].(string) + " " + "ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + nodeIdInfo.(map[string]interface{})["hostIp"].(string) + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 				}
 			}
 			dataWriter.WriteString("[remove-node]\n")
-			dataWriter.WriteString(removeNodeName + " " + "ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + removeNodeIp + " ansible_ssh_private_key_file=./testing-scaling-manager.pem\n")
+			dataWriter.WriteString(removeNodeName + " " + "ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + removeNodeIp + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 			dataWriter.Flush()
 			log.Info.Println("Removing node ***********************************:", removeNodeName)
 			ansibleErr := ansibleutils.CallAnsible(username, hostsFileName, clusterCfg, "scale_down")
