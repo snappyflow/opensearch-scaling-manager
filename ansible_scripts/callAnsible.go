@@ -1,4 +1,4 @@
-package provision
+package ansible
 
 import (
 	"context"
@@ -9,9 +9,24 @@ import (
 	"github.com/apenella/go-ansible/pkg/options"
 	"github.com/apenella/go-ansible/pkg/playbook"
 	"github.com/apenella/go-ansible/pkg/stdoutcallback/results"
+	"github.com/maplelabs/opensearch-scaling-manager/config"
+	"github.com/maplelabs/opensearch-scaling-manager/logger"
 	"regexp"
-	"scaling_manager/config"
 )
+
+var log = new(logger.LOG)
+
+// Input:
+//
+// Description:
+//
+//	Initialize the Ansible module.
+//
+// Return:
+func init() {
+	log.Init("logger")
+	log.Info.Println("Ansible module initiated")
+}
 
 // Input:
 //
@@ -35,6 +50,8 @@ func CallAnsible(username string, hosts string, clusterCfg config.ClusterDetails
 		fileName = "ansible_scripts/scaleUpPlaybook.yml"
 	case "scale_down":
 		fileName = "ansible_scripts/scaleDownPlaybook.yml"
+	case "copy_config":
+		fileName = "ansible_scripts/install_scaling_manager.yaml"
 	}
 
 	var variablesMap map[string]interface{}

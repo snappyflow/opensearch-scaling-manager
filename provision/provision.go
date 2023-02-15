@@ -8,17 +8,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	ansible "github.com/maplelabs/opensearch-scaling-manager/ansible_scripts"
+	"github.com/maplelabs/opensearch-scaling-manager/cluster"
+	"github.com/maplelabs/opensearch-scaling-manager/cluster_sim"
+	"github.com/maplelabs/opensearch-scaling-manager/config"
+	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
+	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
 	"net/http"
 	"os"
-	"scaling_manager/cluster"
-	"scaling_manager/cluster_sim"
-	"scaling_manager/config"
-	osutils "scaling_manager/opensearchUtils"
-	utils "scaling_manager/utilities"
 	"strings"
 	"time"
 
-	"scaling_manager/logger"
+	"github.com/maplelabs/opensearch-scaling-manager/logger"
 
 	"github.com/tkuchiki/faketime"
 )
@@ -224,7 +225,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 			}
 		} else {
 			hostsFileName := "ansible_scripts/hosts"
-			username := "ubuntu"
+			username := clusterCfg.SshUser
 			f, err := os.OpenFile(hostsFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 			if err != nil {
 				log.Fatal.Println(err)
@@ -240,7 +241,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 			dataWriter.WriteString("[new-node]\n")
 			dataWriter.WriteString("new-node-" + fmt.Sprint(len(nodes)+1) + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + newNodeIp + " ansible_ssh_private_key_file=./testing-scaling-manager.pem\n")
 			dataWriter.Flush()
-			ansibleErr := CallAnsible(username, hostsFileName, clusterCfg, "scale_up")
+			ansibleErr := ansible.CallAnsible(username, hostsFileName, clusterCfg, "scale_up")
 			if ansibleErr != nil {
 				log.Fatal.Println(err)
 				return false, ansibleErr
@@ -333,7 +334,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 			}
 		} else {
 			hostsFileName := "ansible_scripts/hosts"
-			username := "ubuntu"
+			username := clusterCfg.SshUser
 			f, err := os.OpenFile(hostsFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 			if err != nil {
 				log.Error.Println(err)
@@ -351,7 +352,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 			dataWriter.WriteString(removeNodeName + " " + "ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + removeNodeIp + " ansible_ssh_private_key_file=./testing-scaling-manager.pem\n")
 			dataWriter.Flush()
 			log.Info.Println("Removing node ***********************************:", removeNodeName)
-			ansibleErr := CallAnsible(username, hostsFileName, clusterCfg, "scale_down")
+			ansibleErr := ansible.CallAnsible(username, hostsFileName, clusterCfg, "scale_down")
 			if ansibleErr != nil {
 				log.Fatal.Println(err)
 				return false, ansibleErr
