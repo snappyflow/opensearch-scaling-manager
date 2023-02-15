@@ -46,6 +46,7 @@ cleaninstall:
 
 init:
 	go mod init scaling_manager
+	go get -u github.com/knadh/koanf
 	go mod tidy
 
 clobber:

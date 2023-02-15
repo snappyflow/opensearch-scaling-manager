@@ -193,7 +193,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 			}
 		} else {
 			var err error
-			newNodeIp, err = SpinNewVm()
+			newNodeIp, err = SpinNewVm(clusterCfg.LaunchTemplateId, clusterCfg.LaunchTemplateVersion)
 			if err != nil {
 				return false, err
 			}
@@ -240,7 +240,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 			dataWriter.WriteString("[new-node]\n")
 			dataWriter.WriteString("new-node-" + fmt.Sprint(len(nodes)+1) + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + newNodeIp + " ansible_ssh_private_key_file=./testing-scaling-manager.pem\n")
 			dataWriter.Flush()
-			ansibleErr := CallScaleUp(username, hostsFileName, clusterCfg)
+			ansibleErr := CallAnsible(username, hostsFileName, clusterCfg, "scale_up")
 			if ansibleErr != nil {
 				log.Fatal.Println(err)
 				return false, ansibleErr
@@ -351,11 +351,21 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 			dataWriter.WriteString(removeNodeName + " " + "ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + removeNodeIp + " ansible_ssh_private_key_file=./testing-scaling-manager.pem\n")
 			dataWriter.Flush()
 			log.Info.Println("Removing node ***********************************:", removeNodeName)
-			ansibleErr := CallScaleDown(username, hostsFileName, clusterCfg)
+			ansibleErr := CallAnsible(username, hostsFileName, clusterCfg, "scale_down")
 			if ansibleErr != nil {
 				log.Fatal.Println(err)
 				return false, ansibleErr
 			}
+		}
+		state.PreviousState = state.CurrentState
+		state.CurrentState = "provisioned_scaledown_on_cluster"
+		state.UpdateState()
+		fallthrough
+	case "provisioned_scaledown_on_cluster":
+		terminateErr := TerminateInstance(removeNodeIp)
+		if terminateErr != nil {
+			log.Fatal.Println(terminateErr)
+			return false, terminateErr
 		}
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaledown_completed"
