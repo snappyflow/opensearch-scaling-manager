@@ -7,6 +7,8 @@ user_config:
   is_accelerated: false
 cluster_details:
   ip_address: 10.81.1.250
+  launch_template_id: "abc"
+  launch_template_version: "1"
   # opensearch cluster name
   cluster_name: cluster.1
   # opensearch credentials
