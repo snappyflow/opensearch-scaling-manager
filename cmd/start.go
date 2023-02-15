@@ -43,6 +43,17 @@ var startCmd = &cobra.Command{
 // Input:
 //
 // Description:
+// 	Initializes the start command, adds the required flags
+//
+// Return:
+func init() {
+	startCmd.PersistentFlags().String("b", "", "Flag to run process in background")
+	log.Init("logger")
+}
+
+// Input:
+//
+// Description:
 //
 // 	The Function initilazes and starts the execution of Scaling Manager
 //
@@ -109,15 +120,4 @@ func startBackground() error {
 
 	log.Info.Printf("Process already running with pid %v ", string(fileByte))
 	return nil
-}
-
-// Input:
-//
-// Description:
-// 	Initializes the start command, adds the required flags
-//
-// Return:
-func init() {
-	startCmd.PersistentFlags().String("b", "", "Flag to run process in background")
-	log.Init("logger")
 }

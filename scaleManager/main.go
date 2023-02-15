@@ -185,14 +185,13 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 //
 // Return:
 func CleanUp() {
-	state.GetCurrentState()
 	log.Info.Println("Checking State before Termination")
 	for {
+		state.GetCurrentState()
 		if state.CurrentState == "normal" || state.CurrentState == "provisioning_scaledown_completed" || state.CurrentState == "provisioning_scaleup_completed" {
 			break
 		}
 		time.Sleep(1 * time.Second)
-		state.GetCurrentState()
 	}
 	log.Info.Println("Exiting Scale Manager")
 	os.Exit(0)
