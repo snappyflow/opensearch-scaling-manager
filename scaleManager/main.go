@@ -2,6 +2,10 @@ package scaleManager
 
 import (
 	"context"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/maplelabs/opensearch-scaling-manager/config"
 	fetch "github.com/maplelabs/opensearch-scaling-manager/fetchmetrics"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
@@ -9,8 +13,6 @@ import (
 	"github.com/maplelabs/opensearch-scaling-manager/provision"
 	"github.com/maplelabs/opensearch-scaling-manager/recommendation"
 	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
-	"strings"
-	"time"
 
 	"github.com/tkuchiki/faketime"
 )
@@ -171,4 +173,27 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 		// Update the previousMaster for next loop
 		previousMaster = currentMaster
 	}
+}
+
+// Input:
+//
+// Description:
+//
+//		The function performs graceful shutdown of application
+//	 	based on current state of provision.
+//		It will wait till provision is completed and exits.
+//
+// Return:
+func CleanUp() {
+	state.GetCurrentState()
+	log.Info.Println("Checking State before Termination")
+	for {
+		if state.CurrentState == "normal" || state.CurrentState == "provisioning_scaledown_completed" || state.CurrentState == "provisioning_scaleup_completed" {
+			break
+		}
+		time.Sleep(1 * time.Second)
+		state.GetCurrentState()
+	}
+	log.Info.Println("Exiting Scale Manager")
+	os.Exit(0)
 }

@@ -9,7 +9,6 @@ import (
 	"github.com/apenella/go-ansible/pkg/options"
 	"github.com/apenella/go-ansible/pkg/playbook"
 	"github.com/apenella/go-ansible/pkg/stdoutcallback/results"
-	"gopkg.in/yaml.v2"
 	"github.com/maplelabs/opensearch-scaling-manager/config"
 	"regexp"
 )

@@ -1,74 +1,74 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"os"
-	"log"
 	"strconv"
-)
 
+	"github.com/spf13/cobra"
+)
 
 // Command to stop the execution of Scaling Manager
 var stopCmd = &cobra.Command{
 	Use:   "stop",
-    Short: "Stop Opensearch Scaling Manager",
-    Long:  ``,
-	Run: func (cmd *cobra.Command, args []string){
-		err:=stop()
-		if err!=nil{
-			log.Println(err)
+	Short: "Stop Opensearch Scaling Manager",
+	Long:  ``,
+	Run: func(cmd *cobra.Command, args []string) {
+		err := stop()
+		if err != nil {
+			log.Error.Println(err)
 			return
 		}
-		log.Println("Stop Successful")
+		log.Info.Println("Stop Successful")
 	},
 }
 
 // Input:
-// 
+//
 // Description:
-// 
-// 	Function reads the Process Id file and stops the running instance 
-//  of Scaling Manager.
-// 
+//
+//		Function reads the Process Id file and stops the running instance
+//	 of Scaling Manager.
+//
 // Return:
-// 
+//
 // (error): Returns error upon unsuccessful execution.
-func stop() error{
-	log.Println("Stopping Scale Manager")
+func stop() error {
+	log.Info.Println("Stopping Scale Manager")
 
-	_, err := os.Stat("pidFile")
-	if err != nil{
-		log.Println("Process not found ", err)
+	_, err := os.Stat(PidFilePath + "/pidFile")
+	if err != nil {
+		log.Error.Println("Process not found ", err)
 		return err
 	}
 
-	fileByte, err := os.ReadFile("pidFile")
+	fileByte, err := os.ReadFile(PidFilePath + "/pidFile")
 	if err != nil {
-		log.Println("Process id file not found ", err)
+		log.Error.Println("Process id file not found ", err)
 		return err
 	}
 
 	pid, err := strconv.Atoi(string(fileByte))
 	if err != nil {
-		log.Println(err)
+		log.Error.Println(err)
 		return err
 	}
 
 	proc, err := os.FindProcess(pid)
 	if err != nil {
-		log.Println("Process not found ", err)
+		log.Error.Println("Process not found ", err)
 		return err
 	}
 
-	err = proc.Kill()
+	err = proc.Signal(os.Interrupt)
 	if err != nil {
-		log.Println("Unable to terminate process ",err)
+		log.Error.Println("Unable to terminate process ", err)
 		return err
 	}
 
-	err = os.Remove("pidFile")
+	err = os.Remove(PidFilePath + "/pidFile")
 	if err != nil {
-		log.Fatalf("Unable to delete pid file ", err)
+		log.Error.Println("Unable to delete pid file ", err)
+		return err
 	}
 
 	return nil

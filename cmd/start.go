@@ -1,71 +1,78 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"fmt"
+	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
-	"log"
+
+	"github.com/maplelabs/opensearch-scaling-manager/logger"
 	app "github.com/maplelabs/opensearch-scaling-manager/scaleManager"
 )
+
+// Directory Path to store the PID file
+var PidFilePath = "/var/run"
+
+// Logger variable used across the package for logging.
+var log logger.LOG
 
 // Start Command to start the Scaling Manager service
 var startCmd = &cobra.Command{
 	Use:   "start",
-    Short: "Start Opensearch Scaling Manager",
-    Long:  ``,
-	Run: func (cmd *cobra.Command, args []string){
-		bg,_:=cmd.Flags().GetString("b")
+	Short: "Start Opensearch Scaling Manager",
+	Long:  ``,
+	Run: func(cmd *cobra.Command, args []string) {
+		bg, _ := cmd.Flags().GetString("b")
 
-		if bg!=""{
-				if bg != "true"{
-					log.Fatal("Unknown value for flag")
-					os.Exit(1)
-				}
-				log.Println("Started scale manager in background")
-				startBackground()
-		}else{
-			err:=start()
-			if err!=nil{
-				log.Fatal(err)
+		if bg != "" {
+			if bg != "true" {
+				log.Fatal.Println("Unknown value for flag")
+				os.Exit(1)
+			}
+			log.Info.Println("Started scale manager in background")
+			startBackground()
+		} else {
+			err := start()
+			if err != nil {
+				log.Error.Println(err)
 			}
 		}
 	},
 }
 
 // Input:
-// 
+//
 // Description:
-// 
+//
 // 	The Function initilazes and starts the execution of Scaling Manager
-// 
+//
 // Return:
-// 
+//
 // 	(error): Returns error upon unsuccessful execution
-func start() error{
+func start() error {
 	app.Initialize()
 	app.Run()
 	return nil
 }
 
 // Input:
-// 
+//
 // Description:
-// 
+//
 // 	The Function is executed when user sets flag(--b=true) along
 // 	with start command. It creates a Background process and creates
-// 	a file to track the Process Id of the background process. 
-// 
+// 	a file to track the Process Id of the background process.
+//
 // Return:
-// 
+//
 // 	(error): Returns error upon unsuccessful execution.
-func startBackground() error{
-	_, err := os.Stat("pidFile")
+func startBackground() error {
+	_, err := os.Stat(PidFilePath + "/pidFile")
 
-	if err != nil{
+	if err != nil {
 		scaleManagerExe, err := os.Executable()
-		if err != nil{
-			log.Println(err)
+		if err != nil {
+			log.Error.Println(err)
 			return err
 		}
 
@@ -73,35 +80,44 @@ func startBackground() error{
 
 		err = cmd.Start()
 		if err != nil {
-			log.Println(err)
+			log.Error.Println(err)
 			return err
 		}
 
-		log.Println("Scale Manager started with pid %v", cmd.Process.Pid)
+		log.Info.Printf("Scale Manager started with pid %v", cmd.Process.Pid)
 
-		err = os.WriteFile("pidFile", []byte(fmt.Sprintf("%v", cmd.Process.Pid)), 0644)
-		if err != nil {
-			log.Println(err)
-			return err
+		pidFile, createFileErr := os.Create(PidFilePath + "/pidFile")
+		if createFileErr != nil {
+			log.Error.Println(createFileErr)
+			return createFileErr
+		}
+		defer pidFile.Close()
+
+		_, writeErr := pidFile.Write([]byte(fmt.Sprintf("%v", cmd.Process.Pid)))
+		if writeErr != nil {
+			log.Error.Println(writeErr)
+			return writeErr
 		}
 		return nil
 	}
-	log.Println("Process already running")
+
+	log.Info.Println("Process already running")
 	fileByte, err := os.ReadFile("pidFile")
 	if err != nil {
-		log.Println(err)
+		log.Error.Println(err)
 	}
 
-	log.Println("Process already running with pid %v ", string(fileByte))
+	log.Info.Printf("Process already running with pid %v ", string(fileByte))
 	return nil
 }
 
 // Input:
-// 
+//
 // Description:
 // 	Initializes the start command, adds the required flags
-// 
+//
 // Return:
-func init(){
-	startCmd.PersistentFlags().String("b","","Flag to run process in background")
+func init() {
+	startCmd.PersistentFlags().String("b", "", "Flag to run process in background")
+	log.Init("logger")
 }
