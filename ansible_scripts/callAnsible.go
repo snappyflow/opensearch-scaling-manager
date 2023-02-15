@@ -1,4 +1,4 @@
-package ansible
+package ansibleutils
 
 import (
 	"context"
@@ -115,6 +115,7 @@ func maskCredentials(err error) error {
 	errString := err.Error()
 	m1 := regexp.MustCompile("\"*credentials\":.*?}")
 	errString = m1.ReplaceAllString(errString, "credentials\":{*********}")
+	errString = errString + "\nCheck ansible log file for more details. (ansible_scripts/playbook.log)"
 	err = errors.New(errString)
 	return err
 }
