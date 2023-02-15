@@ -9,8 +9,8 @@ import (
 	"github.com/apenella/go-ansible/pkg/options"
 	"github.com/apenella/go-ansible/pkg/playbook"
 	"github.com/apenella/go-ansible/pkg/stdoutcallback/results"
+	"github.com/maplelabs/opensearch-scaling-manager/config"
 	"regexp"
-	"scaling_manager/config"
 )
 
 // Input:

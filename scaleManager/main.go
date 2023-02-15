@@ -1,16 +1,18 @@
-package main
+package scaleManager
 
 import (
 	"context"
-	"scaling_manager/config"
-	fetch "scaling_manager/fetchmetrics"
-	"scaling_manager/logger"
-	osutils "scaling_manager/opensearchUtils"
-	"scaling_manager/provision"
-	"scaling_manager/recommendation"
-	utils "scaling_manager/utilities"
+	"os"
 	"strings"
 	"time"
+
+	"github.com/maplelabs/opensearch-scaling-manager/config"
+	fetch "github.com/maplelabs/opensearch-scaling-manager/fetchmetrics"
+	"github.com/maplelabs/opensearch-scaling-manager/logger"
+	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
+	"github.com/maplelabs/opensearch-scaling-manager/provision"
+	"github.com/maplelabs/opensearch-scaling-manager/recommendation"
+	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
 
 	"github.com/tkuchiki/faketime"
 )
@@ -34,7 +36,7 @@ var firstExecution bool
 //	Starts the fetchMetrics module to start collecting the data and dump into Opensearch (if userCfg.MonitorWithSimulator is false)
 //
 // Return:
-func init() {
+func Initialize() {
 	log.Init("logger")
 	log.Info.Println("Main module initialized")
 
@@ -67,7 +69,7 @@ func init() {
 //		# Checks if the current node is master, reads the config file, gets the recommendation from recommendation engine and triggers provisioning
 //
 // Return:
-func main() {
+func Run() {
 	var t = new(time.Time)
 	t_now := time.Now()
 	*t = time.Date(t_now.Year(), t_now.Month(), t_now.Day(), 0, 0, 0, 0, time.UTC)
@@ -171,4 +173,26 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 		// Update the previousMaster for next loop
 		previousMaster = currentMaster
 	}
+}
+
+// Input:
+//
+// Description:
+//
+//		The function performs graceful shutdown of application
+//	 	based on current state of provision.
+//		It will wait till provision is completed and exits.
+//
+// Return:
+func CleanUp() {
+	log.Info.Println("Checking State before Termination")
+	for {
+		state.GetCurrentState()
+		if state.CurrentState == "normal" || state.CurrentState == "provisioning_scaledown_completed" || state.CurrentState == "provisioning_scaleup_completed" {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+	log.Info.Println("Exiting Scale Manager")
+	os.Exit(0)
 }
