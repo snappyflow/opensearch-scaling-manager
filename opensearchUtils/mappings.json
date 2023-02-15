@@ -1,0 +1,186 @@
+{
+  "mappings": {
+    "properties": {
+      "ActiveDataNodes": {
+        "type": "integer"
+      },
+      "ActivePrimaryShards": {
+        "type": "long"
+      },
+      "ActiveShards": {
+        "type": "long"
+      },
+      "ClusterName": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "ClusterStatus": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "CpuUtil": {
+        "type": "double"
+      },
+      "CurrentState": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "DiskUtil": {
+        "type": "double"
+      },
+      "HeapUtil": {
+        "type": "double"
+      },
+      "HostIp": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "InitializingShards": {
+        "type": "integer"
+      },
+      "IsData": {
+        "type": "boolean"
+      },
+      "IsMaster": {
+        "type": "boolean"
+      },
+      "LastProvisionedTime": {
+        "type": "date"
+      },
+      "NodeCount": {
+        "type": "integer"
+      },
+      "NodeId": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "NodeName": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "NumActiveDataNodes": {
+        "type": "integer"
+      },
+      "NumActivePrimaryShards": {
+        "type": "long"
+      },
+      "NumActiveShards": {
+        "type": "long"
+      },
+      "NumInitializingShards": {
+        "type": "long"
+      },
+      "NumMasterNodes": {
+        "type": "integer"
+      },
+      "NumNodes": {
+        "type": "integer"
+      },
+      "NumRelocatingShards": {
+        "type": "long"
+      },
+      "NumShards": {
+        "type": "long"
+      },
+      "NumUnassignedShards": {
+        "type": "long"
+      },
+      "PreviousState": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "ProvisionStartTime": {
+        "type": "date"
+      },
+      "ProvisionEndTime": {
+        "type": "date"
+      },
+      "RamUtil": {
+        "type": "double"
+      },
+      "RelocatingShards": {
+        "type": "long"
+      },
+      "RemainingNodes": {
+        "type": "integer"
+      },
+      "Remark": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "RuleTriggered": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 512
+          }
+        }
+      },
+      "RulesResponsible": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "StatTag": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "Timestamp": {
+        "type": "date"
+      },
+      "UnassignedShards": {
+        "type": "integer"
+      }
+    }
+  }
+}

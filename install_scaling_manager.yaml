@@ -1,0 +1,130 @@
+---
+- name: Build and Pack Scaling Manager
+  hosts: localhost
+  tasks:
+  - name: Build the Scaling Manager
+    command: make build
+    become: yes
+  - name: Pack the Scaling Manager
+    command: make pack
+    become: yes
+  tags: build_and_pack
+- name: Install make
+  hosts: all
+  tasks:
+  - name: Install make
+    become: yes
+    shell:
+      cmd: apt install make
+  tags: install_make
+- name: Install Scaling Manager
+  hosts: all
+  tasks:
+  - name: Transfer the Binaries
+    become: yes
+    copy:
+        src: "{{ item }}"
+        dest: /tmp/
+    with_items:
+      - scaling_manager.tar.gz
+      - GNUmakefile
+  - name: Check if make is installed
+    become: yes
+    command: dpkg-query -W -f='${Status}' make | grep 'install ok installed'
+    register: is_make_installed
+    failed_when: no
+    changed_when: no
+  - name: Install make if not installed
+    become: yes
+    apt:
+      name: make
+      state: latest
+      update_cache: yes
+    when: is_make_installed.rc != 0
+  - name: Check if ansible is installed
+    become: yes
+    command: dpkg-query -W -f='${Status}' ansible | grep 'install ok installed'
+    register: is_ansible_installed
+    failed_when: no
+    changed_when: no
+  - name: Install ansible if not installed
+    become: yes
+    apt:
+      name: ansible
+      state: latest
+      update_cache: yes
+    when: is_ansible_installed.rc != 0
+  - name: Installing Scalling Manager
+    shell:
+    args:
+      cmd: make install
+      chdir: /tmp
+    become: yes
+  tags: install
+- name: Update Config
+  hosts: all
+  tasks:
+  - name: Transfer the Config file
+    become: yes
+    copy:
+        src: "{{ config_path | default('/usr/local/scaling_manager_lib/config.yaml') }}"
+        dest: /usr/local/scaling_manager_lib
+  tags: update_config
+- name: Update secret
+  hosts: all
+  tasks:
+  - name: Check that the secret.txt exists
+    #host: localhost
+    stat:
+      path: /usr/local/scaling_manager_lib/.secret.txt
+    register: stat_result
+  - name: Transfer the secret file
+    become: yes
+    copy:
+        src: "{{ secret_path | default('/usr/local/scaling_manager_lib/.secret.txt') }}"
+        dest: /usr/local/scaling_manager_lib
+    when: not stat_result.stat.exists
+  tags: update_secret
+- name: Start Scaling manager
+  hosts: all
+  tasks:
+  - name: Starting Scaling Manager Service
+    become: yes
+    shell: systemctl start scaling_manager.service
+  tags: start
+- name: Stop Scaling manager
+  hosts: all
+  tasks:
+  - name: Stopping Scaling Manager Service
+    become: yes
+    shell: systemctl stop scaling_manager.service
+  tags: stop
+- name: Restart Scaling manager
+  hosts: all
+  tasks:
+  - name: Restarting Scaling Manager Service
+    become: yes
+    shell: systemctl restart scaling_manager.service
+  tags: restart
+- name: Scaling manager status
+  hosts: all
+  tasks:
+  - name: Getting the status of Scaling Manager Service
+    become: yes
+    shell: systemctl status scaling_manager.service
+  tags: status
+- name: Uninstall Scaling Manager
+  hosts: all
+  tasks:
+  - name: Transfer the Makefile
+    become: yes
+    copy:
+        src: GNUmakefile
+        dest: /tmp/
+  - name: Uninstalling Scalling Manager
+    shell:
+    args:
+      cmd: make uninstall
+      chdir: /tmp
+    become: yes
+  tags: uninstall
