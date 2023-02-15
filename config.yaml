@@ -27,6 +27,7 @@ cluster_details:
   cloud_credentials:
     secret_key: secret_key
     access_key: access_key
+    pem_file_path: /usr/share/pemfile.pem
   base_node_type: t2x.large
   number_cpus_per_node: 5
   ram_per_node_in_gb: 10
