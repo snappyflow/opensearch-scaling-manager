@@ -298,8 +298,6 @@ Scaling manager has following modules
 ### Scaling Manager Flow Diagram 
 
 ------
-
-https://lucid.app/publicSegments/view/b8e022c2-8adf-4737-82d8-f3869d61a86a/image.png
 ![Scaling_Manager_Flow_diagram](https://lucid.app/publicSegments/view/b8e022c2-8adf-4737-82d8-f3869d61a86a/image.png)
 
 
