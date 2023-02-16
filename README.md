@@ -301,6 +301,61 @@ Scaling manager has following modules
 ![Scaling_Manager_Flow_diagram](https://lucid.app/publicSegments/view/b8e022c2-8adf-4737-82d8-f3869d61a86a/image.png)
 
 
+### Scaling Manager Pre-Requisites
+
+------
+
+- Cluster with OpenSearch installed 
+- Cluster credentials (Username, Password) for logging into cluster
+- Template ID which is compatible with existing cluster
+- Cloud credential  (Username, Password) 
+- PEM file
+
+
+
+### Ansible Scripts For Scaling Manager
+
+------
+
+Build, Pack
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "build_and_pack" -kK
+```
+
+Installation
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "install" -kK
+```
+
+Update Config
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "update_config" -kK
+```
+
+Start 
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "start" -kK
+```
+
+Stop
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "stop" -kK
+```
+
+Uninstall
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "uninstall" -kK
+```
+
+
+
+
 ### Build, Packaging and installation
 
 ------
