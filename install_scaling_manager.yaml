@@ -76,7 +76,7 @@
   - name: Transfer the Pem file
     become: yes
     copy:
-        src: "{{ pem_path | default('/home/ubuntu/osm/user-dev-aws-ssh.pem') }}"
+        src: "{{ pem_path | default('/usr/local/scaling_manager_lib/user.pem') }}"
         dest: /usr/local/scaling_manager_lib/user.pem
         mode: 0600
   tags: update_pem
