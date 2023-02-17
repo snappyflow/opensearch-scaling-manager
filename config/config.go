@@ -41,6 +41,7 @@ type CloudCredentials struct {
 	SecretKey string `yaml:"secret_key" validate:"required" json:"secret_key"`
 	// AccessKey indicates the Access key for connecting to the cloud.
 	AccessKey string `yaml:"access_key" validate:"required" json:"access_key"`
+	Region  string `yaml:"region" validate:"required" json:"region"`
 }
 
 // This struct contains the data structure to parse the cluster details present in the configuration file.
