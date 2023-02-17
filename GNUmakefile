@@ -65,7 +65,7 @@ check:
 pack: check
 	rm -rf $(SCALING_MANAGER_LIB) $(SCALING_MANAGER_TAR_GZ)
 	mkdir -p $(SCALING_MANAGER_LIB)
-	cp config.yaml scaling_manager.service $(SCALING_MANAGER_LIB)
+	cp ansible.cfg config.yaml scaling_manager.service $(SCALING_MANAGER_LIB)
     ifeq ($(INCLUDESIM),true)
 	cp -rf simulator $(SCALING_MANAGER_LIB)
     endif
@@ -75,6 +75,7 @@ pack: check
     else
 		cp scaling_manager $(SCALING_MANAGER_LIB)
     endif
+        cp -rf ansible_scripts $(SCALING_MANAGER_LIB)
 	tar -czf $(SCALING_MANAGER_TAR_GZ) $(SCALING_MANAGER_LIB)
 
 install: cleaninstall
