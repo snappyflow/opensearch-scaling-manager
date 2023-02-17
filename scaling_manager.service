@@ -3,10 +3,12 @@ Description=OpenSearch Scaling Manager(scale the opensearch cluster based on rul
 After=network.target
 
 [Service]
-Type=simple
+Type=simple 
+User=
+Group=
 WorkingDirectory=/usr/local/scaling_manager_lib
 ExecStart=/usr/local/scaling_manager_lib/scaling_manager start
-ExecStop=/usr/local/scaling_manager_lib/scaling_manager stop
+ExecStop=/usr/local/scaling_manager_lib/scaling_manager stop --pid=${MAINPID}
 
 [Install]
 WantedBy=multi-user.target
