@@ -1,0 +1,446 @@
+---
+cluster_name: test
+cluster_hostname: test-cluster.aws
+cluster_ip_address: 10.0.0.1
+node_machine_type_identifier: m5-12xlarge
+total_nodes_count: 7
+active_data_nodes: 7
+min_nodes_in_cluster: 3
+master_eligible_nodes_count: 7
+heap_memory_factor: 0.5
+index_count: 100
+primary_shards_per_index: 2
+replica_shards_per_index: 1
+index_roll_over_size_gb: 10
+# index_clean_up_age_days: 20
+index_roll_over_hours: 12
+total_disk_size_gb: 14000
+simulation_frequency_minutes: 5
+
+# Specify data ingestion with respect to time of the day to represent pattern for entire day(24hrs).
+states:
+- Day: 1
+  pattern:
+    - position: 1
+      time_hh_mm_ss: '00_00_00'
+      ingestion_rate_gb_per_hr: 0
+      searches:
+        simple: 50000
+        medium: 500
+    - position: 2
+      time_hh_mm_ss: '02_00_00'
+      ingestion_rate_gb_per_hr: 0
+      searches:
+        simple: 30000
+        medium: 1000
+    - position: 3
+      time_hh_mm_ss: '04_00_00'
+      ingestion_rate_gb_per_hr: 0
+      searches:
+        simple: 50000
+        medium: 2000
+    - position: 4
+      time_hh_mm_ss: '06_00_00'
+      ingestion_rate_gb_per_hr: 3
+      searches:
+        simple: 50000
+        medium: 2000
+    - position: 5
+      time_hh_mm_ss: '08_00_00'
+      ingestion_rate_gb_per_hr: 70
+      searches:
+        simple: 100000
+        medium: 80000
+        complex: 50000
+    - position: 6
+      time_hh_mm_ss: '09_00_00'
+      ingestion_rate_gb_per_hr: 60
+      searches:
+        simple: 100000
+        medium: 80000
+        complex: 50000
+    - position: 7
+      time_hh_mm_ss: '10_00_00'
+      ingestion_rate_gb_per_hr: 80
+      searches:
+        simple: 100000
+        medium: 80000
+        complex: 50000
+    - position: 8
+      time_hh_mm_ss: '11_00_00'
+      ingestion_rate_gb_per_hr: 24
+      searches:
+        simple: 100000
+        medium: 80000
+        complex: 50000
+    - position: 9
+      time_hh_mm_ss: '12_00_00'
+      ingestion_rate_gb_per_hr: 50
+      searches:
+        simple: 110000
+        medium: 80000
+        complex: 55000
+      index:
+        count: 10
+    - position: 10
+      time_hh_mm_ss: '13_00_00'
+      ingestion_rate_gb_per_hr: 20
+      searches:
+        simple: 55000
+        medium: 40000
+        complex: 20000
+    - position: 11
+      time_hh_mm_ss: '14_00_00'
+      ingestion_rate_gb_per_hr: 73
+      searches:
+        simple: 60000
+        medium: 50000
+        complex: 25000
+    - position: 12
+      time_hh_mm_ss: '15_00_00'
+      ingestion_rate_gb_per_hr: 60
+      searches:
+        simple: 30000
+        medium: 50000
+        complex: 10000
+    - position: 13
+      time_hh_mm_ss: '16_00_00'
+      ingestion_rate_gb_per_hr: 90
+      searches:
+        simple: 55000
+        medium: 45000
+        complex: 20000
+    - position: 14
+      time_hh_mm_ss: '17_00_00'
+      ingestion_rate_gb_per_hr: 56
+      searches:
+        simple: 55000
+        medium: 40000
+        complex: 20000
+    - position: 15
+      time_hh_mm_ss: '18_00_00'
+      ingestion_rate_gb_per_hr: 70
+      searches:
+        simple: 55000
+        medium: 40000
+        complex: 20000
+    - position: 16
+      time_hh_mm_ss: '19_00_00'
+      ingestion_rate_gb_per_hr: 40
+      searches:
+        simple: 55000
+        medium: 40000
+        complex: 20000
+    - position: 17
+      time_hh_mm_ss: '20_00_00'
+      ingestion_rate_gb_per_hr: 26
+      searches:
+        simple: 20000
+        medium: 10000
+    - position: 18
+      time_hh_mm_ss: '21_00_00'
+      ingestion_rate_gb_per_hr: 10
+      searches:
+        simple: 20000
+        medium: 10000
+    - position: 19
+      time_hh_mm_ss: '22_00_00'
+      ingestion_rate_gb_per_hr: 7
+      searches:
+        simple: 60000
+        medium: 10000
+    - position: 20
+      time_hh_mm_ss: '23_00_00'
+      ingestion_rate_gb_per_hr: 1
+      searches:
+        simple: 10000
+        medium: 2000      
+- Day: 2
+  pattern:
+    - position: 1
+      time_hh_mm_ss: '00_00_00'
+      ingestion_rate_gb_per_hr: 0
+      searches:
+        simple: 50000
+        medium: 500
+    - position: 2
+      time_hh_mm_ss: '02_00_00'
+      ingestion_rate_gb_per_hr: 0
+      searches:
+        simple: 30000
+        medium: 1000
+    - position: 3
+      time_hh_mm_ss: '04_00_00'
+      ingestion_rate_gb_per_hr: 0
+      searches:
+        simple: 50000
+        medium: 2000
+    - position: 4
+      time_hh_mm_ss: '06_00_00'
+      ingestion_rate_gb_per_hr: 3
+      searches:
+        simple: 50000
+        medium: 2000
+    - position: 5
+      time_hh_mm_ss: '08_00_00'
+      ingestion_rate_gb_per_hr: 70
+      searches:
+        simple: 100000
+        medium: 80000
+        complex: 50000
+    - position: 6
+      time_hh_mm_ss: '09_00_00'
+      ingestion_rate_gb_per_hr: 60
+      searches:
+        simple: 100000
+        medium: 80000
+        complex: 50000
+    - position: 7
+      time_hh_mm_ss: '10_00_00'
+      ingestion_rate_gb_per_hr: 80
+      searches:
+        simple: 100000
+        medium: 80000
+        complex: 50000
+      index:
+        count: 10
+    - position: 8
+      time_hh_mm_ss: '11_00_00'
+      ingestion_rate_gb_per_hr: 24
+      searches:
+        simple: 100000
+        medium: 80000
+        complex: 50000
+    - position: 9
+      time_hh_mm_ss: '12_00_00'
+      ingestion_rate_gb_per_hr: 50
+      searches:
+        simple: 110000
+        medium: 80000
+        complex: 55000
+    - position: 10
+      time_hh_mm_ss: '13_00_00'
+      ingestion_rate_gb_per_hr: 20
+      searches:
+        simple: 55000
+        medium: 40000
+        complex: 20000
+    - position: 11
+      time_hh_mm_ss: '14_00_00'
+      ingestion_rate_gb_per_hr: 73
+      searches:
+        simple: 60000
+        medium: 50000
+        complex: 25000
+    - position: 12
+      time_hh_mm_ss: '15_00_00'
+      ingestion_rate_gb_per_hr: 60
+      searches:
+        simple: 30000
+        medium: 50000
+        complex: 10000
+    - position: 13
+      time_hh_mm_ss: '16_00_00'
+      ingestion_rate_gb_per_hr: 90
+      searches:
+        simple: 55000
+        medium: 45000
+        complex: 20000
+    - position: 14
+      time_hh_mm_ss: '17_00_00'
+      ingestion_rate_gb_per_hr: 56
+      searches:
+        simple: 55000
+        medium: 40000
+        complex: 20000
+    - position: 15
+      time_hh_mm_ss: '18_00_00'
+      ingestion_rate_gb_per_hr: 70
+      searches:
+        simple: 55000
+        medium: 40000
+        complex: 20000
+    - position: 16
+      time_hh_mm_ss: '19_00_00'
+      ingestion_rate_gb_per_hr: 40
+      searches:
+        simple: 55000
+        medium: 40000
+        complex: 20000
+    - position: 17
+      time_hh_mm_ss: '20_00_00'
+      ingestion_rate_gb_per_hr: 26
+      searches:
+        simple: 20000
+        medium: 10000
+    - position: 18
+      time_hh_mm_ss: '21_00_00'
+      ingestion_rate_gb_per_hr: 10
+      searches:
+        simple: 20000
+        medium: 10000
+    - position: 19
+      time_hh_mm_ss: '22_00_00'
+      ingestion_rate_gb_per_hr: 7
+      searches:
+        simple: 60000
+        medium: 10000
+    - position: 20
+      time_hh_mm_ss: '23_00_00'
+      ingestion_rate_gb_per_hr: 1
+      searches:
+        simple: 10000
+        medium: 2000
+- Day: 3
+  pattern:
+    - position: 1
+      time_hh_mm_ss: '00_00_00'
+      ingestion_rate_gb_per_hr: 0
+      searches:
+        simple: 50000
+        medium: 500
+    - position: 2
+      time_hh_mm_ss: '02_00_00'
+      ingestion_rate_gb_per_hr: 0
+      searches:
+        simple: 30000
+        medium: 1000
+    - position: 3
+      time_hh_mm_ss: '04_00_00'
+      ingestion_rate_gb_per_hr: 0
+      searches:
+        simple: 50000
+        medium: 2000
+      index:
+        count: 10
+    - position: 4
+      time_hh_mm_ss: '06_00_00'
+      ingestion_rate_gb_per_hr: 3
+      searches:
+        simple: 50000
+        medium: 2000
+    - position: 5
+      time_hh_mm_ss: '08_00_00'
+      ingestion_rate_gb_per_hr: 90
+      searches:
+        simple: 100000
+        medium: 80000
+        complex: 50000
+    - position: 6
+      time_hh_mm_ss: '09_00_00'
+      ingestion_rate_gb_per_hr: 12
+      searches:
+        simple: 100000
+        medium: 80000
+        complex: 50000
+    - position: 7
+      time_hh_mm_ss: '10_00_00'
+      ingestion_rate_gb_per_hr: 80
+      searches:
+        simple: 100000
+        medium: 80000
+        complex: 50000
+    - position: 8
+      time_hh_mm_ss: '11_00_00'
+      ingestion_rate_gb_per_hr: 124
+      searches:
+        simple: 100000
+        medium: 80000
+        complex: 50000
+    - position: 9
+      time_hh_mm_ss: '12_00_00'
+      ingestion_rate_gb_per_hr: 10
+      searches:
+        simple: 110000
+        medium: 80000
+        complex: 55000
+    - position: 10
+      time_hh_mm_ss: '13_00_00'
+      ingestion_rate_gb_per_hr: 90
+      searches:
+        simple: 55000
+        medium: 40000
+        complex: 20000
+    - position: 11
+      time_hh_mm_ss: '14_00_00'
+      ingestion_rate_gb_per_hr: 73
+      searches:
+        simple: 60000
+        medium: 50000
+        complex: 25000
+    - position: 12
+      time_hh_mm_ss: '15_00_00'
+      ingestion_rate_gb_per_hr: 60
+      searches:
+        simple: 30000
+        medium: 50000
+        complex: 10000
+    - position: 13
+      time_hh_mm_ss: '16_00_00'
+      ingestion_rate_gb_per_hr: 90
+      searches:
+        simple: 55000
+        medium: 45000
+        complex: 20000
+    - position: 14
+      time_hh_mm_ss: '17_00_00'
+      ingestion_rate_gb_per_hr: 56
+      searches:
+        simple: 55000
+        medium: 40000
+        complex: 20000
+    - position: 15
+      time_hh_mm_ss: '18_00_00'
+      ingestion_rate_gb_per_hr: 70
+      searches:
+        simple: 55000
+        medium: 40000
+        complex: 20000
+    - position: 16
+      time_hh_mm_ss: '19_00_00'
+      ingestion_rate_gb_per_hr: 40
+      searches:
+        simple: 55000
+        medium: 40000
+        complex: 20000
+    - position: 17
+      time_hh_mm_ss: '20_00_00'
+      ingestion_rate_gb_per_hr: 26
+      searches:
+        simple: 20000
+        medium: 10000
+    - position: 18
+      time_hh_mm_ss: '21_00_00'
+      ingestion_rate_gb_per_hr: 10
+      searches:
+        simple: 20000
+        medium: 10000
+    - position: 19
+      time_hh_mm_ss: '22_00_00'
+      ingestion_rate_gb_per_hr: 7
+      searches:
+        simple: 60000
+        medium: 10000
+    - position: 20
+      time_hh_mm_ss: '23_00_00'
+      ingestion_rate_gb_per_hr: 1
+      searches:
+        simple: 10000
+        medium: 2000
+randomness_percentage: 35
+
+
+# Specify searches along with their type, probability and load inflected on the cluster.
+search_description:
+  simple:
+    cpu_load_percent: 0.001
+    memory_load_percent: 1
+    heap_load_percent: 0.01
+  medium:
+    cpu_load_percent: 0.0015
+    memory_load_percent: 1.5
+    heap_load_percent: 0.01
+  complex:
+    cpu_load_percent: 0.002
+    memory_load_percent: 2
+    heap_load_percent: 0.01
