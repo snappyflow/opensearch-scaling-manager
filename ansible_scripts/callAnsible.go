@@ -77,7 +77,8 @@ func CallAnsible(username string, hosts string, clusterCfg config.ClusterDetails
 	}
 
 	ansiblePlaybookPrivilegeEscalationOptions := &options.AnsiblePrivilegeEscalationOptions{
-		Become: true,
+		Become:       true,
+		BecomeMethod: "sudo",
 	}
 
 	playbook := &playbook.AnsiblePlaybookCmd{
@@ -116,6 +117,6 @@ func maskCredentials(err error) error {
 	m1 := regexp.MustCompile("\"*credentials\":.*?}")
 	errString = m1.ReplaceAllString(errString, "credentials\":{*********}")
 	errString = errString + "\nCheck ansible log file for more details. (ansible_scripts/playbook.log)"
-	err = errors.New(errString)
-	return err
+	newErr := errors.New(errString)
+	return newErr
 }

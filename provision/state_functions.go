@@ -6,6 +6,7 @@ import (
 	"fmt"
 	osutils "scaling_manager/opensearchUtils"
 	utils "scaling_manager/utilities"
+	"time"
 )
 
 // A global variable which stores the document ID of the State document that will to stored and fetched frm Opensearch
@@ -78,6 +79,8 @@ func (s *State) GetCurrentState() {
 
 func (s *State) UpdateState() {
 	// Update the document.
+
+	s.Timestamp = time.Now().UnixMilli()
 
 	state, err := json.Marshal(s)
 	if err != nil {

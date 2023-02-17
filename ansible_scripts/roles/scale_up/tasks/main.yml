@@ -16,20 +16,12 @@
     retries: 5
     delay: 30
 
-  - name: install java on ubuntu
-    raw: (sudo apt -y update && sudo apt install -y default-jre)
-    register: task_result
-    until: task_result.rc == 0
-    retries: 5
-    delay: 30
-
-    
-  
+  # Commenting below check since the gather_facts:no as it throws error on new node since python is not installes. It can also not check ansible_distribution info
   # Disabling for Amazon Linux 2 as selinux is disabled by default.
-  - name: Disable the selinux
-    selinux:
-      state: disabled
-    when: (ansible_distribution != "Ubuntu") and (ansible_distribution != "Amazon")
+  #  - name: Disable the selinux
+  #    selinux:
+  #      state: disabled
+  #    when: (ansible_distribution != "Ubuntu") and (ansible_distribution != "Amazon")
 
   - name: Install ansible
     import_tasks: install_ansible.yml
