@@ -115,7 +115,6 @@ func GetClusterId() string {
 //	(string): Return the map which contains node details
 func GetNodes() map[string]interface{} {
 	var nodeStatsInterface map[string]interface{}
-	var nodeMap map[string]interface{}
 
 	nodes := []string{"_all"}
 	metrics := []string{}
@@ -131,10 +130,11 @@ func GetNodes() map[string]interface{} {
 		log.Error.Println("decode Error: ", decodeErr)
 	}
 
+	nodeMap := make(map[string]interface{},0)
+
 	for node, nodeInfo := range nodeStatsInterface["nodes"].(map[string]interface{}) {
-		nodeMap := make(map[string]interface{},0)
 		nodeInfoMap := nodeInfo.(map[string]interface{})
-		nodeMap[node] = map[string]string{"name": nodeInfoMap["name"].(string), "hostIp": nodeInfoMap["ip"].(string)}
+		nodeMap[node] = map[string]string{"name": nodeInfoMap["name"].(string), "hostIp": nodeInfoMap["host"].(string)}
 	}
 
 	return nodeMap
