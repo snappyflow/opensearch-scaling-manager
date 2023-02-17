@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
 	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
 )
@@ -78,6 +79,8 @@ func (s *State) GetCurrentState() {
 
 func (s *State) UpdateState() {
 	// Update the document.
+
+	s.Timestamp = time.Now().UnixMilli()
 
 	state, err := json.Marshal(s)
 	if err != nil {
