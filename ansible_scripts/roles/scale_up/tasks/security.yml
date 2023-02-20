@@ -60,6 +60,8 @@
 - name: Security Plugin configuration | Generate the node & admin certificates in local
   local_action:
     module: command /tmp/opensearch-nodecerts/tools/sgtlstool.sh -c /tmp/opensearch-nodecerts/config/tlsconfig.yml -crt -t /tmp/opensearch-nodecerts/config/
+  environment:
+    JAVA_HOME: "{{ os_home }}/jdk"
   run_once: true  
   become: yes
   

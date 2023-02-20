@@ -1,5 +1,7 @@
 PLATFORM ?= linux
-INCLUDESIM ?=false
+INCLUDESIM ?= false
+USER_NAME ?= ubuntu
+GROUP ?= ubuntu
 
 export GO_BUILD=env go build
 export SCALING_MANAGER_TAR_GZ="scaling_manager.tar.gz"
@@ -65,7 +67,7 @@ check:
 pack: check
 	rm -rf $(SCALING_MANAGER_LIB) $(SCALING_MANAGER_TAR_GZ)
 	mkdir -p $(SCALING_MANAGER_LIB)
-	cp config.yaml scaling_manager.service $(SCALING_MANAGER_LIB)
+	cp ansible.cfg config.yaml scaling_manager.service $(SCALING_MANAGER_LIB)
     ifeq ($(INCLUDESIM),true)
 	cp -rf simulator $(SCALING_MANAGER_LIB)
     endif
@@ -75,20 +77,23 @@ pack: check
     else
 		cp scaling_manager $(SCALING_MANAGER_LIB)
     endif
+	cp install_scaling_manager.yaml ansible_scripts
+	cp -rf ansible_scripts $(SCALING_MANAGER_LIB)
 	tar -czf $(SCALING_MANAGER_TAR_GZ) $(SCALING_MANAGER_LIB)
 
-install: cleaninstall
+install:
 	@if [ ! -f $(SCALING_MANAGER_TAR_GZ) ]; then \
 		echo "The Scaling manager tarball is missing"; \
 		exit 1; \
 	fi
-	rm -rf $(SCALING_MANAGER_LIB)
-	tar -xzf $(SCALING_MANAGER_TAR_GZ)
     ifeq ($(PLATFORM),linux)
 		tar -C $(SCALING_MANAGER_INSTALL) -xzf $(SCALING_MANAGER_TAR_GZ)
-		chmod +x $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager
+		sed -i "s/User=.*/User=$(USER_NAME)/" $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager.service
+		sed -i "s/Group=.*/Group=$(GROUP)/" $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager.service
 		mv -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager.service /etc/systemd/system/
-		systemctl enable scaling_manager
+		chown -R $(USER_NAME):$(GROUP) $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)
+		chmod 755 $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager
+		systemctl daemon-reload
     endif
 
 uninstall: cleaninstall

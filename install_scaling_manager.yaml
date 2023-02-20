@@ -57,7 +57,7 @@
   - name: Installing Scalling Manager
     shell:
     args:
-      cmd: make install
+      cmd: make install USER_NAME={{ user | default('ubuntu') }} GROUP={{ group | default('ubuntu') }}
       chdir: /tmp
     become: yes
   tags: install
@@ -69,12 +69,25 @@
     copy:
         src: "{{ config_path | default('/usr/local/scaling_manager_lib/config.yaml') }}"
         dest: /usr/local/scaling_manager_lib
+        owner: '{{ user | default("ubuntu") }}'
+        group: '{{ group | default("ubuntu") }}'
   tags: update_config
+- name: Update pem
+  hosts: all
+  tasks:
+  - name: Transfer the PEM file
+    become: yes
+    copy:
+        src: "{{ pem_path | default('/home/ubuntu/osm/user-dev-aws-ssh.pem') }}"
+        dest: /usr/local/scaling_manager_lib/user.pem
+        owner: '{{ user | default("ubuntu") }}'
+        group: '{{ group | default("ubuntu") }}'
+        mode: 600
+  tags: update_pem
 - name: Update secret
   hosts: all
   tasks:
   - name: Check that the secret.txt exists
-    #host: localhost
     stat:
       path: /usr/local/scaling_manager_lib/.secret.txt
     register: stat_result
@@ -83,6 +96,8 @@
     copy:
         src: "{{ secret_path | default('/usr/local/scaling_manager_lib/.secret.txt') }}"
         dest: /usr/local/scaling_manager_lib
+        owner: '{{ user | default("ubuntu") }}'
+        group: '{{ group | default("ubuntu") }}'
     when: not stat_result.stat.exists
   tags: update_secret
 - name: Start Scaling manager
@@ -90,21 +105,27 @@
   tasks:
   - name: Starting Scaling Manager Service
     become: yes
-    shell: systemctl start scaling_manager.service
+    ansible.builtin.systemd:
+      name: scaling_manager
+      state: started
   tags: start
 - name: Stop Scaling manager
   hosts: all
   tasks:
   - name: Stopping Scaling Manager Service
     become: yes
-    shell: systemctl stop scaling_manager.service
+    ansible.builtin.systemd:
+      name: scaling_manager
+      state: stopped
   tags: stop
 - name: Restart Scaling manager
   hosts: all
   tasks:
   - name: Restarting Scaling Manager Service
     become: yes
-    shell: systemctl restart scaling_manager.service
+    ansible.builtin.systemd:
+      name: scaling_manager
+      state: restarted
   tags: restart
 - name: Scaling manager status
   hosts: all
@@ -112,6 +133,11 @@
   - name: Getting the status of Scaling Manager Service
     become: yes
     shell: systemctl status scaling_manager.service
+    register: sm_service_status
+    ignore_errors: yes
+  - name: Printing the status of Scaling Manager Service
+    debug:
+      var: sm_service_status.stdout_lines
   tags: status
 - name: Uninstall Scaling Manager
   hosts: all

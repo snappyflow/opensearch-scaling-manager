@@ -25,7 +25,7 @@ xmx_value: "{{ RAMGB | int }}"
 
 os_conf_dir: "{{ os_home }}/config"
 os_plugin_bin_path: "{{ os_home }}/bin/opensearch-plugin"
-os_sec_plugin_conf_path: "{{ os_home }}/config/opensearch-security"
+os_sec_plugin_conf_path: "{{ os_home }}/plugins/opensearch-security/securityconfig"
 os_sec_plugin_tools_path: "{{ os_home }}/plugins/opensearch-security/tools"
 os_api_port: 9200
 
