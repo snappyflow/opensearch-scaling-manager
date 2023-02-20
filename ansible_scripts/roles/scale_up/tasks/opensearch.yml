@@ -47,17 +47,18 @@
   become: yes
 
 
-- name: OpenSearch Install | Copy unicast from local to new node
-  copy:
-    src: "{{ os_conf_dir }}/unicast_hosts.txt"
-    dest: "{{ os_conf_dir }}/unicast_hosts.txt"
-    mode: 0644
-  run_once: true
+- name: Create Unicast_hosts.txt file
   become: yes
+  file:
+      path: "{{ os_conf_dir }}/unicast_hosts.txt"
+      state: touch
 
-- name: OpenSearch Install | Add the new node into unicast file
-  lineinfile:
-    path: "{{os_conf_dir}}/unicast_hosts.txt"
-    line: "{{ hostvars[inventory_hostname]['ansible_private_host'] }}"
-    state: present
+- name: Update the unicast_hosts.txt file with Host IPs
   become: yes
+  become_user: root
+  lineinfile:
+    path: "{{ os_conf_dir }}/unicast_hosts.txt"
+    line: "{{ hostvars[item].ansible_private_host }}"
+    state: present
+  with_items:
+  - "{{ groups['all'] }}"

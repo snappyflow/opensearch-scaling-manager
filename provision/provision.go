@@ -320,12 +320,13 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 			nodes = utils.GetNodes()
 			for nodeId, nodeIdInfo := range nodes {
 				if !(utils.CheckIfMaster(context.Background(), nodeId)) {
-					removeNodeIp = nodeIdInfo.(map[string]interface{})["hostIp"].(string)
-					removeNodeName = nodeIdInfo.(map[string]interface{})["name"].(string)
+					removeNodeIp = nodeIdInfo.(map[string]string)["hostIp"]
+					removeNodeName = nodeIdInfo.(map[string]string)["name"]
 					break
 				}
 			}
 		}
+		log.Info.Println("Node identified for removal: ", removeNodeName, removeNodeIp)
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "scaledown_node_identified"
 		state.UpdateState()
@@ -344,7 +345,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 				fakeSleep(t)
 			}
 		} else {
-			log.Info.Println("Configuring to remove the node from cluster")
+			log.Info.Println("Configuring to remove the node from cluster through ansible")
 			hostsFileName := "ansible_scripts/hosts"
 			username := clusterCfg.SshUser
 			f, err := os.OpenFile(hostsFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
@@ -356,8 +357,8 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 			dataWriter := bufio.NewWriter(f)
 			dataWriter.WriteString("[current-nodes]\n")
 			for _, nodeIdInfo := range nodes {
-				if nodeIdInfo.(map[string]interface{})["hostIp"].(string) != removeNodeIp {
-					_, writeErr := dataWriter.WriteString(nodeIdInfo.(map[string]interface{})["name"].(string) + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + nodeIdInfo.(map[string]interface{})["hostIp"].(string) + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
+				if nodeIdInfo.(map[string]string)["hostIp"] != removeNodeIp {
+					_, writeErr := dataWriter.WriteString(nodeIdInfo.(map[string]string)["name"] + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + nodeIdInfo.(map[string]string)["hostIp"] + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 					if writeErr != nil {
 						log.Error.Println("Error writing the node data into hosts file", writeErr)
 					}
@@ -377,6 +378,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 		state.UpdateState()
 		fallthrough
 	case "provisioned_scaledown_on_cluster":
+		log.Info.Println("Terminating the instance")
 		terminateErr := TerminateInstance(removeNodeIp, clusterCfg.CloudCredentials)
 		if terminateErr != nil {
 			log.Fatal.Println(terminateErr)
@@ -395,7 +397,6 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 		log.Info.Println("Wait for the cluster to become healthy and then proceed")
 		CheckClusterHealth(state, usrCfg, t)
 		log.Info.Println("Shutdown the node")
-		time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 		if simFlag && isAccelerated {
 			fakeSleep(t)
 		}

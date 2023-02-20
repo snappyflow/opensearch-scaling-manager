@@ -44,11 +44,7 @@
   become: yes
 
 - name: Security Plugin configuration | Copy the root ca certificate to /tmp directory
-  local_action:
-    module: copy
-    src: "{{ os_conf_dir }}/{{ item }}"
-    dest: "/tmp/opensearch-nodecerts/config"
-    mode: 0644
+  shell: "sudo cp {{ os_conf_dir }}/{{ item }} /tmp/opensearch-nodecerts/config"
   with_items:
     - root-ca.pem
     - root-ca.key
@@ -56,6 +52,7 @@
     - admin.pem
   run_once: true
   become: yes
+  delegate_to: localhost
 
 - name: Security Plugin configuration | Generate the node & admin certificates in local
   local_action:
