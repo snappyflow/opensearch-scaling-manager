@@ -136,7 +136,7 @@ func checkNumNodesCondition(operation string, clusterCfg config.ClusterDetails, 
 		}
 	case "scale_down":
 		if numNodes-1 < clusterCfg.MinNodesAllowed {
-			log.Warn.Println("Cannot scale down as the minimum number of nodes for this cluster specified is reached.\n If you need the scale down to take place anyway, consider decreasing the min nodes in config.yaml")
+			log.Warn.Println("Cannot scale down as the minimum number of nodes for this cluster specified is reached.\n If you need the scale down to take place anyway, consider increasing the min nodes in config.yaml")
 			return false
 		}
 	}

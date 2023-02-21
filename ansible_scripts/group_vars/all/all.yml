@@ -1,13 +1,13 @@
 ---
 
 os_nodes: |-
-        {% for item in groups['current-nodes'] -%}
+        {% for item in groups['current_nodes'] -%}
           {{ hostvars[item]['ansible_private_host'] }}{% if not loop.last %}","{% endif %}
-        {%- endfor %}","{% for item in groups['new-node'] -%}
+        {%- endfor %}","{% for item in groups['new_node'] -%}
           {{ hostvars[item]['ansible_private_host'] }}{% if not loop.last %}","{% endif %}
         {%- endfor %}
 os_master_nodes: |-
-        {% for item in groups['current-nodes'] -%}
+        {% for item in groups['current_nodes'] -%}
         {% if hostvars[item]['roles'] == "master,data,ingest" %} {{ hostvars[item]['ansible_private_host'] }}","{% endif %}
         {%- endfor %}
 
