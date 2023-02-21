@@ -42,19 +42,3 @@
       backup: yes
     with_items: "{{ groups['new-node'] }}"
     become: yes
-
-  - name: Populate hosts | populate inventory into hosts file
-    become_user: root
-    become: yes
-    blockinfile:
-      dest: /etc/hosts
-      block: |-
-        {% for item in groups['all'] %}
-        {{ hostvars[item]['ansible_private_host'] }} {{ item }}.{{ domain_name }} {{ item }}
-        {% endfor %}
-      state: present
-      create: yes
-      backup: yes
-      marker: "# Ansible inventory hosts {mark}"
-
-
