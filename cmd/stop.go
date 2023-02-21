@@ -68,7 +68,7 @@ func stop(pid string) error {
 		return err
 	}
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	proc, err = os.FindProcess(pid_int)
 	if err != nil {
