@@ -3,9 +3,22 @@ package cmd
 import (
 	"os"
 	"strconv"
+	"time"
+	"syscall"
 
 	"github.com/spf13/cobra"
 )
+
+
+// Input:
+//
+// Description:
+// 	Initializes the stop command, adds the required flags
+//
+// Return:
+func init() {
+	stopCmd.PersistentFlags().String("pid", "", "Flag to get the pid")
+}
 
 // Command to stop the execution of Scaling Manager
 var stopCmd = &cobra.Command{
@@ -13,12 +26,18 @@ var stopCmd = &cobra.Command{
 	Short: "Stop Opensearch Scaling Manager",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := stop()
-		if err != nil {
-			log.Error.Println(err)
+		pid, _ := cmd.Flags().GetString("pid")
+
+		if pid != "" {
+			err := stop(pid)
+			if err != nil {
+				log.Error.Println(err)
+				return
+			}
+		} else {
+			log.Error.Println("Incorrect Pid")
 			return
 		}
-		log.Info.Println("Stop Successful")
 	},
 }
 
@@ -32,28 +51,13 @@ var stopCmd = &cobra.Command{
 // Return:
 //
 // (error): Returns error upon unsuccessful execution.
-func stop() error {
+func stop(pid string) error {
 	log.Info.Println("Stopping Scale Manager")
+	var pid_int int
+	var err error
 
-	_, err := os.Stat(PidFilePath + "/pidFile")
-	if err != nil {
-		log.Error.Println("Process not found ", err)
-		return err
-	}
-
-	fileByte, err := os.ReadFile(PidFilePath + "/pidFile")
-	if err != nil {
-		log.Error.Println("Process id file not found ", err)
-		return err
-	}
-
-	pid, err := strconv.Atoi(string(fileByte))
-	if err != nil {
-		log.Error.Println(err)
-		return err
-	}
-
-	proc, err := os.FindProcess(pid)
+	pid_int, err = strconv.Atoi(string(pid))
+	proc, err := os.FindProcess(pid_int)
 	if err != nil {
 		log.Error.Println("Process not found ", err)
 		return err
@@ -65,11 +69,21 @@ func stop() error {
 		return err
 	}
 
-	err = os.Remove(PidFilePath + "/pidFile")
-	if err != nil {
-		log.Error.Println("Unable to delete pid file ", err)
-		return err
-	}
+	time.Sleep(5 * time.Second)
 
-	return nil
+	proc, err = os.FindProcess(pid_int)
+    if err != nil {
+        log.Info.Println("Process Terminate Successful")
+        return nil
+    }
+
+	err = proc.Signal(os.Signal(syscall.Signal(0)))
+    if err == nil {
+        log.Info.Printf("Process with Pid %v is still running.", pid_int)
+		log.Info.Println("Scale Manager currently in the provision phase and will be shut down once it is completed")
+    } else {
+        log.Info.Printf("Process with pid %v is not running.", pid_int)
+		log.Info.Println("Process Terminate Successful")
+    }
+	return nil 
 }
