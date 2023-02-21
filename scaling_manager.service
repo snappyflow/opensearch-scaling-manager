@@ -8,7 +8,7 @@ User=
 Group=
 WorkingDirectory=/usr/local/scaling_manager_lib
 ExecStart=/usr/local/scaling_manager_lib/scaling_manager start
-ExecStop=/usr/local/scaling_manager_lib/scaling_manager stop --pid=${MAINPID}
+KillSignal=SIGINT
 
 [Install]
 WantedBy=multi-user.target

@@ -82,7 +82,7 @@
         dest: /usr/local/scaling_manager_lib/user.pem
         owner: '{{ user | default("ubuntu") }}'
         group: '{{ group | default("ubuntu") }}'
-        mode: 600
+        mode: 0600
   tags: update_pem
 - name: Update secret
   hosts: all
@@ -105,7 +105,7 @@
   tasks:
   - name: Starting Scaling Manager Service
     become: yes
-    ansible.builtin.systemd:
+    systemd:
       name: scaling_manager
       state: started
   tags: start
@@ -114,7 +114,7 @@
   tasks:
   - name: Stopping Scaling Manager Service
     become: yes
-    ansible.builtin.systemd:
+    systemd:
       name: scaling_manager
       state: stopped
   tags: stop
@@ -123,7 +123,7 @@
   tasks:
   - name: Restarting Scaling Manager Service
     become: yes
-    ansible.builtin.systemd:
+    systemd:
       name: scaling_manager
       state: restarted
   tags: restart
