@@ -23,8 +23,8 @@
   - name: Transfer the Binaries
     become: yes
     copy:
-        src: "{{ item }}"
-        dest: "{{ bin_path | default('/usr/local/scaling_manager_lib/') }}"
+        src: "{{ src_bin_path | default('/usr/local/scaling_manager_lib') }}"/"{{ item }}"
+        dest: "{{ dest_bin_path | default('/usr/local/scaling_manager_lib/') }}"
         owner: '{{ user | default("ubuntu") }}'
         group: '{{ group | default("ubuntu") }}'
     with_items:
@@ -60,7 +60,7 @@
     shell:
     args:
       cmd: make install USER_NAME={{ user | default('ubuntu') }} GROUP={{ group | default('ubuntu') }}
-      chdir: "{{ bin_path | default('/usr/local/scaling_manager_lib/') }}"
+      chdir: "{{ dest_bin_path | default('/usr/local/scaling_manager_lib/') }}"
     become: yes
   tags: install
 - name: Update Config
@@ -147,14 +147,14 @@
   - name: Transfer the Makefile
     become: yes
     copy:
-        src: GNUmakefile
-        dest: "{{ bin_path | default('/usr/local/scaling_manager_lib/') }}"
+        src: "{{ src_bin_path | default('/usr/local/scaling_manager_lib') }}"/GNUmakefile
+        dest: "{{ dest_bin_path | default('/usr/local/scaling_manager_lib/') }}"
         owner: '{{ user | default("ubuntu") }}'
         group: '{{ group | default("ubuntu") }}'
   - name: Uninstalling Scalling Manager
     shell:
     args:
       cmd: make uninstall
-      chdir: "{{ bin_path | default('/usr/local/scaling_manager_lib/') }}"
+      chdir: "{{ dest_bin_path | default('/usr/local/scaling_manager_lib/') }}"
     become: yes
   tags: uninstall
