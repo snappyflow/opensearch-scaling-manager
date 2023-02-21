@@ -51,6 +51,7 @@ type ClusterDetails struct {
 	LaunchTemplateId      string           `yaml:"launch_template_id" validate:"required" json:"launch_template_id"`
 	LaunchTemplateVersion string           `yaml:"launch_template_version" validate:"required" json:"launch_template_version"`
 	SshUser               string           `yaml:"os_user" validate:"required" json:"os_user"`
+	OsGroup		      string		`yaml:"os_group" validate:"required" json:"os_group"`
 	OpensearchVersion     string           `yaml:"os_version" validate:"required" json:"os_version"`
 	OpensearchHome        string           `yaml:"os_home" validate:"required" json:"os_home"`
 	DomainName            string           `yaml:"domain_name" validate:"required" json:"domain_name"`
