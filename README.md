@@ -4,185 +4,88 @@ Open Search Simulator is an attempt to mimic to behavior of an AWS on which Open
 
 
 
-### Simulator Configurations
+### Working Principle of Scaling Manager
 
 ------
 
-The user can specify some key features of an OpenSearch Cluster for simulator through the config file provided. The functionalities supported are:
+Scaling manager has following modules
+
+- Fetch Metrics
+- Recommendation
+- Trigger
+- Provision
+- State
+
+![Scaling_Manager_Architecture](https://lucid.app/publicSegments/view/12de2241-e528-4fb2-a891-194ebd2d9c95/image.png)
 
 
 
-#### 1.Cluster Stats
+**Fetch Metrics:** 
 
-------
-
-**cluster_name:** Name of the cluster that is to be used
-
-**cluster_hostname:** Host name of the cluster
-
-**cluster_ip_address:** IP address of the cluster
-
-**node_machine_type_identifier:** Defines the type of the instance or node deployed in a cluster
-
-**total_nodes_count:** Total number of nodes present in the cluster
-
-**active_data_nodes:** Number of active data nodes in total number of nodes present in cluster
-
-**min_nodes_in_cluster:** Minimum number of nodes that the cluster must have to perform the necessary tasks
-
-**master_eligible_nodes_count:** Nodes that are eligible to become master whenever the present master node goes down
-
-**heap_memory_factor:**
-
-**index_count:** Number of index that cluster must have
-
-**primary_shards_per_index:** Number of primary shards that is present in index
-
-**replica_shards_per_index:** Number of replica shards that is present in index(replica of data that represents each primary shard)
-
-**index_roll_over_size_gb:** Specific size at which index will roll over to new index when it exceeds
-
-**index_roll_over_hours:** Specific time in hour at which index will roll over to new index when it exceeds
-
-**total_disk_size_gb:** Total number of size in GB that the disk should have
-
-**simulation_frequency_minutes:** Time interval that the simulator will run the data simulation
+- Scaling Manager  code is deployed on each node available in the cluster where OpenSearch is installed.
+- Only the current master node of the cluster will have the privilege to execute the code.
+- Fetch Metrics collects the monitored metrics of the cluster (Usage of cpu, ram, heap, shard etc.)  and those are indexed into Elasticsearch
+- Old data is purged periodically from the index.
+- Collected metrics is next passed to the recommendation module.
 
 
 
-#### 2.Data Ingestion
+**Recommendation:** 
 
-------
-
-Specify data ingestion with respect to time of the day to represent pattern for entire day(24hrs)
-
-**states:** States is an array where user can provide multiple data points through out a day
-
-**day:** Day is an array which contains multiple hour of for the day and also can contain multiple days
-
-**position:** For a day there can be any number of position where it contains time_hh_mm_ss, ingestion_rate_gb_per_hr, searches
-
-**time_hh_mm_ss:** Time interval of the position
-
-**ingestion_rate_gb_per_hr:** Amount of data that has been ingested for the particular interval of time that is defined in time_hh_mm_ss
-
-**searches:** Contains the types of searches that needs to be made, if the config has certain searches it takes the corresponding values. Three types of searches are simple, medium, complex
-
-**index:**
-
-​	**count:** Number of index to add at the specified time interval
+- Collected metrics are now checked against the rules which are specified by the user in config.yaml file.
+- If the metrics are satisfied against the rules,  provides a Scale-up-by-1 or Scale-down-by-1 recommendation.
+- The data(Scale-up-by-1 or Scale-down-by-1) is maintained in a command queue.
+- Data is next passed to the trigger module.
 
 
 
-#### 3.Randomness Percentage
+**Trigger:** 
 
-------
+- Checks the state of the cluster
 
-**randomness_percentage:**  Percentage at which the stats value needs to be differing while simulating.
+- If the cluster is in normal state
+
+  - Give command of Scale-up-by-1 or Scale-down-by-1 to Provision module
+  - Updates state = provisioning
+  - Log "provision triggered - Up/Down Number of Nodes"
+
+- Else
+
+  - Clear the command queue, commands are ignored since the cluster health criteria is not satisfied.
+
+  
+
+**Provision:**
+
+- Receives the command from the trigger module and updates state = Provision
+- Take action based on provisioning command(Scale-up-by-1 or Scale-down-by-1) i.e spin n number node in a cluster/delete n number of node in a cluster. The execution engine has to be cloud independent
+- If provisioning is completed successfully, update state = provision_completed.
+- If provisioning failed, update state = provisioning_failed.
 
 
 
-#### 4.Search Description
+**State:** 
+
+- Check the current state and status of cluster and update state
+- If state == provision completed
+  - Check if all system metrics are in a normal state
+    - Cluster state is green
+    - No relocating shards
+  - Update State = Normal
+
+
+
+### Scaling Manager Flow Diagram 
 
 ------
 
-**search_description:** Specify searches along with their type, probability and load inflected on the cluster. Three level of search_description are simple, medium, complex.
-
-**simple:**
-
-​	**cpu_load_percent:** Percentage at which cpu must be used if search_description is simple
-
-​	**memory_load_percent: **Percentage at which memory must be used if search_description is simple
-
-​	**heap_load_percent: **Percentage at which heap must be used  if search_description is simple
-
-**medium:**
-
-​	**cpu_load_percent:** Percentage at which cpu must be used if search_description is medium
-
-​	**memory_load_percent: **Percentage at which memory must be used if search_description is medium
-
-​	**heap_load_percent: **Percentage at which heap must be used if search_description is medium
-
-**complex:**
-
-​	**cpu_load_percent:** Percentage at which cpu must be used if search_description is complex
-
-​	**memory_load_percent: **Percentage at which memory must be used if search_description is complex
-
-​	**heap_load_percent: **Percentage at which heap must be used if search_description is complex
+![Scaling_Manager_Flow_diagram](https://lucid.app/publicSegments/view/b8e022c2-8adf-4737-82d8-f3869d61a86a/image.png)
 
 
 
-### Sample cofig.yaml
+### Scaling Manager Configuration
 
 ------
-
-https://maplelabsblr-my.sharepoint.com/:u:/g/personal/manojkumar_chandru_maplelabs_com/Efh45zUUBO1NsYKrZX6ycRIB14WPcLR7NQ-RRMXKRqqAqw?e=E63khe
-
-
-
-### Simulator Behavior
-
-------
-
-As simulator starts, it generates and stores the data points corresponding to the entire day and stores them in a internal database. Based on the user inputs (through APIs), the data points are fetched or re-generated.
-
-
-
-### Installation and Executing Simulator
-
-------
-
-To install the simulator please download the source code using following command:
-
-```
-git clone https://github.com/maplelabs/opensearch-scaling-manager.git -b release_v0.1_dev
-```
-
-
-
-Execute the following commands to run and install the simulator
-
-```python
-cd opensearch-scaling-manager/simulator
-# Path to simulator module.
-
-python -m venv venv
-# Creating virtual environment.
-
-.\venv\Scripts\activate
-# Activatinng virtual environment.
-
-pip install -r .\requirements.txt
-# Install every requirements for simulator.
-
-cd src
-# Path to execute simulator.
-
-python app.py
-# Run entire simulator module.
-```
-
-
-
-### APIs
-
-------
-
-Simulator provide the following APIs to interact with it
-
-| Path               | Query Parameters                                             | Description                                                  | Method | Request Body       | Response                                   |
-| :----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------ | ------------------ | ------------------------------------------ |
-| /stats/avg         | {key,value} = {metric:string},{duration:int}                 | Returns the average value of a stat for the last specified duration. | GET    | None               | {"avg": float, "min": float, "max": float} |
-| /stats/violated    | {key,value} = {metric:string},{duration:int},{threshold:float} | Returns the number of time, a stat crossed the threshold duration the specified duration. | GET    | None               | {"ViolatedCount": int}                     |
-| /stats/current     | {key,value} = {metric:string},{duration:int}                 | Returns the most recent value of a stat.                     | GET    | None               | {"current": float}                         |
-| /provision/addnode | None                                                         | Ask the simulator to perform a node addition.                | POST   | {"nodes": integer} | {"nodes": int}                             |
-| /provision/remnode | None                                                         | Ask the simulator to perform a node removal.                 | POST   | {"nodes": integer} | {"nodes": int}                             |
-
-
-
-## Scaling Manager Configuration
 
 The user can specify some key features of an OpenSearch Cluster for simulator through the config file provided. The functionalities supported are:
 
@@ -259,46 +162,8 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 ------
 
-https://maplelabsblr-my.sharepoint.com/:u:/g/personal/manojkumar_chandru_maplelabs_com/EaY5h9sz2qJAruB2SzaR15UBABaJB3TVOsTE3V4E_G_Rnw?e=n5dgTk
+[opensearch-scaling-manager/config.yaml at release_v0.1_dev · maplelabs/opensearch-scaling-manager (github.com)](https://github.com/maplelabs/opensearch-scaling-manager/blob/release_v0.1_dev/config.yaml)
 
-
-
-### Working Principle of Scaling Manager
-
-------
-
-Scaling manager has following modules
-
-- Fetch Metrics
-- Recommendation
-- Trigger
-- Provision
-- State
-
-**Fetch Metrics:** Collects the metrics of the cluster where the code is deployed and those metrics are indexed into Elasticsearch 
-
-**Recommendation:** Based on the config file of the Scaling Manager it evaluates the rules against the merics that are fetched in Fetch Metrics and recommends the task (scale_up_by_1 or scale_down_by_1 )
-
-**Trigger:** Checks the cluster state if the state is normal gives command to provision module, update state=provisioning and logs "provision triggered - Up/Down Number of Nodes". If cluster state is not normal it clears the command queue, commands are ignored since the cluster health criteria is not satisfied.
-
-**Provision:** Command of the state is received by provisioning and takes action based on provisioning command.
-
-- If provisioning completed successfully, update state = provision completed.
-- If provisioning failed, update state = provisioning failed.
-
-**State:** Checks the current state and status of cluster and update state.If state == provision completed
-
-- Check if all system metrics are in a normal state
-  - Cluster state is green
-  - No relocating shards
-- Update State = Normal
-
-
-
-### Scaling Manager Flow Diagram 
-
-------
-![Scaling_Manager_Flow_diagram](https://lucid.app/publicSegments/view/b8e022c2-8adf-4737-82d8-f3869d61a86a/image.png)
 
 
 ### Scaling Manager Pre-Requisites
@@ -306,10 +171,12 @@ Scaling manager has following modules
 ------
 
 - Cluster with OpenSearch installed 
-- Cluster credentials (Username, Password) for logging into cluster
-- Template ID which is compatible with existing cluster
+- OpenSearch version 
+- Cluster credentials (Username, Password) to access the OpenSearch
 - Cloud credential  (Username, Password) 
-- PEM file
+- Launch Template - AWS launch template to spin a new node which has the necessary tags
+- Security certificate to have regex in it to accept the new node 
+- PEM file 
 
 
 
@@ -355,7 +222,6 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "unin
 
 
 
-
 ### Build, Packaging and installation
 
 ------
@@ -395,3 +261,15 @@ To stop the scaling manager run the following command:
 ```
 sudo systemctl stop scaling_manager
 ```
+
+
+
+
+
+### Simulator 
+
+------
+
+Simulator is a module which mimics the real cluster and get the metrics like CPU, RAM, HEAP, SHARD etc.. by which the scaling manager can test with instead of stats from real cluster.
+
+Find more about Simulator here [opensearch-scaling-manager/readme_simulator.md at release_v0.1_dev · Manojkumar-Chandru-ML/opensearch-scaling-manager (github.com)](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/release_v0.1_dev/docs/readme_simulator.md)
