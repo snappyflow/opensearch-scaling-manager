@@ -3,12 +3,12 @@ package provision
 import (
 	"context"
 	"encoding/json"
+	"github.com/maplelabs/opensearch-scaling-manager/cluster"
+	"github.com/maplelabs/opensearch-scaling-manager/cluster_sim"
+	"github.com/maplelabs/opensearch-scaling-manager/config"
+	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
+	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
 	"regexp"
-	"scaling_manager/cluster"
-	"scaling_manager/cluster_sim"
-	"scaling_manager/config"
-	osutils "scaling_manager/opensearchUtils"
-	utils "scaling_manager/utilities"
 	"strconv"
 	"strings"
 	"time"
@@ -58,8 +58,11 @@ func GetRecommendation(state *State, recommendationQueue []map[string]string, cl
 
 			ruleResponsible := recommendationQueue[0][task]
 			numNodesProceed := checkNumNodesCondition(operation, clusterCfg, usrCfg)
+			if !numNodesProceed {
+				return
+			}
 			previousProvisionProceed := comparePreviousProvision(ruleResponsible, operation)
-			if !numNodesProceed || !previousProvisionProceed {
+			if !previousProvisionProceed {
 				return
 			}
 
