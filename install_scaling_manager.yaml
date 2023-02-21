@@ -23,7 +23,7 @@
   - name: Transfer the Binaries
     become: yes
     copy:
-        src: "{{ src_bin_path | default('/usr/local/scaling_manager_lib') }}"/"{{ item }}"
+        src: "{{ src_bin_path | default('/usr/local/scaling_manager_lib') }}/{{ item }}"
         dest: "{{ dest_bin_path | default('/usr/local/scaling_manager_lib/') }}"
         owner: '{{ user | default("ubuntu") }}'
         group: '{{ group | default("ubuntu") }}'
@@ -147,7 +147,7 @@
   - name: Transfer the Makefile
     become: yes
     copy:
-        src: "{{ src_bin_path | default('/usr/local/scaling_manager_lib') }}"/GNUmakefile
+        src: "{{ src_bin_path | default('/usr/local/scaling_manager_lib') }}/GNUmakefile"
         dest: "{{ dest_bin_path | default('/usr/local/scaling_manager_lib/') }}"
         owner: '{{ user | default("ubuntu") }}'
         group: '{{ group | default("ubuntu") }}'
