@@ -13,11 +13,11 @@
     with_items: "{{ groups['remove-node'] }}"
     become: yes
 
-  - name: Update Hosts | Remove hosts from ansible inventory
+  - name: Update Hosts | Remove hosts from inventory
     become_user: root
     become: yes
     lineinfile:
-      path: /etc/ansible/hosts
+      path: /etc/hosts
       regexp: "{{ hostvars[item]['ansible_private_host'] }}"
       state: absent
       backup: yes

@@ -52,7 +52,7 @@
         name: 'opensearch'
         state: stopped
 
-    - name: Clear the exclusion of node after shutdown
+    - name: Clear the exclusion of node after Stopping Opensearch
       become: true
       become_user: root
       shell: "curl -XPUT localhost:9200/_cluster/settings -u {{ os_credentials.os_admin_username }}:{{ os_credentials.os_admin_password }} -H 'Content-Type: application/json' -d '{
