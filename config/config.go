@@ -41,7 +41,7 @@ type CloudCredentials struct {
 	SecretKey string `yaml:"secret_key" validate:"required" json:"secret_key"`
 	// AccessKey indicates the Access key for connecting to the cloud.
 	AccessKey string `yaml:"access_key" validate:"required" json:"access_key"`
-	Region  string `yaml:"region" validate:"required" json:"region"`
+	Region    string `yaml:"region" validate:"required" json:"region"`
 }
 
 // This struct contains the data structure to parse the cluster details present in the configuration file.
@@ -51,7 +51,7 @@ type ClusterDetails struct {
 	LaunchTemplateId      string           `yaml:"launch_template_id" validate:"required" json:"launch_template_id"`
 	LaunchTemplateVersion string           `yaml:"launch_template_version" validate:"required" json:"launch_template_version"`
 	SshUser               string           `yaml:"os_user" validate:"required" json:"os_user"`
-	OsGroup		      string		`yaml:"os_group" validate:"required" json:"os_group"`
+	OsGroup               string           `yaml:"os_group" validate:"required" json:"os_group"`
 	OpensearchVersion     string           `yaml:"os_version" validate:"required" json:"os_version"`
 	OpensearchHome        string           `yaml:"os_home" validate:"required" json:"os_home"`
 	DomainName            string           `yaml:"domain_name" validate:"required" json:"domain_name"`
