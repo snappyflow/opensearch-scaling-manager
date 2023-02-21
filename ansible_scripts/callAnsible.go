@@ -12,6 +12,7 @@ import (
 	"github.com/maplelabs/opensearch-scaling-manager/config"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
 	"regexp"
+	"strings"
 )
 
 var log = new(logger.LOG)
@@ -99,6 +100,55 @@ func CallAnsible(username string, hosts string, clusterCfg config.ClusterDetails
 		return maskCredentials(err)
 	}
 	return nil
+}
+
+// Input:
+//
+//	username (string): Username string to be used to ssh into the host inventory
+//	hosts (string): The file name of hosts file to pass to ansible playbook
+//	tags ([]string): List of tags to call the scaling_manager
+//
+// Description:
+//
+//	Calls the ansible script responsible for calling install_scaling_manager with tags specified
+//
+// Return:
+//
+//	(error): Returns error if any
+func UpdateWithTags(username string, hosts string, tags []string) error {
+
+	fileName := "ansible_scripts/install_scaling_manager.yaml"
+	tag := strings.Join(tags, ", ")
+
+	ansiblePlaybookConnectionOptions := &options.AnsibleConnectionOptions{
+		User: username,
+	}
+
+	ansiblePlaybookOptions := &playbook.AnsiblePlaybookOptions{
+		Inventory: hosts,
+		Tags:      tag,
+	}
+
+	ansiblePlaybookPrivilegeEscalationOptions := &options.AnsiblePrivilegeEscalationOptions{
+		Become:       true,
+		BecomeMethod: "sudo",
+	}
+
+	playbook := &playbook.AnsiblePlaybookCmd{
+		Playbooks:                  []string{fileName},
+		ConnectionOptions:          ansiblePlaybookConnectionOptions,
+		PrivilegeEscalationOptions: ansiblePlaybookPrivilegeEscalationOptions,
+		Options:                    ansiblePlaybookOptions,
+		Exec: execute.NewDefaultExecute(
+			execute.WithEnvVar("ANSIBLE_FORCE_COLOR", "true"),
+			execute.WithTransformers(
+				results.Prepend("Go-ansible with become"),
+			),
+		),
+	}
+
+	err := playbook.Run(context.TODO())
+	return err
 }
 
 // Input:

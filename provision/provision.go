@@ -281,6 +281,24 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 			errMsg := "The new node doesn't seem to have joined the cluster. Please login into new node and check for opensearch logs for more details."
 			return joined, errors.New(errMsg)
 		}
+
+		// Install and start scaling manager on new node
+		hostsFileName := "ansible_scripts/install_hosts"
+		f, err := os.OpenFile(hostsFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+		if err != nil {
+			log.Fatal.Println(err)
+			return false, err
+		}
+		defer f.Close()
+		dataWriter := bufio.NewWriter(f)
+		dataWriter.WriteString("[new-node]\n")
+		dataWriter.WriteString("node-" + strings.ReplaceAll(newNodeIp, ".", "-") + " ansible_user=" + clusterCfg.SshUser + " roles=master,data,ingest ansible_private_host=" + newNodeIp + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
+		dataWriter.Flush()
+
+		ansibleErr := ansibleutils.UpdateWithTags(clusterCfg.SshUser, hostsFileName, []string{"install", "update_config", "update_pem", "start"})
+		if ansibleErr != nil {
+			log.Error.Println("Node scaled up but unable to run scaling manager on new node. Please check ansible logs for more details. (logs/playbook.log)")
+		}
 		if simFlag {
 			SimulateSharRebalancing("scaleOut", state.NumNodes, isAccelerated)
 		}
