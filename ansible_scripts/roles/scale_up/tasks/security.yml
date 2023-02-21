@@ -54,6 +54,12 @@
   become: yes
   delegate_to: localhost
 
+- name: Security Plugin configuration | Changing ownership of config directory  
+  shell: "sudo chown -R {{ os_user }}:{{ os_user }} /tmp/opensearch-nodecerts/config"  
+  run_once: true  
+  become: yes  
+  delegate_to: localhost
+
 - name: Security Plugin configuration | Generate the node & admin certificates in local
   local_action:
     module: command /tmp/opensearch-nodecerts/tools/sgtlstool.sh -c /tmp/opensearch-nodecerts/config/tlsconfig.yml -crt -t /tmp/opensearch-nodecerts/config/
