@@ -1,5 +1,12 @@
 ---
 
+- hosts: remove-node
+  name: Scale-down role-based playbook
+  become: yes
+
+  roles:
+    - scale_down
+
 - hosts: all
 
   tasks:
@@ -22,12 +29,3 @@
       state: absent
       backup: yes
     with_items: "{{ groups['remove-node'] }}"
-
-
-- hosts: remove-node
-  name: Scale-down role-based playbook
-  become: yes
-
-  roles:
-    - scale_down
-
