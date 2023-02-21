@@ -80,7 +80,7 @@
   - name: Transfer the PEM file
     become: yes
     copy:
-        src: "{{ pem_path | default('/home/ubuntu/osm/user-dev-aws-ssh.pem') }}"
+        src: "{{ pem_path | default('/usr/local/scaling_manager_lib/user.pem') }}"
         dest: /usr/local/scaling_manager_lib/user.pem
         owner: '{{ user | default("ubuntu") }}'
         group: '{{ group | default("ubuntu") }}'
