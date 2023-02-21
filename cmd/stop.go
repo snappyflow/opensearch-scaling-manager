@@ -3,12 +3,11 @@ package cmd
 import (
 	"os"
 	"strconv"
-	"time"
 	"syscall"
+	"time"
 
 	"github.com/spf13/cobra"
 )
-
 
 // Input:
 //
@@ -72,18 +71,18 @@ func stop(pid string) error {
 	time.Sleep(5 * time.Second)
 
 	proc, err = os.FindProcess(pid_int)
-    if err != nil {
-        log.Info.Println("Process Terminate Successful")
-        return nil
-    }
+	if err != nil {
+		log.Info.Println("Process Terminate Successful")
+		return nil
+	}
 
 	err = proc.Signal(os.Signal(syscall.Signal(0)))
-    if err == nil {
-        log.Info.Printf("Process with Pid %v is still running.", pid_int)
+	if err == nil {
+		log.Info.Printf("Process with Pid %v is still running.", pid_int)
 		log.Info.Println("Scale Manager currently in the provision phase and will be shut down once it is completed")
-    } else {
-        log.Info.Printf("Process with pid %v is not running.", pid_int)
+	} else {
+		log.Info.Printf("Process with pid %v is not running.", pid_int)
 		log.Info.Println("Process Terminate Successful")
-    }
-	return nil 
+	}
+	return nil
 }
