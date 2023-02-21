@@ -10,6 +10,7 @@ import (
 	"github.com/apenella/go-ansible/pkg/playbook"
 	"github.com/apenella/go-ansible/pkg/stdoutcallback/results"
 	"github.com/maplelabs/opensearch-scaling-manager/config"
+	"github.com/maplelabs/opensearch-scaling-manager/crypto"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
 	"regexp"
 )
@@ -50,9 +51,10 @@ func CallAnsible(username string, hosts string, clusterCfg config.ClusterDetails
 		fileName = "ansible_scripts/scaleUpPlaybook.yml"
 	case "scale_down":
 		fileName = "ansible_scripts/scaleDownPlaybook.yml"
-	case "copy_config":
-		fileName = "ansible_scripts/install_scaling_manager.yaml"
 	}
+
+	clusterCfg.OsCredentials.OsAdminUsername = crypto.GetDecryptedData(clusterCfg.OsCredentials.OsAdminUsername)
+	clusterCfg.OsCredentials.OsAdminPassword = crypto.GetDecryptedData(clusterCfg.OsCredentials.OsAdminPassword)
 
 	var variablesMap map[string]interface{}
 	jsonData, err := json.Marshal(&clusterCfg)

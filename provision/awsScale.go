@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/maplelabs/opensearch-scaling-manager/config"
+	"github.com/maplelabs/opensearch-scaling-manager/crypto"
 )
 
 // Input:
@@ -22,7 +23,7 @@ import (
 func SpinNewVm(launchTemplateId string, launchTemplateVersion string, cred config.CloudCredentials) (string, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(cred.Region),
-		Credentials: credentials.NewStaticCredentials(cred.AccessKey, cred.SecretKey, ""),
+		Credentials: credentials.NewStaticCredentials(crypto.GetDecryptedData(cred.AccessKey), crypto.GetDecryptedData(cred.SecretKey), ""),
 	})
 
 	// Create EC2 service client
@@ -106,7 +107,7 @@ func SpinNewVm(launchTemplateId string, launchTemplateVersion string, cred confi
 func TerminateInstance(privateIp string, cred config.CloudCredentials) error {
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(cred.Region),
-		Credentials: credentials.NewStaticCredentials(cred.AccessKey, cred.SecretKey, ""),
+		Credentials: credentials.NewStaticCredentials(crypto.GetDecryptedData(cred.AccessKey), crypto.GetDecryptedData(cred.SecretKey), ""),
 	})
 
 	// Create EC2 service client

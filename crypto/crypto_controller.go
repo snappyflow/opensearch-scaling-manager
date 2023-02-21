@@ -6,12 +6,12 @@ import (
 	"crypto/cipher"
 	"encoding/base64"
 	"errors"
+	"github.com/maplelabs/opensearch-scaling-manager/config"
+	"github.com/maplelabs/opensearch-scaling-manager/logger"
+	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
+	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
 	mrand "math/rand"
 	"os"
-	"scaling_manager/logger"
-	"scaling_manager/config"
-	utils "scaling_manager/utilities"
-	osutils "scaling_manager/opensearchUtils"
 	"strings"
 	"time"
 )
@@ -49,7 +49,7 @@ func GeneratePassword() string {
 	mrand.Seed(time.Now().UnixNano())
 	digits := "0123456789"
 	specials := "*@#$"
-[O	all := "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+	all := "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 		"abcdefghijklmnopqrstuvwxyz" +
 		digits + specials
 	length := 16
@@ -82,8 +82,7 @@ func GenerateAndScrambleSecret() {
 	}
 }
 
-
-func GetEncryptionSecret() string{
+func GetEncryptionSecret() string {
 	data, err := os.ReadFile(SecretFilepath)
 	if err != nil {
 		log.Panic.Println("Error reading the secret file")
@@ -93,9 +92,7 @@ func GetEncryptionSecret() string{
 	return getScrambledOrOriginalSecret(string(decoded_data), false)
 }
 
-
-
-func GetEncryptedConfigStruct(config_struct config.ConfigStruct) (config.ConfigStruct, error){
+func GetEncryptedConfigStruct(config_struct config.ConfigStruct) (config.ConfigStruct, error) {
 	var err error
 
 	config_struct.ClusterDetails.OsCredentials.OsAdminUsername, err = GetEncryptedData(config_struct.ClusterDetails.OsCredentials.OsAdminUsername)
@@ -119,10 +116,9 @@ func GetEncryptedConfigStruct(config_struct config.ConfigStruct) (config.ConfigS
 	}
 
 	return config_struct, nil
-} 
+}
 
-
-func GetDecryptedConfigStruct(config_struct config.ConfigStruct) (config.ConfigStruct){
+func GetDecryptedConfigStruct(config_struct config.ConfigStruct) config.ConfigStruct {
 	os_admin_username := GetDecryptedData(config_struct.ClusterDetails.OsCredentials.OsAdminUsername)
 	if os_admin_username != "" {
 		config_struct.ClusterDetails.OsCredentials.OsAdminUsername = os_admin_username
@@ -143,9 +139,8 @@ func GetDecryptedConfigStruct(config_struct config.ConfigStruct) (config.ConfigS
 	return config_struct
 }
 
-
-func UpdateEncryptedCred(initialRun bool, config_struct config.ConfigStruct) (error) {
-	encryptedConfigStruct,err := GetEncryptedConfigStruct(config_struct)
+func UpdateEncryptedCred(initialRun bool, config_struct config.ConfigStruct) error {
+	encryptedConfigStruct, err := GetEncryptedConfigStruct(config_struct)
 	if err != nil {
 		log.Panic.Println("Error getting the encrypted config struct : ", err)
 		panic(err)
@@ -165,13 +160,11 @@ func UpdateEncryptedCred(initialRun bool, config_struct config.ConfigStruct) (er
 	return nil
 }
 
-
 func DecryptCredsAndInitializeConn(config_struct config.ConfigStruct) {
 	decryptedConfigStruct := GetDecryptedConfigStruct(config_struct)
 	cfg := decryptedConfigStruct.ClusterDetails
 	osutils.InitializeOsClient(cfg.OsCredentials.OsAdminUsername, cfg.OsCredentials.OsAdminPassword)
 }
-
 
 func UpdateSecretAndEncryptCreds(initial_run bool, config_struct config.ConfigStruct) error {
 	if initial_run {
@@ -218,17 +211,15 @@ func UpdateSecretAndEncryptCreds(initial_run bool, config_struct config.ConfigSt
 	return nil
 }
 
-
 func CredsMismatch(currentConfigStruct config.ConfigStruct, previousConfigStruct config.ConfigStruct) bool {
-	if (currentConfigStruct.ClusterDetails.OsCredentials.OsAdminUsername != previousConfigStruct.ClusterDetails.OsCredentials.OsAdminUsername) || 
-	(currentConfigStruct.ClusterDetails.OsCredentials.OsAdminPassword != previousConfigStruct.ClusterDetails.OsCredentials.OsAdminPassword) || 
-	(currentConfigStruct.ClusterDetails.CloudCredentials.SecretKey != previousConfigStruct.ClusterDetails.CloudCredentials.SecretKey) || 
-	(currentConfigStruct.ClusterDetails.CloudCredentials.AccessKey != previousConfigStruct.ClusterDetails.CloudCredentials.AccessKey) {
+	if (currentConfigStruct.ClusterDetails.OsCredentials.OsAdminUsername != previousConfigStruct.ClusterDetails.OsCredentials.OsAdminUsername) ||
+		(currentConfigStruct.ClusterDetails.OsCredentials.OsAdminPassword != previousConfigStruct.ClusterDetails.OsCredentials.OsAdminPassword) ||
+		(currentConfigStruct.ClusterDetails.CloudCredentials.SecretKey != previousConfigStruct.ClusterDetails.CloudCredentials.SecretKey) ||
+		(currentConfigStruct.ClusterDetails.CloudCredentials.AccessKey != previousConfigStruct.ClusterDetails.CloudCredentials.AccessKey) {
 		return true
 	}
 	return false
 }
-
 
 // Encode the given byte value
 func Encode(b []byte) string {
