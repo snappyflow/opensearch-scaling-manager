@@ -265,6 +265,21 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 		fallthrough
 	// Check cluster status after the configuration
 	case "provisioning_scaleup_completed":
+		// Check if node has joined the cluster
+		log.Info.Println("Waiting for new node to join the cluster...")
+		time.Sleep(40 * time.Second)
+		nodesInfo := utils.GetNodes()
+		var joined bool
+		for _, nodeIdInfo := range nodesInfo {
+			if nodeIdInfo.(map[string]string)["hostIp"] == newNodeIp {
+				joined = true
+				break
+			}
+		}
+		if !joined {
+			errMsg := "The new node doesn't seem to have joined the cluster. Please login into new node and check for opensearch logs for more details."
+			return joined, errors.New(errMsg)
+		}
 		if simFlag {
 			SimulateSharRebalancing("scaleOut", state.NumNodes, isAccelerated)
 		}
