@@ -238,14 +238,14 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 			defer f.Close()
 			nodes := utils.GetNodes()
 			dataWriter := bufio.NewWriter(f)
-			dataWriter.WriteString("[current-nodes]\n")
+			dataWriter.WriteString("[current_nodes]\n")
 			for _, nodeIdMap := range nodes {
 				_, writeErr := dataWriter.WriteString(nodeIdMap.(map[string]string)["name"] + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + nodeIdMap.(map[string]string)["hostIp"] + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 				if writeErr != nil {
 					log.Error.Println("Error writing the node data into hosts file", writeErr)
 				}
 			}
-			dataWriter.WriteString("[new-node]\n")
+			dataWriter.WriteString("[new_node]\n")
 			dataWriter.WriteString("node-" + strings.ReplaceAll(newNodeIp, ".", "-") + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + newNodeIp + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 			dataWriter.Flush()
 			ansibleErr := ansibleutils.CallAnsible(username, hostsFileName, clusterCfg, "scale_up")
@@ -291,7 +291,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 		}
 		defer f.Close()
 		dataWriter := bufio.NewWriter(f)
-		dataWriter.WriteString("[new-node]\n")
+		dataWriter.WriteString("[new_node]\n")
 		dataWriter.WriteString("node-" + strings.ReplaceAll(newNodeIp, ".", "-") + " ansible_user=" + clusterCfg.SshUser + " roles=master,data,ingest ansible_private_host=" + newNodeIp + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 		dataWriter.Flush()
 
@@ -390,7 +390,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 			}
 			defer f.Close()
 			dataWriter := bufio.NewWriter(f)
-			dataWriter.WriteString("[current-nodes]\n")
+			dataWriter.WriteString("[current_nodes]\n")
 			for _, nodeIdInfo := range nodes {
 				if nodeIdInfo.(map[string]string)["hostIp"] != removeNodeIp {
 					_, writeErr := dataWriter.WriteString(nodeIdInfo.(map[string]string)["name"] + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + nodeIdInfo.(map[string]string)["hostIp"] + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
@@ -399,7 +399,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 					}
 				}
 			}
-			dataWriter.WriteString("[remove-node]\n")
+			dataWriter.WriteString("[remove_node]\n")
 			dataWriter.WriteString(removeNodeName + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + removeNodeIp + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 			dataWriter.Flush()
 			log.Info.Println("Removing node ***********************************:", removeNodeName)

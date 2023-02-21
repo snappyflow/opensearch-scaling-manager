@@ -33,14 +33,14 @@
       \"cluster.routing.allocation.exclude._ip\" : \"{{ hostvars[item].ansible_private_host }}\"
    }
 }'"
-      with_items: "{{ groups['remove-node'] }}" 
+      with_items: "{{ groups['remove_node'] }}" 
 
     - name: Execute the script to check the docs count
       become: yes
       become_user: root
       command: "python3 {{ pth.stdout }}/docs.py {{ os_credentials.os_admin_username }} {{ os_credentials.os_admin_password }} {{ item }} {{ hostvars[item].ansible_private_host }}"
       delegate_to: localhost
-      with_items: "{{ groups['remove-node'] }}"
+      with_items: "{{ groups['remove_node'] }}"
     
     - name: Wait for 30 seconds to stabilise the cluster
       wait_for:

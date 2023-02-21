@@ -55,7 +55,7 @@
   delegate_to: localhost
 
 - name: Security Plugin configuration | Changing ownership of config directory  
-  shell: 'sudo chown -R "{{ os_user }}":"{{ os_user }}" /tmp/opensearch-nodecerts/config'
+  shell: 'sudo chown -R "{{ os_user }}":"{{ os_group }}" /tmp/opensearch-nodecerts/config'
   run_once: true  
   become: yes  
   delegate_to: localhost
@@ -110,7 +110,7 @@
   file:
     dest: "{{ os_home }}"
     owner: "{{ os_user }}"
-    group: "{{ os_user }}"
+    group: "{{ os_group }}"
     recurse: yes
   become: yes
 
@@ -118,7 +118,7 @@
   file:
     dest: "{{ os_conf_dir }}"
     owner: "{{ os_user }}"
-    group: "{{ os_user }}"
+    group: "{{ os_group }}"
     mode: 0700
   become: yes
 

@@ -1,5 +1,5 @@
 ---
-- hosts: current-nodes
+- hosts: current_nodes
 
   tasks:
 
@@ -11,7 +11,7 @@
       line: "{{ hostvars[item]['ansible_private_host'] }} {{ item }}.{{ domain_name }} {{ item }}"
       state: present
       create: yes
-    with_items: "{{ groups['new-node'] }}"
+    with_items: "{{ groups['new_node'] }}"
 
 # Needs a restart of opensearch after this is included. Otherwise, needs to be added as a pre-requisite
 #  - name: Certificate inclusion | Certificates to match regex
@@ -20,9 +20,9 @@
 #      regexp: 'CN={{ item }}'
 #      replace: "CN=*"
 #    become: yes
-#    with_items: "{{ groups['current-nodes'] }}"
+#    with_items: "{{ groups['current_nodes'] }}"
 
-- hosts: new-node
+- hosts: new_node
   gather_facts: no
   name: Scale-up role-based playbook
   become: yes
@@ -40,5 +40,5 @@
       line: "{{ hostvars[item]['ansible_private_host'] }}"
       state: present
       backup: yes
-    with_items: "{{ groups['new-node'] }}"
+    with_items: "{{ groups['new_node'] }}"
     become: yes
