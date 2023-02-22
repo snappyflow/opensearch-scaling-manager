@@ -1,9 +1,11 @@
 package utilities
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
+	"github.com/maplelabs/opensearch-scaling-manager/config"
 	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
 	"hash/fnv"
 	"os"
@@ -175,20 +177,21 @@ func ParseNodeId(mapp map[string]interface{}) string {
 	return ""
 }
 
-func HostsWithCurrentNodes(fileName string) {
+func HostsWithCurrentNodes(fileName string, clusterCfg config.ClusterDetails) {
 	f, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Fatal.Println(err)
-		return false, err
+		panic(err)
 	}
 	defer f.Close()
 	nodes := utils.GetNodes()
 	dataWriter := bufio.NewWriter(f)
 	dataWriter.WriteString("[current_nodes]\n")
 	for _, nodeIdMap := range nodes {
-		_, writeErr := dataWriter.WriteString(nodeIdMap.(map[string]string)["name"] + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + nodeIdMap.(map[string]string)["hostIp"] + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
+		_, writeErr := dataWriter.WriteString(nodeIdMap.(map[string]string)["name"] + " ansible_user=" + clusterCfg.SshUser + " roles=master,data,ingest ansible_private_host=" + nodeIdMap.(map[string]string)["hostIp"] + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 		if writeErr != nil {
 			log.Error.Println("Error writing the node data into hosts file", writeErr)
+			panic(err)
 		}
 	}
 	dataWriter.Flush()
