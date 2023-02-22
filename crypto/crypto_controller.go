@@ -5,7 +5,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/base64"
-	"errors"
 	"github.com/maplelabs/opensearch-scaling-manager/config"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
 	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
@@ -23,7 +22,6 @@ var SecretFilepath = ".secret.txt"
 
 // Initializing logger module
 func init() {
-	var osAdminPassword, osAdminUsername string
 	log.Init("logger")
 	log.Info.Println("Crypto module initiated")
 	mrand.Seed(seed)
@@ -34,14 +32,10 @@ func init() {
 	}
 	if _, err = os.Stat(SecretFilepath); err == nil {
 		EncryptionSecret = GetEncryptionSecret()
-		osAdminUsername = GetDecryptedData(configStruct.ClusterDetails.OsCredentials.OsAdminUsername)
-		osAdminPassword = GetDecryptedData(configStruct.ClusterDetails.OsCredentials.OsAdminPassword)
-	} else {
-		osAdminUsername = configStruct.ClusterDetails.OsCredentials.OsAdminUsername
-		osAdminPassword = configStruct.ClusterDetails.OsCredentials.OsAdminPassword
+		GetDecryptedOsCreds(&configStruct.ClusterDetails.OsCredentials)
 	}
 
-	osutils.InitializeOsClient(osAdminUsername, osAdminPassword)
+	osutils.InitializeOsClient(configStruct.ClusterDetails.OsCredentials.OsAdminUsername, configStruct.ClusterDetails.OsCredentials.OsAdminPassword)
 	UpdateSecretAndEncryptCreds(true, configStruct)
 }
 
@@ -194,44 +188,17 @@ func DecryptCredsAndInitializeOs(config_struct config.ConfigStruct) {
 
 func UpdateSecretAndEncryptCreds(initial_run bool, config_struct config.ConfigStruct) error {
 	if initial_run {
-		if _, err := os.Stat(SecretFilepath); err == nil {
-			EncryptionSecret = GetEncryptionSecret()
-		} else if errors.Is(err, os.ErrNotExist) {
-			if utils.CheckIfMaster(context.Background(), "") {
-				GenerateAndScrambleSecret()
-				UpdateEncryptedCred(initial_run, config_struct)
-				//ansible logic to copy the secret and config
-			} else {
-				log.Info.Println("Sleeping for 20 sec for the secrets to be updated from the master node")
-				// contiuous loop to check if the config and secret is present in the nodes initially
-				for {
-					time.Sleep(20 * time.Second)
-					if _, err := os.Stat(SecretFilepath); err == nil {
-						EncryptionSecret = GetEncryptionSecret()
-						break
-					} else if errors.Is(err, os.ErrNotExist) {
-						log.Warn.Println("Secret file not yet created")
-					} else {
-						log.Panic.Println("Error in reading secret file : ", err)
-						panic(err)
-					}
-				}
-			}
-		} else {
-			log.Panic.Println("Error in reading secret file : ", err)
-			panic(err)
-		}
-	} else {
 		if utils.CheckIfMaster(context.Background(), "") {
-			GetDecryptedOsCreds(&config_struct.ClusterDetails.OsCredentials)
-			GetDecryptedCloudCreds(&config_struct.ClusterDetails.CloudCredentials)
 			GenerateAndScrambleSecret()
 			UpdateEncryptedCred(initial_run, config_struct)
 			//ansible logic to copy the secret and config
-		} else {
-			EncryptionSecret = GetEncryptionSecret()
-			DecryptCredsAndInitializeOs(config_struct)
 		}
+	} else {
+		GetDecryptedOsCreds(&config_struct.ClusterDetails.OsCredentials)
+		GetDecryptedCloudCreds(&config_struct.ClusterDetails.CloudCredentials)
+		GenerateAndScrambleSecret()
+		UpdateEncryptedCred(initial_run, config_struct)
+		//ansible logic to copy the secret and config
 	}
 
 	return nil
