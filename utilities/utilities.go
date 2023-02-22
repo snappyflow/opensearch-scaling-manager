@@ -3,9 +3,10 @@ package utilities
 import (
 	"context"
 	"encoding/json"
-	"hash/fnv"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
 	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
+	"hash/fnv"
+	"os"
 )
 
 // A global logger variable used across the package for logging.
@@ -130,7 +131,7 @@ func GetNodes() map[string]interface{} {
 		log.Error.Println("decode Error: ", decodeErr)
 	}
 
-	nodeMap := make(map[string]interface{},0)
+	nodeMap := make(map[string]interface{}, 0)
 
 	for node, nodeInfo := range nodeStatsInterface["nodes"].(map[string]interface{}) {
 		nodeInfoMap := nodeInfo.(map[string]interface{})
@@ -172,4 +173,23 @@ func ParseNodeId(mapp map[string]interface{}) string {
 		return node
 	}
 	return ""
+}
+
+func HostsWithCurrentNodes(fileName string) {
+	f, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		log.Fatal.Println(err)
+		return false, err
+	}
+	defer f.Close()
+	nodes := utils.GetNodes()
+	dataWriter := bufio.NewWriter(f)
+	dataWriter.WriteString("[current_nodes]\n")
+	for _, nodeIdMap := range nodes {
+		_, writeErr := dataWriter.WriteString(nodeIdMap.(map[string]string)["name"] + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + nodeIdMap.(map[string]string)["hostIp"] + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
+		if writeErr != nil {
+			log.Error.Println("Error writing the node data into hosts file", writeErr)
+		}
+	}
+	dataWriter.Flush()
 }

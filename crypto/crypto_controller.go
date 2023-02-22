@@ -8,6 +8,7 @@ import (
 	"github.com/maplelabs/opensearch-scaling-manager/config"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
 	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
+	ansibleutils "github.com/maplelabs/opensearch-scaling-manager/ansible_scripts"
 	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
 	mrand "math/rand"
 	"os"
@@ -192,6 +193,14 @@ func UpdateSecretAndEncryptCreds(initial_run bool, config_struct config.ConfigSt
 			GenerateAndScrambleSecret()
 			UpdateEncryptedCred(initial_run, config_struct)
 			//ansible logic to copy the secret and config
+			hostFileName := "broadcast_hosts"
+			utils.HostsWithCurrentNodes(hostFileName)
+			err := ansibleutils.UpdateWithTags(config_struct.ClusterDetails.SshUser, hostFileName, []string{"update_config", "update_secret"})
+			if err != nil {
+				log.Error.Println(err)
+				log.Error.Println("Unable to update config.yaml and .secret.txt on the other node")
+				panic(err)
+			}
 		}
 	} else {
 		GetDecryptedOsCreds(&config_struct.ClusterDetails.OsCredentials)
@@ -199,6 +208,15 @@ func UpdateSecretAndEncryptCreds(initial_run bool, config_struct config.ConfigSt
 		GenerateAndScrambleSecret()
 		UpdateEncryptedCred(initial_run, config_struct)
 		//ansible logic to copy the secret and config
+		hostFileName := "broadcast_hosts"
+		utils.HostsWithCurrentNodes(hostFileName)
+		err := ansibleutils.UpdateWithTags(config_struct.ClusterDetails.SshUser, hostFileName, []string{"update_config", "update_secret"})
+		if err != nil {
+			log.Error.Println(err)
+			log.Error.Println("Unable to update config.yaml and .secret.txt on the other node")
+			panic(err)
+		}
+
 	}
 
 	return nil
