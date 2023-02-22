@@ -203,7 +203,11 @@ func fileWatch(previousConfigStruct config.ConfigStruct) {
 						log.Panic.Println("Error while reading config file : ", err)
 						panic(err)
 					}
-					if crypto.CredsMismatch(currentConfigStruct, previousConfigStruct) {
+					currOsCredentials := currentConfigStruct.ClusterDetails.OsCredentials
+					prevOsCredentials := previousConfigStruct.ClusterDetails.OsCredentials
+					currCloudCredentials := currentConfigStruct.ClusterDetails.CloudCredentials
+					prevCloudCredentials := previousConfigStruct.ClusterDetails.CloudCredentials
+					if crypto.OsCredsMismatch(currOsCredentials, prevOsCredentials) || crypto.CloudCredsMismatch(currCloudCredentials, prevCloudCredentials) {
 						log.Info.Println("FILE_EVENT encountered : Creds updated")
 						crypto.UpdateSecretAndEncryptCreds(false, currentConfigStruct)
 						previousConfigStruct, _ = config.GetConfig()
@@ -215,7 +219,7 @@ func fileWatch(previousConfigStruct config.ConfigStruct) {
 					if crypto.EncryptionSecret != current_secret {
 						crypto.EncryptionSecret = current_secret
 						config_struct, _ := config.GetConfig()
-						crypto.DecryptCredsAndInitializeConn(config_struct)
+						crypto.DecryptCredsAndInitializeOs(config_struct)
 
 					}
 				}

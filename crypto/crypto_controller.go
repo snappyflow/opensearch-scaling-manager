@@ -27,8 +27,12 @@ func init() {
 	log.Init("logger")
 	log.Info.Println("Crypto module initiated")
 	mrand.Seed(seed)
-	configStruct, _ := config.GetConfig()
-	if _, err := os.Stat(SecretFilepath); err == nil {
+	configStruct, err := config.GetConfig()
+	if err != nil {
+		log.Error.Println("Error validating config file", err)
+		panic(err)
+	}
+	if _, err = os.Stat(SecretFilepath); err == nil {
 		EncryptionSecret = GetEncryptionSecret()
 		osAdminUsername = GetDecryptedData(configStruct.ClusterDetails.OsCredentials.OsAdminUsername)
 		osAdminPassword = GetDecryptedData(configStruct.ClusterDetails.OsCredentials.OsAdminPassword)
@@ -88,65 +92,89 @@ func GetEncryptionSecret() string {
 		log.Panic.Println("Error reading the secret file")
 		panic(err)
 	}
-	decoded_data, _ := Decode(string(data))
+	decoded_data, decodeErr := Decode(string(data))
+	if decodeErr != nil {
+		log.Error.Println("Error decoding the data: ", decodeErr)
+		panic(decodeErr)
+	}
 	return getScrambledOrOriginalSecret(string(decoded_data), false)
 }
 
-func GetEncryptedConfigStruct(config_struct config.ConfigStruct) (config.ConfigStruct, error) {
+func GetEncryptedOsCred(osCred *config.OsCredentials) error {
 	var err error
 
-	config_struct.ClusterDetails.OsCredentials.OsAdminUsername, err = GetEncryptedData(config_struct.ClusterDetails.OsCredentials.OsAdminUsername)
+	osCred.OsAdminUsername, err = GetEncryptedData(osCred.OsAdminUsername)
 	if err != nil {
-		return config_struct, err
+		return err
 	}
 
-	config_struct.ClusterDetails.OsCredentials.OsAdminPassword, err = GetEncryptedData(config_struct.ClusterDetails.OsCredentials.OsAdminPassword)
+	osCred.OsAdminPassword, err = GetEncryptedData(osCred.OsAdminPassword)
 	if err != nil {
-		return config_struct, err
+		return err
 	}
 
-	config_struct.ClusterDetails.CloudCredentials.SecretKey, err = GetEncryptedData(config_struct.ClusterDetails.CloudCredentials.SecretKey)
-	if err != nil {
-		return config_struct, err
-	}
-
-	config_struct.ClusterDetails.CloudCredentials.AccessKey, err = GetEncryptedData(config_struct.ClusterDetails.CloudCredentials.AccessKey)
-	if err != nil {
-		return config_struct, err
-	}
-
-	return config_struct, nil
+	return nil
 }
 
-func GetDecryptedConfigStruct(config_struct config.ConfigStruct) config.ConfigStruct {
-	os_admin_username := GetDecryptedData(config_struct.ClusterDetails.OsCredentials.OsAdminUsername)
-	if os_admin_username != "" {
-		config_struct.ClusterDetails.OsCredentials.OsAdminUsername = os_admin_username
-	}
-	os_admin_password := GetDecryptedData(config_struct.ClusterDetails.OsCredentials.OsAdminPassword)
-	if os_admin_password != "" {
-		config_struct.ClusterDetails.OsCredentials.OsAdminPassword = os_admin_password
+func GetEncryptedCloudCred(cloudCred *config.CloudCredentials) error {
+	var err error
+
+	cloudCred.SecretKey, err = GetEncryptedData(cloudCred.SecretKey)
+	if err != nil {
+		return err
 	}
 
-	secret_key := GetDecryptedData(config_struct.ClusterDetails.CloudCredentials.SecretKey)
+	cloudCred.AccessKey, err = GetEncryptedData(cloudCred.AccessKey)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetDecryptedOsCreds(osCred *config.OsCredentials) {
+
+	os_admin_username := GetDecryptedData(osCred.OsAdminUsername)
+	if os_admin_username != "" {
+		osCred.OsAdminUsername = os_admin_username
+	}
+
+	os_admin_password := GetDecryptedData(osCred.OsAdminPassword)
+	if os_admin_password != "" {
+		osCred.OsAdminPassword = os_admin_password
+	}
+
+}
+
+func GetDecryptedCloudCreds(cloudCred *config.CloudCredentials) {
+
+	secret_key := GetDecryptedData(cloudCred.SecretKey)
 	if secret_key != "" {
-		config_struct.ClusterDetails.CloudCredentials.SecretKey = secret_key
+		cloudCred.SecretKey = secret_key
 	}
-	access_key := GetDecryptedData(config_struct.ClusterDetails.CloudCredentials.AccessKey)
+
+	access_key := GetDecryptedData(cloudCred.AccessKey)
 	if access_key != "" {
-		config_struct.ClusterDetails.CloudCredentials.AccessKey = access_key
+		cloudCred.AccessKey = access_key
 	}
-	return config_struct
+
 }
 
 func UpdateEncryptedCred(initialRun bool, config_struct config.ConfigStruct) error {
-	encryptedConfigStruct, err := GetEncryptedConfigStruct(config_struct)
-	if err != nil {
-		log.Panic.Println("Error getting the encrypted config struct : ", err)
-		panic(err)
+	copyCreds := config_struct.ClusterDetails.OsCredentials
+	OsCredErr := GetEncryptedOsCred(&config_struct.ClusterDetails.OsCredentials)
+	if OsCredErr != nil {
+		log.Panic.Println("Error getting the encrypted config struct : ", OsCredErr)
+		panic(OsCredErr)
 	}
 
-	err = config.UpdateConfigFile(encryptedConfigStruct)
+	CloudCredErr := GetEncryptedCloudCred(&config_struct.ClusterDetails.CloudCredentials)
+	if CloudCredErr != nil {
+		log.Panic.Println("Error getting the encrypted config struct : ", CloudCredErr)
+		panic(CloudCredErr)
+	}
+
+	err := config.UpdateConfigFile(config_struct)
 	if err != nil {
 		log.Panic.Println("Error updating the encrypted config struct : ", err)
 		panic(err)
@@ -154,16 +182,14 @@ func UpdateEncryptedCred(initialRun bool, config_struct config.ConfigStruct) err
 
 	// initialize new os client connection with the updated creds
 	if !initialRun {
-		cfg := config_struct.ClusterDetails
-		osutils.InitializeOsClient(cfg.OsCredentials.OsAdminUsername, cfg.OsCredentials.OsAdminPassword)
+		osutils.InitializeOsClient(copyCreds.OsAdminUsername, copyCreds.OsAdminPassword)
 	}
 	return nil
 }
 
-func DecryptCredsAndInitializeConn(config_struct config.ConfigStruct) {
-	decryptedConfigStruct := GetDecryptedConfigStruct(config_struct)
-	cfg := decryptedConfigStruct.ClusterDetails
-	osutils.InitializeOsClient(cfg.OsCredentials.OsAdminUsername, cfg.OsCredentials.OsAdminPassword)
+func DecryptCredsAndInitializeOs(config_struct config.ConfigStruct) {
+	GetDecryptedOsCreds(&config_struct.ClusterDetails.OsCredentials)
+	osutils.InitializeOsClient(config_struct.ClusterDetails.OsCredentials.OsAdminUsername, config_struct.ClusterDetails.OsCredentials.OsAdminPassword)
 }
 
 func UpdateSecretAndEncryptCreds(initial_run bool, config_struct config.ConfigStruct) error {
@@ -197,25 +223,29 @@ func UpdateSecretAndEncryptCreds(initial_run bool, config_struct config.ConfigSt
 		}
 	} else {
 		if utils.CheckIfMaster(context.Background(), "") {
-			decrypted_struct := GetDecryptedConfigStruct(config_struct)
+			GetDecryptedOsCreds(&config_struct.ClusterDetails.OsCredentials)
+			GetDecryptedCloudCreds(&config_struct.ClusterDetails.CloudCredentials)
 			GenerateAndScrambleSecret()
-			UpdateEncryptedCred(initial_run, decrypted_struct)
+			UpdateEncryptedCred(initial_run, config_struct)
 			//ansible logic to copy the secret and config
 		} else {
 			EncryptionSecret = GetEncryptionSecret()
-			DecryptCredsAndInitializeConn(config_struct)
-
+			DecryptCredsAndInitializeOs(config_struct)
 		}
 	}
 
 	return nil
 }
 
-func CredsMismatch(currentConfigStruct config.ConfigStruct, previousConfigStruct config.ConfigStruct) bool {
-	if (currentConfigStruct.ClusterDetails.OsCredentials.OsAdminUsername != previousConfigStruct.ClusterDetails.OsCredentials.OsAdminUsername) ||
-		(currentConfigStruct.ClusterDetails.OsCredentials.OsAdminPassword != previousConfigStruct.ClusterDetails.OsCredentials.OsAdminPassword) ||
-		(currentConfigStruct.ClusterDetails.CloudCredentials.SecretKey != previousConfigStruct.ClusterDetails.CloudCredentials.SecretKey) ||
-		(currentConfigStruct.ClusterDetails.CloudCredentials.AccessKey != previousConfigStruct.ClusterDetails.CloudCredentials.AccessKey) {
+func OsCredsMismatch(currOsCred config.OsCredentials, prevOsCred config.OsCredentials) bool {
+	if (currOsCred.OsAdminUsername != prevOsCred.OsAdminUsername) || (currOsCred.OsAdminPassword != currOsCred.OsAdminPassword) {
+		return true
+	}
+	return false
+}
+
+func CloudCredsMismatch(currCloudCred config.CloudCredentials, prevCloudCred config.CloudCredentials) bool {
+	if (currCloudCred.SecretKey != prevCloudCred.SecretKey) || (currCloudCred.AccessKey != prevCloudCred.AccessKey) {
 		return true
 	}
 	return false
