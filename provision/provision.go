@@ -384,6 +384,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 			dataWriter.WriteString(removeNodeName + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + removeNodeIp + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 			dataWriter.Flush()
 			log.Info.Println("Removing node ***********************************:", removeNodeName)
+			crypto.GetDecryptedOsCreds(&clusterCfg.OsCredentials)
 			ansibleErr := ansibleutils.CallAnsible(username, hostsFileName, clusterCfg, "scale_down")
 			if ansibleErr != nil {
 				return false, ansibleErr
