@@ -261,11 +261,10 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 			}
 		}
 		state.PreviousState = state.CurrentState
-		state.CurrentState = "provisioning_scaleup_completed"
+		state.CurrentState = "provisioning_scaleup_configured"
 		state.UpdateState()
 		fallthrough
-	// Check cluster status after the configuration
-	case "provisioning_scaleup_completed":
+	case "provisioning_scaleup_configured":
 		// Check if node has joined the cluster
 		log.Info.Println("Waiting for new node to join the cluster...")
 		time.Sleep(40 * time.Second)
@@ -300,6 +299,12 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 			log.Error.Println(ansibleErr)
 			log.Error.Println("Node scaled up but unable to run scaling manager on new node. Please check ansible logs for more details. (logs/playbook.log)")
 		}
+		state.PreviousState = state.CurrentState
+		state.CurrentState = "provisioning_scaleup_completed"
+		state.UpdateState()
+		fallthrough
+	// Check cluster status after the configuration
+	case "provisioning_scaleup_completed":
 		if simFlag {
 			SimulateSharRebalancing("scaleOut", state.NumNodes, isAccelerated)
 		}
