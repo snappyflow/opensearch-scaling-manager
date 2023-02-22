@@ -20,7 +20,7 @@
     path: "{{ os_home }}"
     state: directory
     owner: "{{ os_user }}"
-    group: "{{ os_user }}"
+    group: "{{ os_group }}"
   when: download.changed
   become: yes
 
@@ -34,7 +34,7 @@
     src: "opensearch-{{ cluster_type }}.yml"
     dest: "{{os_conf_dir}}/opensearch.yml"
     owner: "{{ os_user }}"
-    group: "{{ os_user }}"
+    group: "{{ os_group }}"
     mode: 0600
     backup: yes
   become: yes

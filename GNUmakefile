@@ -87,6 +87,10 @@ install:
 		exit 1; \
 	fi
     ifeq ($(PLATFORM),linux)
+	@if [ -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config.yaml ];then \
+		cp -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config.yaml $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config_back.yaml; \
+		cp -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config.json $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config_back.json; \
+	fi
 		tar -C $(SCALING_MANAGER_INSTALL) -xzf $(SCALING_MANAGER_TAR_GZ)
 		sed -i "s/User=.*/User=$(USER_NAME)/" $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager.service
 		sed -i "s/Group=.*/Group=$(GROUP)/" $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager.service
@@ -94,6 +98,10 @@ install:
 		chown -R $(USER_NAME):$(GROUP) $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)
 		chmod 755 $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager
 		systemctl daemon-reload
+	@if [ -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config_back.yaml ];then \
+		mv -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config_back.yaml $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config.yaml; \
+		mv -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config_back.json $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config.json; \
+	fi
     endif
 
 uninstall: cleaninstall

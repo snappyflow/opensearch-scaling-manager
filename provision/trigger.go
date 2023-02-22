@@ -3,12 +3,12 @@ package provision
 import (
 	"context"
 	"encoding/json"
-	"regexp"
 	"github.com/maplelabs/opensearch-scaling-manager/cluster"
 	"github.com/maplelabs/opensearch-scaling-manager/cluster_sim"
 	"github.com/maplelabs/opensearch-scaling-manager/config"
 	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
 	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -58,8 +58,11 @@ func GetRecommendation(state *State, recommendationQueue []map[string]string, cl
 
 			ruleResponsible := recommendationQueue[0][task]
 			numNodesProceed := checkNumNodesCondition(operation, clusterCfg, usrCfg)
+			if !numNodesProceed {
+				return
+			}
 			previousProvisionProceed := comparePreviousProvision(ruleResponsible, operation)
-			if !numNodesProceed || !previousProvisionProceed {
+			if !previousProvisionProceed {
 				return
 			}
 
@@ -133,7 +136,7 @@ func checkNumNodesCondition(operation string, clusterCfg config.ClusterDetails, 
 		}
 	case "scale_down":
 		if numNodes-1 < clusterCfg.MinNodesAllowed {
-			log.Warn.Println("Cannot scale down as the minimum number of nodes for this cluster specified is reached.\n If you need the scale down to take place anyway, consider decreasing the min nodes in config.yaml")
+			log.Warn.Println("Cannot scale down as the minimum number of nodes for this cluster specified is reached.\n If you need the scale down to take place anyway, consider increasing the min nodes in config.yaml")
 			return false
 		}
 	}

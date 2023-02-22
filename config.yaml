@@ -17,6 +17,7 @@ cluster_details:
     os_admin_password: admin
   # ssh login username
   os_user: ubuntu
+  os_group: ubuntu
   # opensearch version
   os_version: 2.3.0
   # Default opensearch user info.

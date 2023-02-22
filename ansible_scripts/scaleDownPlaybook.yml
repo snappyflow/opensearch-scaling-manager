@@ -1,5 +1,12 @@
 ---
 
+- hosts: remove_node
+  name: Scale-down role-based playbook
+  become: yes
+
+  roles:
+    - scale_down
+
 - hosts: all
 
   tasks:
@@ -10,7 +17,7 @@
       regexp: '{{ hostvars[item].ansible_private_host }}'
       state: absent
       backup: yes
-    with_items: "{{ groups['remove-node'] }}"
+    with_items: "{{ groups['remove_node'] }}"
     become: yes
 
   - name: Update Hosts | Remove hosts from inventory
@@ -21,13 +28,4 @@
       regexp: "{{ hostvars[item]['ansible_private_host'] }}"
       state: absent
       backup: yes
-    with_items: "{{ groups['remove-node'] }}"
-
-
-- hosts: remove-node
-  name: Scale-down role-based playbook
-  become: yes
-
-  roles:
-    - scale_down
-
+    with_items: "{{ groups['remove_node'] }}"

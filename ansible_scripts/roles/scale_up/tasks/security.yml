@@ -54,6 +54,12 @@
   become: yes
   delegate_to: localhost
 
+- name: Security Plugin configuration | Changing ownership of config directory  
+  shell: 'sudo chown -R "{{ os_user }}":"{{ os_group }}" /tmp/opensearch-nodecerts/config'
+  run_once: true  
+  become: yes  
+  delegate_to: localhost
+
 - name: Security Plugin configuration | Generate the node & admin certificates in local
   local_action:
     module: command /tmp/opensearch-nodecerts/tools/sgtlstool.sh -c /tmp/opensearch-nodecerts/config/tlsconfig.yml -crt -t /tmp/opensearch-nodecerts/config/
@@ -104,7 +110,7 @@
   file:
     dest: "{{ os_home }}"
     owner: "{{ os_user }}"
-    group: "{{ os_user }}"
+    group: "{{ os_group }}"
     recurse: yes
   become: yes
 
@@ -112,7 +118,7 @@
   file:
     dest: "{{ os_conf_dir }}"
     owner: "{{ os_user }}"
-    group: "{{ os_user }}"
+    group: "{{ os_group }}"
     mode: 0700
   become: yes
 
