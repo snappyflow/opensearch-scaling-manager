@@ -9,6 +9,8 @@ Group=
 WorkingDirectory=/usr/local/scaling_manager_lib
 ExecStart=/usr/local/scaling_manager_lib/scaling_manager start
 KillSignal=SIGINT
+KillMode=process
+TimeoutStopSec=10min
 
 [Install]
 WantedBy=multi-user.target
