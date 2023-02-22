@@ -13,6 +13,7 @@ import (
 	"github.com/maplelabs/opensearch-scaling-manager/cluster"
 	"github.com/maplelabs/opensearch-scaling-manager/cluster_sim"
 	"github.com/maplelabs/opensearch-scaling-manager/config"
+	"github.com/maplelabs/opensearch-scaling-manager/crypto"
 	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
 	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
 	"net/http"
