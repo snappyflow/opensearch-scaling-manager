@@ -184,7 +184,7 @@ func HostsWithCurrentNodes(fileName string, clusterCfg config.ClusterDetails) {
 		panic(err)
 	}
 	defer f.Close()
-	nodes := utils.GetNodes()
+	nodes := GetNodes()
 	dataWriter := bufio.NewWriter(f)
 	dataWriter.WriteString("[current_nodes]\n")
 	for _, nodeIdMap := range nodes {
