@@ -148,14 +148,14 @@
     become: yes
     copy:
         src: "{{ src_bin_path | default('/usr/local/scaling_manager_lib') }}/GNUmakefile"
-        dest: "{{ dest_bin_path | default('/usr/local/scaling_manager_lib/') }}"
+        dest: "/tmp"
         owner: '{{ user | default("ubuntu") }}'
         group: '{{ group | default("ubuntu") }}'
   - name: Uninstalling Scalling Manager
     shell:
     args:
       cmd: make uninstall
-      chdir: "{{ dest_bin_path | default('/usr/local/scaling_manager_lib/') }}"
+      chdir: "/tmp"
     become: yes
   tags: uninstall
 
