@@ -197,7 +197,7 @@ func fileWatch(previousConfigStruct config.ConfigStruct) {
 			select {
 			// watch for events
 			case event := <-watcher.Events:
-				if utils.CheckIfMaster(context.Background(), "") && strings.Contains(event.Name, config.ConfigFileName) && (event.Op&fsnotify.Write == fsnotify.Write) {
+				if utils.CheckIfMaster(context.Background(), "") && strings.Contains(event.Name, config.ConfigFileName) {
 					currentConfigStruct, err := config.GetConfig()
 					if err != nil {
 						log.Panic.Println("Error while reading config file : ", err)
