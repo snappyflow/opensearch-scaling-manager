@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/maplelabs/opensearch-scaling-manager/config"
+	"github.com/maplelabs/opensearch-scaling-manager/crypto"
 	fetch "github.com/maplelabs/opensearch-scaling-manager/fetchmetrics"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
-	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
 	"github.com/maplelabs/opensearch-scaling-manager/provision"
 	"github.com/maplelabs/opensearch-scaling-manager/recommendation"
 	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/tkuchiki/faketime"
 )
 
@@ -25,6 +26,8 @@ var log logger.LOG
 
 // A global variable which lets the provision continue from where it left off if there was an abrupt stop and restart of application.
 var firstExecution bool
+
+var seed = time.Now().Unix()
 
 // Input:
 //
@@ -41,14 +44,12 @@ func Initialize() {
 	log.Info.Println("Main module initialized")
 
 	firstExecution = true
-	configStruct, err := config.GetConfig("config.yaml")
+
+	configStruct, err := config.GetConfig()
 	if err != nil {
 		log.Panic.Println("The recommendation can not be made as there is an error in the validation of config file.", err)
 		panic(err)
 	}
-	cfg := configStruct.ClusterDetails
-	osutils.InitializeOsClient(cfg.OsCredentials.OsAdminUsername, cfg.OsCredentials.OsAdminPassword)
-
 	provision.InitializeDocId()
 
 	userCfg := configStruct.UserConfig
@@ -56,6 +57,7 @@ func Initialize() {
 	if !userCfg.MonitorWithSimulator {
 		go fetch.FetchMetrics(userCfg.PollingInterval, userCfg.PurgeAfter)
 	}
+
 }
 
 // Input:
@@ -66,18 +68,21 @@ func Initialize() {
 //	Performs a series of operations to do the following:
 //	  * Calls a goroutine to start the periodicProvisionCheck method
 //	  * In a for loop in the range of a time Ticker with interval specified in the config file:
-//		# Checks if the current node is master, reads the config file, gets the recommendation from recommendation engine and triggers provisioning
+//	        # Checks if the current node is master, reads the config file, gets the recommendation from recommendation engine and triggers provisioning
 //
 // Return:
 func Run() {
 	var t = new(time.Time)
 	t_now := time.Now()
 	*t = time.Date(t_now.Year(), t_now.Month(), t_now.Day(), 0, 0, 0, 0, time.UTC)
-	configStruct, err := config.GetConfig("config.yaml")
+	configStruct, err := config.GetConfig()
 	if err != nil {
 		log.Panic.Println("The recommendation can not be made as there is an error in the validation of config file.", err)
 		panic(err)
 	}
+
+	go fileWatch(configStruct)
+
 	// A periodic check if there is a change in master node to pick up incomplete provisioning
 	go periodicProvisionCheck(configStruct.UserConfig.PollingInterval, t)
 	ticker := time.Tick(time.Duration(configStruct.UserConfig.PollingInterval) * time.Second)
@@ -100,7 +105,7 @@ func Run() {
 			firstExecution = false
 			// This function will be responsible for parsing the config file and fill in task_details struct.
 			var task = new(recommendation.TaskDetails)
-			configStruct, err := config.GetConfig("config.yaml")
+			configStruct, err := config.GetConfig()
 			if err != nil {
 				log.Error.Println("The recommendation can not be made as there is an error in the validation of config file.")
 				log.Error.Println(err.Error())
@@ -137,7 +142,7 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 			if !previousMaster || firstExecution {
 				//                      if firstExecution {
 				firstExecution = false
-				configStruct, err := config.GetConfig("config.yaml")
+				configStruct, err := config.GetConfig()
 				if err != nil {
 					log.Warn.Println("Unable to get Config from GetConfig()", err)
 					return
@@ -175,13 +180,69 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 	}
 }
 
+// This function monitors the config.yaml residing directory for any writes continuously and on
+// noticing a write event, updates the encrypted creds in the config file.
+func fileWatch(previousConfigStruct config.ConfigStruct) {
+	//Adding file watcher to detect the change in configuration
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Error.Println("Error while creating new fileWatcher : ", err)
+	}
+	defer watcher.Close()
+	done := make(chan bool)
+
+	//A go routine that keeps checking for change in configuration
+	go func() {
+		for {
+			select {
+			// watch for events
+			case event := <-watcher.Events:
+				if utils.CheckIfMaster(context.Background(), "") && strings.Contains(event.Name, config.ConfigFileName) && (event.Op&fsnotify.Write == fsnotify.Write) {
+					currentConfigStruct, err := config.GetConfig()
+					if err != nil {
+						log.Panic.Println("Error while reading config file : ", err)
+						panic(err)
+					}
+					currOsCredentials := currentConfigStruct.ClusterDetails.OsCredentials
+					prevOsCredentials := previousConfigStruct.ClusterDetails.OsCredentials
+					currCloudCredentials := currentConfigStruct.ClusterDetails.CloudCredentials
+					prevCloudCredentials := previousConfigStruct.ClusterDetails.CloudCredentials
+					if crypto.OsCredsMismatch(currOsCredentials, prevOsCredentials) || crypto.CloudCredsMismatch(currCloudCredentials, prevCloudCredentials) {
+						log.Info.Println("FILE_EVENT encountered : Creds updated")
+						crypto.UpdateSecretAndEncryptCreds(false, currentConfigStruct)
+						previousConfigStruct, _ = config.GetConfig()
+					} else {
+						log.Info.Println("FILE_EVENT encountered : Creds not updated")
+					}
+				} else if !utils.CheckIfMaster(context.Background(), "") {
+					current_secret := crypto.GetEncryptionSecret()
+					if crypto.EncryptionSecret != current_secret {
+						crypto.EncryptionSecret = current_secret
+						config_struct, _ := config.GetConfig()
+						crypto.DecryptCredsAndInitializeOs(config_struct)
+
+					}
+				}
+
+			case err := <-watcher.Errors:
+				log.Info.Println("Error in fileWatcher: ", err)
+			}
+		}
+	}()
+
+	if err := watcher.Add(config.ConfigFileName); err != nil {
+		log.Error.Println("Error while adding the config file changes to the fileWatcher :", err)
+	}
+	<-done
+}
+
 // Input:
 //
 // Description:
 //
-//		The function performs graceful shutdown of application
-//	 	based on current state of provision.
-//		It will wait till provision is completed and exits.
+//	The function performs graceful shutdown of application
+//	based on current state of provision.
+//	It will wait till provision is completed and exits.
 //
 // Return:
 func CleanUp() {

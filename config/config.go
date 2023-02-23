@@ -1,18 +1,18 @@
 package config
 
 import (
-	"io/ioutil"
-	"os"
-	"regexp"
+	"github.com/go-playground/validator/v10"
 	"github.com/maplelabs/opensearch-scaling-manager/cluster"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
 	"github.com/maplelabs/opensearch-scaling-manager/recommendation"
-
-	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
+	"io/ioutil"
+	"os"
+	"regexp"
 )
 
 var log logger.LOG
+var ConfigFileName = "config.yaml"
 
 // Input:
 //
@@ -76,16 +76,18 @@ type ConfigStruct struct {
 }
 
 // Inputs:
-//		path (string): The path of the configuration file.
+//
+//	path (string): The path of the configuration file.
 //
 // Description:
-//		This function will be parsing the provided configuration file and populate the ConfigStruct.
+//
+//	This function will be parsing the provided configuration file and populate the ConfigStruct.
 //
 // Return:
-//	 (ConfigStruct, error): Return the ConfigStruct and error if any
-
-func GetConfig(path string) (ConfigStruct, error) {
-	yamlConfig, err := os.Open(path)
+//
+//	(ConfigStruct, error): Return the ConfigStruct and error if any
+func GetConfig() (ConfigStruct, error) {
+	yamlConfig, err := os.Open(ConfigFileName)
 	if err != nil {
 		log.Panic.Println("Unable to read the config file: ", err)
 		panic(err)
@@ -95,7 +97,7 @@ func GetConfig(path string) (ConfigStruct, error) {
 	var config = new(ConfigStruct)
 	err = yaml.Unmarshal(configByte, &config)
 	if err != nil {
-		log.Panic.Println("Unmarshal: ", err)
+		log.Panic.Println("Unmarshal Error : ", err)
 		panic(err)
 	}
 	err = validation(*config)
@@ -103,13 +105,13 @@ func GetConfig(path string) (ConfigStruct, error) {
 }
 
 // Inputs:
-//		config (ConfigStruct): config structure populated with unmarshalled data.
+//      config (ConfigStruct): config structure populated with unmarshalled data.
 //
 // Description:
-//		This function will be validating the configuration structure.
+//      This function will be validating the configuration structure.
 //
 // Return:
-//		(error): Return the error if there is a validation error.
+//      (error): Return the error if there is a validation error.
 
 func validation(config ConfigStruct) error {
 	validate := validator.New()
@@ -153,4 +155,32 @@ func isValidTaskName(fl validator.FieldLevel) bool {
 	TaskNameRegex := regexp.MustCompile(TaskNameRegexString)
 
 	return TaskNameRegex.MatchString(fl.Field().String())
+}
+
+// Inputs:
+//
+//	conf (ConfigStruct) : Credentials encrypted structure of the config.yaml file
+//
+// Description:
+//
+//	This function updates the config.yaml file with encrypted credentials ConfigStruct.
+//
+// Return:
+//
+//	(error) : Error (if any), else nil
+func UpdateConfigFile(conf ConfigStruct) error {
+	conf_byte, err := yaml.Marshal(&conf)
+	if err != nil {
+		log.Error.Println("Error marshalling the ConfigStruct : ", err)
+		return err
+	}
+
+	yaml_content := "---\n" + string(conf_byte)
+	err = ioutil.WriteFile(ConfigFileName, []byte(yaml_content), 0)
+	if err != nil {
+		log.Error.Println("Error writing the config yaml file : ", err)
+		return err
+	}
+
+	return nil
 }

@@ -51,8 +51,6 @@ func CallAnsible(username string, hosts string, clusterCfg config.ClusterDetails
 		fileName = "ansible_scripts/scaleUpPlaybook.yml"
 	case "scale_down":
 		fileName = "ansible_scripts/scaleDownPlaybook.yml"
-	case "copy_config":
-		fileName = "ansible_scripts/install_scaling_manager.yaml"
 	}
 
 	var variablesMap map[string]interface{}
