@@ -168,6 +168,8 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 	// Read the current state of scaleup process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaleup process
 	state.GetCurrentState()
+	crypto.GetDecryptedCloudCreds(&clusterCfg.CloudCredentials)
+	crypto.GetDecryptedOsCreds(&clusterCfg.OsCredentials)
 	var newNodeIp string
 	simFlag := usrCfg.MonitorWithSimulator
 	monitorWithLogs := usrCfg.MonitorWithLogs
@@ -335,6 +337,8 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *State, t *time.Time) (bool, error) {
 	// Read the current state of scaledown process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaledown process
+	crypto.GetDecryptedCloudCreds(&clusterCfg.CloudCredentials)
+	crypto.GetDecryptedOsCreds(&clusterCfg.OsCredentials)
 	state.GetCurrentState()
 	var removeNodeIp, removeNodeName string
 	var nodes map[string]interface{}
@@ -409,7 +413,6 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 			dataWriter.WriteString(removeNodeName + " ansible_user=" + username + " roles=master,data,ingest ansible_private_host=" + removeNodeIp + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 			dataWriter.Flush()
 			log.Info.Println("Removing node ***********************************:", removeNodeName)
-			crypto.GetDecryptedOsCreds(&clusterCfg.OsCredentials)
 			ansibleErr := ansibleutils.CallAnsible(username, hostsFileName, clusterCfg, "scale_down")
 			if ansibleErr != nil {
 				return false, ansibleErr
