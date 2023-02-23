@@ -60,19 +60,8 @@ type Node struct {
 type ClusterStatic struct {
 	// ClusterName indicates the Cluster name for the OpenSearch cluster.
 	ClusterName string `yaml:"cluster_name" validate:"required,isValidName" json:"cluster_name"`
-	// IpAddress indicate the master node IP for the OpenSearch cluster.
-	IpAddress string `yaml:"ip_address" validate:"required,ip" json:"ip_address"`
 	// CloudType indicate the type of the cloud service where the OpenSearch cluster is deployed.
 	CloudType string `yaml:"cloud_type" validate:"required,oneof=AWS GCP AZURE" json:"cloud_type"`
-	// BaseNodeType indicate the instance type of the node.
-	// This parameters depends on the cloud service.
-	BaseNodeType string `yaml:"base_node_type" validate:"required" json:"base_node_type"`
-	// NumCpusPerNode indicates the number of the CPU core running on a node in a cluster.
-	NumCpusPerNode int `yaml:"number_cpus_per_node" validate:"required,min=1" json:"number_cpus_per_node"`
-	// RAMPerNodeInGB indicates the RAM size in GB running on a node in a cluster.
-	RAMPerNodeInGB int `yaml:"ram_per_node_in_gb" validate:"required,min=1" json:"ram_per_node_in_gb"`
-	// DiskPerNodeInGB indicates the Disk size in GB running on a node in a cluster.
-	DiskPerNodeInGB int `yaml:"disk_per_node_in_gb" validate:"required,min=1" json:"disk_per_node_in_gb"`
 	// NumMaxNodesAllowed indicates the number of maximum allowed node present in the cluster.
 	// Based on this value we will determine whether to scale out further or not.
 	MaxNodesAllowed int `yaml:"max_nodes_allowed" validate:"required,min=1" json:"max_nodes_allowed"`
