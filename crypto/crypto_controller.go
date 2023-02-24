@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
-	"encoding/base64"
+	"encoding/base32"
 	"github.com/maplelabs/opensearch-scaling-manager/config"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
 	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
@@ -239,7 +239,7 @@ func CloudCredsMismatch(currCloudCred config.CloudCredentials, prevCloudCred con
 
 // Encode the given byte value
 func Encode(b []byte) string {
-	return base64.StdEncoding.EncodeToString(b)
+	return base32.StdEncoding.EncodeToString(b)
 }
 
 // Encrypt method is to encrypt or hide any classified text
@@ -257,9 +257,9 @@ func Encrypt(text, EncryptionSecret string) (string, error) {
 
 // Decode the given string
 func Decode(s string) ([]byte, error) {
-	data, err := base64.StdEncoding.DecodeString(s)
+	data, err := base32.StdEncoding.DecodeString(s)
 	if err != nil {
-		if !strings.Contains(err.Error(), "illegal base64 data at input") {
+		if !strings.Contains(err.Error(), "illegal base32 data at input") {
 			log.Panic.Println("Error while decoding : ", err)
 			panic(err)
 		} else {
@@ -287,7 +287,7 @@ func Decrypt(text, EncryptionSecret string) (string, error) {
 }
 
 // Creates an encrypted string : performs AES encryption using the defined secret
-// and return base64 encoded string. Also checks if the encrypted string is able
+// and return base32 encoded string. Also checks if the encrypted string is able
 // to be decrypted used the same secret.
 func GetEncryptedData(toBeEncrypted string) (string, error) {
 	encText, err := Encrypt(toBeEncrypted, EncryptionSecret)
