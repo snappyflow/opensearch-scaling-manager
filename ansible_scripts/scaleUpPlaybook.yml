@@ -42,3 +42,11 @@
       backup: yes
     with_items: "{{ groups['new_node'] }}"
     become: yes
+
+- hosts: new_node
+  gather_facts: no
+  name: Custom role-based tasks
+  become: yes
+
+  roles:
+    - custom_role
