@@ -34,6 +34,7 @@ func init() {
 	if _, err = os.Stat(SecretFilepath); err == nil {
 		EncryptionSecret = GetEncryptionSecret()
 		GetDecryptedOsCreds(&configStruct.ClusterDetails.OsCredentials)
+		GetDecryptedCloudCreds(&configStruct.ClusterDetails.CloudCredentials)
 	}
 
 	osutils.InitializeOsClient(configStruct.ClusterDetails.OsCredentials.OsAdminUsername, configStruct.ClusterDetails.OsCredentials.OsAdminPassword)
