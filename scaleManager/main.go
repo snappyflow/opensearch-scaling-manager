@@ -230,7 +230,7 @@ func fileWatch(previousConfigStruct config.ConfigStruct) {
 		}
 	}()
 
-	if err := watcher.Add(config.ConfigFileName); err != nil {
+	if err := watcher.Add("."); err != nil {
 		log.Error.Println("Error while adding the config file changes to the fileWatcher :", err)
 	}
 	<-done
