@@ -197,30 +197,32 @@ func fileWatch(previousConfigStruct config.ConfigStruct) {
 			select {
 			// watch for events
 			case event := <-watcher.Events:
-				if utils.CheckIfMaster(context.Background(), "") && strings.Contains(event.Name, config.ConfigFileName) {
-					currentConfigStruct, err := config.GetConfig()
-					if err != nil {
-						log.Panic.Println("Error while reading config file : ", err)
-						panic(err)
-					}
-					currOsCredentials := currentConfigStruct.ClusterDetails.OsCredentials
-					prevOsCredentials := previousConfigStruct.ClusterDetails.OsCredentials
-					currCloudCredentials := currentConfigStruct.ClusterDetails.CloudCredentials
-					prevCloudCredentials := previousConfigStruct.ClusterDetails.CloudCredentials
-					if crypto.OsCredsMismatch(currOsCredentials, prevOsCredentials) || crypto.CloudCredsMismatch(currCloudCredentials, prevCloudCredentials) {
-						log.Info.Println("FILE_EVENT encountered : Creds updated")
-						crypto.UpdateSecretAndEncryptCreds(false, currentConfigStruct)
-						previousConfigStruct, _ = config.GetConfig()
+				if strings.Contains(event.Name, config.ConfigFileName) {
+					if utils.CheckIfMaster(context.Background(), "") {
+						currentConfigStruct, err := config.GetConfig()
+						if err != nil {
+							log.Panic.Println("Error while reading config file : ", err)
+							panic(err)
+						}
+						currOsCredentials := currentConfigStruct.ClusterDetails.OsCredentials
+						prevOsCredentials := previousConfigStruct.ClusterDetails.OsCredentials
+						currCloudCredentials := currentConfigStruct.ClusterDetails.CloudCredentials
+						prevCloudCredentials := previousConfigStruct.ClusterDetails.CloudCredentials
+						if crypto.OsCredsMismatch(currOsCredentials, prevOsCredentials) || crypto.CloudCredsMismatch(currCloudCredentials, prevCloudCredentials) {
+							log.Info.Println("FILE_EVENT encountered : Creds updated")
+							crypto.UpdateSecretAndEncryptCreds(false, currentConfigStruct)
+							previousConfigStruct, _ = config.GetConfig()
+						} else {
+							log.Info.Println("FILE_EVENT encountered : Creds not updated")
+						}
 					} else {
-						log.Info.Println("FILE_EVENT encountered : Creds not updated")
-					}
-				} else if !utils.CheckIfMaster(context.Background(), "") {
-					current_secret := crypto.GetEncryptionSecret()
-					if crypto.EncryptionSecret != current_secret {
-						crypto.EncryptionSecret = current_secret
-						config_struct, _ := config.GetConfig()
-						crypto.DecryptCredsAndInitializeOs(config_struct)
-
+						current_secret := crypto.GetEncryptionSecret()
+						if crypto.EncryptionSecret != current_secret {
+							log.Info.Println("Change in Creds detected")
+							crypto.EncryptionSecret = current_secret
+							config_struct, _ := config.GetConfig()
+							crypto.DecryptCredsAndInitializeOs(config_struct)
+						}
 					}
 				}
 
