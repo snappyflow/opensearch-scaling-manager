@@ -105,6 +105,16 @@
     systemd:
       name: scaling_manager
       state: started
+  - name: Starting crypto Service
+    become: yes
+    systemd:
+      name: crypto_sm
+      state: started
+  - name: Starting fetchmetrics Service
+    become: yes
+    systemd:
+      name: fetchmetrics
+      state: started
   tags: start
 - name: Stop Scaling manager
   hosts: all
@@ -113,6 +123,16 @@
     become: yes
     systemd:
       name: scaling_manager
+      state: stopped
+  - name: Stopping crypto Service
+    become: yes
+    systemd:
+      name: crypto_sm
+      state: stopped
+  - name: Stopping fetchmetrics Service
+    become: yes
+    systemd:
+      name: fetchmetrics
       state: stopped
   tags: stop
 - name: Restart Scaling manager
