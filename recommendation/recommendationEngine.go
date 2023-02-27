@@ -70,9 +70,9 @@ type Rule struct {
 	// Example:
 	// SchedulingTime = "30 5 * * 1-5"
 	// In the above example the cron job will run at 5:30 AM from Mon-Fri of every month
-	SchedulingTime string `yaml:"scheduling_time" validate:"required if="`
+	SchedulingTime string `yaml:"scheduling_time" validate:"required_if=Operator EVENT"`
 	// NumNodesRequired specifies the integer value of number of nodes to be present in cluster for event based scaling operations
-	NumNodesRequired int `yaml: "number_of_node" validate:""`
+	NumNodesRequired int `yaml:"number_of_node" validate:"required_if=Operator EVENT"`
 }
 
 // This struct contains the task details which is set of actions.
@@ -101,12 +101,12 @@ type TaskDetails struct {
 // Return:
 //		([]map[string]string): Returns an array of the recommendations.
 
-func (t TaskDetails) EvaluateTask(pollingInterval int, simFlag, isAccelerated bool) ([]map[string]string, []Task ){
+func (t TaskDetails) EvaluateTask(pollingInterval int, simFlag, isAccelerated bool) ([]map[string]string, []Task) {
 	var recommendationArray []map[string]string
 	var isRecommendedTask bool
 	var cronJobList []Task
 	for _, v := range t.Tasks {
-		if v.Operator == "EVENT"{
+		if v.Operator == "EVENT" {
 			cronJobList = append(cronJobList, v)
 			continue
 		}

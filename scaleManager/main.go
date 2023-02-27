@@ -188,13 +188,13 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 // 	state (*provision.State): A pointer to the state struct which is state maintained in OS document
 //	clusterCfg (config.ClusterDetails): Cluster Level config details
 //	usrCfg (config.UserConfig): User defined config for application behavior
-// 
+//
 // Description:
-// 
-//	At each polling interval creates the cron jobs based on the config file. It removes the Cron Jobs that were 
-//  added in previous polling interval and creates required jobs. It will use the list of tasks (cronTasks) to 
+//
+//	At each polling interval creates the cron jobs based on the config file. It removes the Cron Jobs that were
+//  added in previous polling interval and creates required jobs. It will use the list of tasks (cronTasks) to
 // 	schedule and create cron job.
-// 	
+//
 // Return:
 func CreateCronJob(cronTasks []recommendation.Task, state *provision.State, clusterCfg config.ClusterDetails, userCfg config.UserConfig, t *time.Time) {
 	for _, jobs := range cronJob.Entries() {
@@ -203,7 +203,9 @@ func CreateCronJob(cronTasks []recommendation.Task, state *provision.State, clus
 
 	for _, cronTask := range cronTasks {
 		for _, rules := range cronTask.Rules {
-			cronJob.AddFunc(rules.SchedulingTime, provision.TriggerCron(rules.NumNodesRequired, cronTask.TaskName, state, clusterCfg, userCfg, rules.SchedulingTime, t))
+			cronJob.AddFunc(rules.SchedulingTime, func() {
+				provision.TriggerCron(rules.NumNodesRequired, cronTask.TaskName, state, clusterCfg, userCfg, rules.SchedulingTime, t)
+			})
 		}
 	}
 	cronJob.Start()
