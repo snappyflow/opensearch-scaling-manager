@@ -113,9 +113,10 @@ func Run() {
 			task.Tasks = configStruct.TaskDetails
 			userCfg := configStruct.UserConfig
 			clusterCfg := configStruct.ClusterDetails
-			recommendationList, cronJobTaskList := task.EvaluateTask(userCfg.PollingInterval, userCfg.MonitorWithSimulator, userCfg.IsAccelerated)
-			if len(cronJobTaskList) > 0 {
-				CreateCronJob(cronJobTaskList, state, clusterCfg, userCfg, t)
+			metricTasks, eventTasks := task.ParseTasks()
+			recommendationList := metricTasks.EvaluateTask(userCfg.PollingInterval, userCfg.MonitorWithSimulator, userCfg.IsAccelerated)
+			if len(eventTasks.Tasks) > 0 {
+				CreateCronJob(eventTasks.Tasks, state, clusterCfg, userCfg, t)
 			}
 			provision.GetRecommendation(state, recommendationList, clusterCfg, userCfg, t)
 			if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {

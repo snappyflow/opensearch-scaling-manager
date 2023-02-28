@@ -16,7 +16,6 @@ import (
 	"github.com/maplelabs/opensearch-scaling-manager/cluster"
 	"github.com/maplelabs/opensearch-scaling-manager/cluster_sim"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
-	"github.com/maplelabs/opensearch-scaling-manager/provision"
 )
 
 var log logger.LOG
@@ -101,15 +100,10 @@ type TaskDetails struct {
 // Return:
 //		([]map[string]string): Returns an array of the recommendations.
 
-func (t TaskDetails) EvaluateTask(pollingInterval int, simFlag, isAccelerated bool) ([]map[string]string, []Task) {
+func (t TaskDetails) EvaluateTask(pollingInterval int, simFlag, isAccelerated bool) []map[string]string {
 	var recommendationArray []map[string]string
 	var isRecommendedTask bool
-	var cronJobList []Task
 	for _, v := range t.Tasks {
-		if v.Operator == "EVENT" {
-			cronJobList = append(cronJobList, v)
-			continue
-		}
 		var rulesResponsibleMap = make(map[string]string)
 		isRecommendedTask, rulesResponsibleMap[v.TaskName] = v.GetNextTask(pollingInterval, simFlag, isAccelerated)
 		log.Debug.Println(rulesResponsibleMap)
@@ -120,7 +114,7 @@ func (t TaskDetails) EvaluateTask(pollingInterval int, simFlag, isAccelerated bo
 			log.Debug.Println(fmt.Sprintf("The %s task is not recommended as rules are not satisfied", v.TaskName))
 		}
 	}
-	return recommendationArray, cronJobList
+	return recommendationArray
 }
 
 // Inputs:
@@ -331,6 +325,34 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 		}
 	}
 	return false
+}
+
+//	Input:
+//
+// 	Caller:
+// 		Object of TaskDetails
+//
+// 	Description:
+// 		Parser over the Tasks and seperates metric and event based tasks
+//
+// 	Return:
+// 		(*TaskDetails): Pointer to metric and event based Tasks
+
+func (t TaskDetails) ParseTasks() (*TaskDetails, *TaskDetails) {
+	var metricTaskDetails = new(TaskDetails)
+	var eventTaskDetails = new(TaskDetails)
+
+	for _, task := range t.Tasks {
+		task := task
+
+		if task.Operator == "EVENT" {
+			eventTaskDetails.Tasks = append(eventTaskDetails.Tasks, task)
+		} else {
+			metricTaskDetails.Tasks = append(metricTaskDetails.Tasks, task)
+		}
+	}
+
+	return metricTaskDetails, eventTaskDetails
 }
 
 // Input:
