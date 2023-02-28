@@ -28,7 +28,7 @@ var log logger.LOG
 var firstExecution bool
 
 // A global variable to keep track of cronJob details
-var cronJob = cron.New()
+var cronJobList []*cron.Cron
 
 // Input:
 //
@@ -113,9 +113,9 @@ func Run() {
 			task.Tasks = configStruct.TaskDetails
 			userCfg := configStruct.UserConfig
 			clusterCfg := configStruct.ClusterDetails
-			recommendationList, cronJobList := task.EvaluateTask(userCfg.PollingInterval, userCfg.MonitorWithSimulator, userCfg.IsAccelerated)
-			if len(cronJobList) > 0 {
-				CreateCronJob(cronJobList, state, clusterCfg, userCfg, t)
+			recommendationList, cronJobTaskList := task.EvaluateTask(userCfg.PollingInterval, userCfg.MonitorWithSimulator, userCfg.IsAccelerated)
+			if len(cronJobTaskList) > 0 {
+				CreateCronJob(cronJobTaskList, state, clusterCfg, userCfg, t)
 			}
 			provision.GetRecommendation(state, recommendationList, clusterCfg, userCfg, t)
 			if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
@@ -197,18 +197,26 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 //
 // Return:
 func CreateCronJob(cronTasks []recommendation.Task, state *provision.State, clusterCfg config.ClusterDetails, userCfg config.UserConfig, t *time.Time) {
-	for _, jobs := range cronJob.Entries() {
-		cronJob.Remove(jobs.ID)
+	for _, cronJob := range cronJobList {
+		for _, jobs := range cronJob.Entries() {
+			cronJob.Remove(jobs.ID)
+		}
 	}
 
+	cronJobList = nil
+
 	for _, cronTask := range cronTasks {
+		cronTask := cronTask
+		cronJob := cron.New()
 		for _, rules := range cronTask.Rules {
+			rules := rules
 			cronJob.AddFunc(rules.SchedulingTime, func() {
 				provision.TriggerCron(rules.NumNodesRequired, cronTask.TaskName, state, clusterCfg, userCfg, rules.SchedulingTime, t)
 			})
+			cronJobList = append(cronJobList, cronJob)
 		}
+		cronJob.Start()
 	}
-	cronJob.Start()
 }
 
 // Input:
