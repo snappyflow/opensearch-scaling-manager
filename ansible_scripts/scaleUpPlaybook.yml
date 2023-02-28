@@ -44,7 +44,6 @@
     become: yes
 
 - hosts: new_node
-  gather_facts: no
   name: Custom role-based tasks
   become: yes
 
