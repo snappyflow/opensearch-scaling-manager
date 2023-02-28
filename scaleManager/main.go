@@ -7,13 +7,15 @@ import (
 	"time"
 
 	"github.com/maplelabs/opensearch-scaling-manager/config"
+	"github.com/maplelabs/opensearch-scaling-manager/crypto"
 	fetch "github.com/maplelabs/opensearch-scaling-manager/fetchmetrics"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
-	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
 	"github.com/maplelabs/opensearch-scaling-manager/provision"
 	"github.com/maplelabs/opensearch-scaling-manager/recommendation"
+	"github.com/maplelabs/opensearch-scaling-manager/task"
 	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/tkuchiki/faketime"
 )
 
@@ -26,8 +28,14 @@ var log logger.LOG
 // A global variable which lets the provision continue from where it left off if there was an abrupt stop and restart of application.
 var firstExecution bool
 
+var seed = time.Now().Unix()
+
+func init() {
+	log.Init("logger")
+	log.Info.Println("Main module initialized")
+}
+
 // Input:
-//
 // Description:
 //
 //	Initializes the main module
@@ -37,25 +45,16 @@ var firstExecution bool
 //
 // Return:
 func Initialize() {
-	log.Init("logger")
-	log.Info.Println("Main module initialized")
 
 	firstExecution = true
-	configStruct, err := config.GetConfig("config.yaml")
+
+	_, err := config.GetConfig()
 	if err != nil {
 		log.Panic.Println("The recommendation can not be made as there is an error in the validation of config file.", err)
 		panic(err)
 	}
-	cfg := configStruct.ClusterDetails
-	osutils.InitializeOsClient(cfg.OsCredentials.OsAdminUsername, cfg.OsCredentials.OsAdminPassword)
-
 	provision.InitializeDocId()
 
-	userCfg := configStruct.UserConfig
-
-	if !userCfg.MonitorWithSimulator {
-		go fetch.FetchMetrics(userCfg.PollingInterval, userCfg.PurgeAfter)
-	}
 }
 
 // Input:
@@ -66,14 +65,14 @@ func Initialize() {
 //	Performs a series of operations to do the following:
 //	  * Calls a goroutine to start the periodicProvisionCheck method
 //	  * In a for loop in the range of a time Ticker with interval specified in the config file:
-//		# Checks if the current node is master, reads the config file, gets the recommendation from recommendation engine and triggers provisioning
+//	        # Checks if the current node is master, reads the config file, gets the recommendation from recommendation engine and triggers provisioning
 //
 // Return:
 func Run() {
 	var t = new(time.Time)
 	t_now := time.Now()
 	*t = time.Date(t_now.Year(), t_now.Month(), t_now.Day(), 0, 0, 0, 0, time.UTC)
-	configStruct, err := config.GetConfig("config.yaml")
+	configStruct, err := config.GetConfig()
 	if err != nil {
 		log.Panic.Println("The recommendation can not be made as there is an error in the validation of config file.", err)
 		panic(err)
@@ -99,8 +98,8 @@ func Run() {
 			//              if firstExecution || state.CurrentState == "normal" {
 			firstExecution = false
 			// This function will be responsible for parsing the config file and fill in task_details struct.
-			var task = new(recommendation.TaskDetails)
-			configStruct, err := config.GetConfig("config.yaml")
+			var task = new(task.TaskDetails)
+			configStruct, err := config.GetConfig()
 			if err != nil {
 				log.Error.Println("The recommendation can not be made as there is an error in the validation of config file.")
 				log.Error.Println(err.Error())
@@ -109,10 +108,11 @@ func Run() {
 			task.Tasks = configStruct.TaskDetails
 			userCfg := configStruct.UserConfig
 			clusterCfg := configStruct.ClusterDetails
-			metricTasks, eventTasks := task.ParseTasks()
+			myTaskDetails := (recommendation.MyTaskDetails)(*task)
+			metricTasks, eventTasks := myTaskDetails.ParseTasks()
 			recommendationList := metricTasks.EvaluateTask(userCfg.PollingInterval, userCfg.MonitorWithSimulator, userCfg.IsAccelerated)
 			if len(eventTasks.Tasks) > 0 {
-				eventTasks.CreateCronJob(state, t)
+				eventTasks.CreateCronJob(state, clusterCfg, userCfg, t)
 			}
 			provision.GetRecommendation(state, recommendationList, clusterCfg, userCfg, t)
 			if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
@@ -141,7 +141,7 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 			if !previousMaster || firstExecution {
 				//                      if firstExecution {
 				firstExecution = false
-				configStruct, err := config.GetConfig("config.yaml")
+				configStruct, err := config.GetConfig()
 				if err != nil {
 					log.Warn.Println("Unable to get Config from GetConfig()", err)
 					return
@@ -179,13 +179,87 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 	}
 }
 
+// This function monitors the config.yaml residing directory for any writes continuously and on
+// noticing a write event, updates the encrypted creds in the config file.
+func FileWatch(previousConfigStruct config.ConfigStruct, moduleName string) {
+	//Adding file watcher to detect the change in configuration
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Error.Println("Error while creating new fileWatcher : ", err)
+	}
+	defer watcher.Close()
+	done := make(chan bool)
+
+	//A go routine that keeps checking for change in configuration
+	go func() {
+		for {
+			select {
+			// watch for events
+			case event := <-watcher.Events:
+				if strings.Contains(event.Name, config.ConfigFileName) {
+					if utils.CheckIfMaster(context.Background(), "") && moduleName == "crypto" {
+						currentConfigStruct, err := config.GetConfig()
+						if err != nil {
+							log.Panic.Println("Error while reading config file : ", err)
+							panic(err)
+						}
+						currOsCredentials := currentConfigStruct.ClusterDetails.OsCredentials
+						prevOsCredentials := previousConfigStruct.ClusterDetails.OsCredentials
+						currCloudCredentials := currentConfigStruct.ClusterDetails.CloudCredentials
+						prevCloudCredentials := previousConfigStruct.ClusterDetails.CloudCredentials
+						if crypto.OsCredsMismatch(currOsCredentials, prevOsCredentials) || crypto.CloudCredsMismatch(currCloudCredentials, prevCloudCredentials) {
+							log.Info.Println("FILE_EVENT encountered : Creds updated")
+							crypto.UpdateSecretAndEncryptCreds(false, currentConfigStruct)
+							previousConfigStruct, _ = config.GetConfig()
+						} else {
+							log.Info.Println("FILE_EVENT encountered : Creds not updated")
+						}
+					} else {
+						current_secret := crypto.GetEncryptionSecret()
+						if crypto.EncryptionSecret != current_secret {
+							log.Info.Println("Change in Creds detected")
+							crypto.EncryptionSecret = current_secret
+							config_struct, _ := config.GetConfig()
+							crypto.DecryptCredsAndInitializeOs(config_struct)
+						}
+					}
+				}
+
+			case err := <-watcher.Errors:
+				log.Info.Println("Error in fileWatcher: ", err)
+			}
+		}
+	}()
+
+	if err := watcher.Add("."); err != nil {
+		log.Error.Println("Error while adding the config file changes to the fileWatcher :", err)
+	}
+	<-done
+}
+
+func StartFetchMetrics() {
+	configStruct, err := config.GetConfig()
+	if err != nil {
+		log.Error.Println("Error validating config file", err)
+		panic(err)
+	}
+	userCfg := configStruct.UserConfig
+
+	if !userCfg.MonitorWithSimulator {
+		fetch.FetchMetrics(userCfg.PollingInterval, userCfg.PurgeAfter)
+	} else {
+		log.Warn.Println("MonitorWithSimulator is enabled. Please disable and re-run the fetch-metrics module.")
+		os.Exit(1)
+	}
+}
+
 // Input:
 //
 // Description:
 //
-//		The function performs graceful shutdown of application
-//	 	based on current state of provision.
-//		It will wait till provision is completed and exits.
+//	The function performs graceful shutdown of application
+//	based on current state of provision.
+//	It will wait till provision is completed and exits.
 //
 // Return:
 func CleanUp() {
