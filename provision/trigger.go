@@ -3,15 +3,16 @@ package provision
 import (
 	"context"
 	"encoding/json"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/maplelabs/opensearch-scaling-manager/cluster"
 	"github.com/maplelabs/opensearch-scaling-manager/cluster_sim"
 	"github.com/maplelabs/opensearch-scaling-manager/config"
 	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
 	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
-	"regexp"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // Input:
@@ -224,29 +225,29 @@ func comparePreviousProvision(ruleResponsible string, operation string) bool {
 }
 
 // Input:
-// 
-// 	nodesRequired (int): Specifies required count of nodes to be present for the Event based scaling.
-// 	task (string): Specifies the name of the task. i.e scale_up_by_1 or scale_down_by_1.
-// 	state (*State): A pointer to the state struct which is state maintained in OS document.
+//
+//	nodesRequired (int): Specifies required count of nodes to be present for the Event based scaling.
+//	task (string): Specifies the name of the task. i.e scale_up_by_1 or scale_down_by_1.
+//	state (*State): A pointer to the state struct which is state maintained in OS document.
 //	clusterCfg (config.ClusterDetails): Cluster Level config details.
 //	usrCfg (config.UserConfig): User defined config for application behavior.
 //	rulesResponsible (string): Specifies the rule (cron time expression) that triggered the execution of cron job,
-// 
+//
 // Description:
-// 
-// 	Checks the current state to check if provision is in progress. 
-// 	if provision is not in progress 
-// 		Then triggers the Provision
-// 	if provision is in progress
-// 		logs the event and returns
-// 
+//
+//	Checks the current state to check if provision is in progress.
+//	if provision is not in progress
+//		Then triggers the Provision
+//	if provision is in progress
+//		logs the event and returns
+//
 // Return:
-func TriggerCron(nodesRequired int, task string, state *State, clusterCfg config.ClusterDetails, usrCfg config.UserConfig, ruleResponsible string, t *time.Time) {
+func TriggerCron(nodesRequired int, t *time.Time, state *State, ruleResponsible, task string) {
 
 	state.GetCurrentState()
-	if state.CurrentState != "normal"{
+	if state.CurrentState != "normal" {
 		log.Warn.Println("Provision is already in progress, Event based scaling will be discarded")
-		return 
+		return
 	}
 
 	scaleRegexString := `(scale_up|scale_down)_by_([0-9]+)`
@@ -258,5 +259,11 @@ func TriggerCron(nodesRequired int, task string, state *State, clusterCfg config
 	numNodes, _ := strconv.Atoi(subMatch[2])
 	operation := subMatch[1]
 
-	TriggerProvision(clusterCfg, usrCfg, state, numNodes, t, operation, ruleResponsible)
+	configStruct, err := config.GetConfig()
+	if err != nil {
+		log.Panic.Println("The recommendation can not be made as there is an error in the validation of config file.", err)
+		panic(err)
+	}
+
+	TriggerProvision(configStruct.ClusterDetails, configStruct.UserConfig, state, numNodes, t, operation, ruleResponsible)
 }

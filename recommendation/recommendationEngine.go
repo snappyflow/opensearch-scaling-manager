@@ -12,10 +12,13 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
+
+	cron "github.com/robfig/cron/v3"
 
 	"github.com/maplelabs/opensearch-scaling-manager/cluster"
 	"github.com/maplelabs/opensearch-scaling-manager/cluster_sim"
-	"github.com/maplelabs/opensearch-scaling-manager/logger"
+	"github.com/maplelabs/opensearch-scaling-manager/provision"
 )
 
 var log logger.LOG
@@ -27,6 +30,9 @@ var ctx = context.Background()
 //		Initialize the recommendation module.
 //
 // Return:
+
+// A global variable to keep track of cronJob details
+var cronJobList []*cron.Cron
 
 func init() {
 	log.Init("logger")
@@ -353,6 +359,43 @@ func (t TaskDetails) ParseTasks() (*TaskDetails, *TaskDetails) {
 	}
 
 	return metricTaskDetails, eventTaskDetails
+}
+
+// Input:
+//
+//	cronTasks ([]]recommendation.Task): List of tasks to be added to Cron Job
+//	state (*provision.State): A pointer to the state struct which is state maintained in OS document
+//	clusterCfg (config.ClusterDetails): Cluster Level config details
+//	usrCfg (config.UserConfig): User defined config for application behavior
+//
+// Description:
+//
+//		At each polling interval creates the cron jobs based on the config file. It removes the Cron Jobs that were
+//	 added in previous polling interval and creates required jobs. It will use the list of tasks (cronTasks) to
+//		schedule and create cron job.
+//
+// Return:
+func (ta TaskDetails) CreateCronJob(state *provision.State, t *time.Time) {
+	for _, cronJob := range cronJobList {
+		for _, jobs := range cronJob.Entries() {
+			cronJob.Remove(jobs.ID)
+		}
+	}
+
+	cronJobList = nil
+
+	for _, cronTask := range ta.Tasks {
+		cronTask := cronTask
+		cronJob := cron.New()
+		for _, rules := range cronTask.Rules {
+			rules := rules
+			cronJob.AddFunc(rules.SchedulingTime, func() {
+				provision.TriggerCron(rules.NumNodesRequired, t, state, rules.SchedulingTime, cronTask.TaskName)
+			})
+			cronJobList = append(cronJobList, cronJob)
+		}
+		cronJob.Start()
+	}
 }
 
 // Input:
