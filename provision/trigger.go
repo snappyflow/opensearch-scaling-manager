@@ -259,11 +259,7 @@ func TriggerCron(nodesRequired int, t *time.Time, state *State, clusterCfg confi
 	numNodes, _ := strconv.Atoi(subMatch[2])
 	operation := subMatch[1]
 
-	configStruct, err := config.GetConfig()
-	if err != nil {
-		log.Panic.Println("The recommendation can not be made as there is an error in the validation of config file.", err)
-		panic(err)
-	}
+	log.Info.Println("The ", task, " is triggered as event based scaling and will be provisioned.")
 
-	TriggerProvision(configStruct.ClusterDetails, configStruct.UserConfig, state, numNodes, t, operation, ruleResponsible)
+	TriggerProvision(clusterCfg, userCfg, state, numNodes, t, operation, ruleResponsible)
 }
