@@ -95,6 +95,7 @@ type ClusterDynamic struct {
 	NumMasterNodes int
 	// NumActiveDataNodes indicates the number of active data nodes present in the cluster.
 	NumActiveDataNodes int
+	TotalShards        int
 }
 
 // This struct will provide the overall cluster metrcis for a OpenSearch cluster.
@@ -160,79 +161,119 @@ type MetricViolatedCountCluster struct {
 }
 
 // Input:
-//		decisionPeriod (int): Time in minutes used to specify the time range for collecting data from Opensearch.
-//		pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index
+//              decisionPeriod (int): Time in minutes used to specify the time range for collecting data from Opensearch.
+//              pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index
 //
 // Description:
-//		Generates the query string necessary to check if there is any datapoints between the specified time range
+//              Generates the query string necessary to check if there is any datapoints between the specified time range
 //
 //
 // Return:
-//		(string): Returns the query string which can be passed as OS query api
+//              (string): Returns the query string which can be passed as OS query api
 
 func dataPointsQuery(decisionPeriod int, pollingInterval int) string {
 	dataPointQuery := `{
-	  "query": {
-	    "bool": {
-	      "filter": {
-	        "range": {
-	          "Timestamp": {
-	            "from": "now-` + strconv.Itoa(decisionPeriod) + `m",
-	            "include_lower": true,
-	            "include_upper": true,
-	            "to": "now-` + strconv.Itoa(decisionPeriod) + `m+` + strconv.Itoa(pollingInterval) + `s"
-	          }
-	        }
-	      }
-	    }
-	  }
-	}`
+          "query": {
+            "bool": {
+              "filter": {
+                "range": {
+                  "Timestamp": {
+                    "from": "now-` + strconv.Itoa(decisionPeriod) + `m",
+                    "include_lower": true,
+                    "include_upper": true,
+                    "to": "now-` + strconv.Itoa(decisionPeriod) + `m+` + strconv.Itoa(pollingInterval) + `s"
+                  }
+                }
+              }
+            }
+          }
+        }`
 
 	return dataPointQuery
 }
 
 // Input:
-//		metricName (string): The metric for which the average is needed.
-//		decisionPeriod (int): Time in minutes used to specify the time range for collecting data from Opensearch.
+//              metricName (string): The metric for which the average is needed.
+//              decisionPeriod (int): Time in minutes used to specify the time range for collecting data from Opensearch.
 //
 // Description:
-//		Generates the query string for determining the average of the metric specified.
+//              Generates the query string for determining the average of the metric specified.
 //
 // Return:
-//		(string): Returns the query string that can be given as an OS query api parameter.
+//              (string): Returns the query string that can be given as an OS query api parameter.
 
 func getClusterAvgQuery(metricName string, decisionPeriod int) string {
 	clusterAvgQueryString := `{
-	  "query": {
-	    "bool": {
-	      "filter": {
-	        "range": {
-	          "Timestamp": {
-	            "from": "now-` + strconv.Itoa(decisionPeriod) + `m",
-	            "include_lower": true,
-	            "include_upper": true,
-	            "to": null
-	          }
-	        }
-	      }
-	    }
-	  },
-	  "aggs": {
-	    "` + metricName + `": {
-	      "stats": {
-	        "field": "` + metricName + `"
-	      }
-	    }
-	  }
-	}`
+          "query": {
+            "bool": {
+              "filter": {
+                "range": {
+                  "Timestamp": {
+                    "from": "now-` + strconv.Itoa(decisionPeriod) + `m",
+                    "include_lower": true,
+                    "include_upper": true,
+                    "to": null
+                  }
+                }
+              }
+            }
+          },
+          "aggs": {
+            "` + metricName + `": {
+              "stats": {
+                "field": "` + metricName + `"
+              }
+            }
+          }
+        }`
 	return clusterAvgQueryString
+}
+
+// Input:
+//              metricName (string): The name of the metric that will be used to compute the number of times the limit is reached.
+//              decisionPeriod (int): The evaluation period for which the Count will be determined.
+//              limit (float32): The limit for the metric for which the count is calculated.
+//              ctx (context.Context): Request-scoped data that transits processes and APIs.
+//
+// Description:
+//              GetShardsCrossed will return the number of times the shards count has reached the limit.
+//
+// Return:
+//              (MetricViolatedCount, error): Return populated MetricViolatedCount struct and error if any.
+
+func GetShardsCrossed(ctx context.Context, metricName string, decisionPeriod int, limit float32) (MetricViolatedCount, error) {
+	var metricViolatedCount MetricViolatedCount
+	//Get the query and convert to json
+	var jsonQuery = []byte(getClusterCountQuery(metricName, decisionPeriod, limit))
+
+	//create a search request and pass the query
+	searchResp, err := osutils.SearchQuery(ctx, jsonQuery)
+	if err != nil {
+		log.Error.Println("Cannot fetch total shards: ", err)
+		return metricViolatedCount, err
+	}
+	defer searchResp.Body.Close()
+
+	//Interface to dump the response
+	var queryResultInterface map[string]interface{}
+
+	//decode the response into the interface
+	decodeErr := json.NewDecoder(searchResp.Body).Decode(&queryResultInterface)
+	if decodeErr != nil {
+		log.Error.Println("decode Error: ", decodeErr)
+		return metricViolatedCount, decodeErr
+	}
+	//Parse the interface and populate the metricStatsCluster
+	metricViolatedCount.ViolatedCount = int(queryResultInterface["aggregations"].(map[string]interface{})[metricName].(map[string]interface{})["buckets"].([]interface{})[0].(map[string]interface{})["doc_count"].(float64))
+
+	return metricViolatedCount, nil
 }
 
 // Input:
 //              metricName (string): The metric name for which the Cluster Average will be calculated
 //              decisionPeriod (int): The evaluation time over which the Average will be computed
-//		pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index
-//		ctx (context.Context): Request-scoped data that transits processes and APIs.
+//              pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index
+//              ctx (context.Context): Request-scoped data that transits processes and APIs.
 //
 // Description:
 //
@@ -313,62 +354,62 @@ func GetClusterAvg(ctx context.Context, metricName string, decisionPeriod int, p
 }
 
 // Input:
-//		metricName (string): The metric for which the count is needed.
-//		decisionPeriod (int): Time in minutes used to specify the time range for collecting data from Opensearch.
-//		limit (float32): The limit which needs to checked for the metric if it has been reached
+//              metricName (string): The metric for which the count is needed.
+//              decisionPeriod (int): Time in minutes used to specify the time range for collecting data from Opensearch.
+//              limit (float32): The limit which needs to checked for the metric if it has been reached
 //
 // Description:
-//		Generates the query string for determining the number of times the limit for the defined measure has been reached.
+//              Generates the query string for determining the number of times the limit for the defined measure has been reached.
 //
 // Return:
-//		(string): Returns the query string that can be given as an OS query api parameter.
+//              (string): Returns the query string that can be given as an OS query api parameter.
 
 func getClusterCountQuery(metricName string, decisionPeriod int, limit float32) string {
 	clusterCountQueryString := `{
-	   "query": {
-	     "bool": {
-	       "filter": {
-	         "range": {
-	           "Timestamp": {
-	             "from": "now-` + strconv.Itoa(decisionPeriod) + `m",
-	             "include_lower": true,
-	             "include_upper": true,
-	             "to": null
-	           }
-	         }
-	       }
-	     }
-	   },
-	   "aggs": {
-	     "` + metricName + `": {
-	       "range": {
-	         "field": "` + metricName + `",
-	         "ranges": [
-	           {
-	             "from": ` + strconv.FormatFloat(float64(limit), 'E', -1, 32) + `,
-	             "to": null
-	           }
-	         ]
-	       }
-	     }
-	   }
-	 }`
+           "query": {
+             "bool": {
+               "filter": {
+                 "range": {
+                   "Timestamp": {
+                     "from": "now-` + strconv.Itoa(decisionPeriod) + `m",
+                     "include_lower": true,
+                     "include_upper": true,
+                     "to": null
+                   }
+                 }
+               }
+             }
+           },
+           "aggs": {
+             "` + metricName + `": {
+               "range": {
+                 "field": "` + metricName + `",
+                 "ranges": [
+                   {
+                     "from": ` + strconv.FormatFloat(float64(limit), 'E', -1, 32) + `,
+                     "to": null
+                   }
+                 ]
+               }
+             }
+           }
+         }`
 
 	return clusterCountQueryString
 }
 
 // Input:
-//		metricName (string): The name of the metric that will be used to compute the number of times the limit is reached.
-//		decisionPeriod (int): The evaluation period for which the Count will be determined.
-//		pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index
-//		limit (float32): The limit for the metric for which the count is calculated.
-//		ctx (context.Context): Request-scoped data that transits processes and APIs.
+//              metricName (string): The name of the metric that will be used to compute the number of times the limit is reached.
+//              decisionPeriod (int): The evaluation period for which the Count will be determined.
+//              pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index
+//              limit (float32): The limit for the metric for which the count is calculated.
+//              ctx (context.Context): Request-scoped data that transits processes and APIs.
 //
 // Description:
-//		GetClusterCount will return the number of times the specified metric has reached the limit.
+//              GetClusterCount will return the number of times the specified metric has reached the limit.
 //
 // Return:
-//		(MetricViolatedCount, bool, error): Return populated MetricViolatedCount struct, bool which says if there were enough datapoints to calculate the count and error if any.
+//              (MetricViolatedCount, bool, error): Return populated MetricViolatedCount struct, bool which says if there were enough datapoints to calculate the count and error if any.
 
 func GetClusterCount(ctx context.Context, metricName string, decisionPeriod int, pollingInterval int, limit float32) (MetricViolatedCount, bool, error) {
 	var metricViolatedCount MetricViolatedCount
@@ -424,10 +465,10 @@ func GetClusterCount(ctx context.Context, metricName string, decisionPeriod int,
 // Input:
 //
 // Description:
-//		GetClusterCurrent returns the most recent cluster level Statistics and Health in the form of a struct.
+//              GetClusterCurrent returns the most recent cluster level Statistics and Health in the form of a struct.
 //
 // Return:
-//		(ClusterDynamic): Return populated ClusterDynamic struct.
+//              (ClusterDynamic): Return populated ClusterDynamic struct.
 
 func GetClusterCurrent() ClusterDynamic {
 	ctx := context.Background()
@@ -480,15 +521,15 @@ func GetClusterCurrent() ClusterDynamic {
 }
 
 // Input:
-//		decisionPeriod(int): The evaluation period for which the Average will be calculated.(int)
+//              decisionPeriod(int): The evaluation period for which the Average will be calculated.(int)
 //
 // Description:
-//		GetClusterHistoricAvg will get Historic average for the cluster for all the metrics.
-//		GetClusterHistoricAvg will use the stats aggregation to fetch the cluster and node level
-//		Historic average for the mentioned decision period.
+//              GetClusterHistoricAvg will get Historic average for the cluster for all the metrics.
+//              GetClusterHistoricAvg will use the stats aggregation to fetch the cluster and node level
+//              Historic average for the mentioned decision period.
 //
 // Return:
-//		([]MetricStatsCluster): Return an array of populated MetricStatsCluster struct collected for all the metrics.
+//              ([]MetricStatsCluster): Return an array of populated MetricStatsCluster struct collected for all the metrics.
 
 func GetClusterHistoricAvg(decisonPeriod int) []MetricStatsCluster {
 	var metricStatsCluster []MetricStatsCluster
@@ -496,13 +537,13 @@ func GetClusterHistoricAvg(decisonPeriod int) []MetricStatsCluster {
 }
 
 // Input:
-//		decisionPeriod(int): The evaluation period for which the Average will be calculated.
-//		thresholdMap( map[string]int): The map provide mapping of metric name and the threshold for which the Count is calculated.
+//              decisionPeriod(int): The evaluation period for which the Average will be calculated.
+//              thresholdMap( map[string]int): The map provide mapping of metric name and the threshold for which the Count is calculated.
 //
 // Description:
-//		GetClusterHistoricCount will use the opensearch query to find out the Count for which a metric crossed the threshold limit.
-//		GetClusterHistoricCount will then iterate through all the metric and collect the count for all the metrics.
-//		It will return the array of node level and cluster level count been voilated for all the metrics.
+//              GetClusterHistoricCount will use the opensearch query to find out the Count for which a metric crossed the threshold limit.
+//              GetClusterHistoricCount will then iterate through all the metric and collect the count for all the metrics.
+//              It will return the array of node level and cluster level count been voilated for all the metrics.
 //
 // Return:
 //              ([]MetricViolatedCountCluster): Return array of populated MetricViolatedCountCluster struct.
