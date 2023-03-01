@@ -30,11 +30,6 @@ var firstExecution bool
 
 var seed = time.Now().Unix()
 
-func init() {
-	log.Init("logger")
-	log.Info.Println("Main module initialized")
-}
-
 // Input:
 // Description:
 //
@@ -45,15 +40,23 @@ func init() {
 //
 // Return:
 func Initialize() {
+	log.Init("logger")
+	log.Info.Println("Main module initialized")
 
 	firstExecution = true
 
-	_, err := config.GetConfig()
+	configStruct, err := config.GetConfig()
 	if err != nil {
 		log.Panic.Println("The recommendation can not be made as there is an error in the validation of config file.", err)
 		panic(err)
 	}
 	provision.InitializeDocId()
+
+	userCfg := configStruct.UserConfig
+
+	if !userCfg.MonitorWithSimulator {
+		go fetch.FetchMetrics(userCfg.PollingInterval, userCfg.PurgeAfter)
+	}
 
 }
 
@@ -77,6 +80,9 @@ func Run() {
 		log.Panic.Println("The recommendation can not be made as there is an error in the validation of config file.", err)
 		panic(err)
 	}
+
+	go fileWatch(configStruct)
+
 	// A periodic check if there is a change in master node to pick up incomplete provisioning
 	go periodicProvisionCheck(configStruct.UserConfig.PollingInterval, t)
 	ticker := time.Tick(time.Duration(configStruct.UserConfig.PollingInterval) * time.Second)
@@ -181,7 +187,7 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 
 // This function monitors the config.yaml residing directory for any writes continuously and on
 // noticing a write event, updates the encrypted creds in the config file.
-func FileWatch(previousConfigStruct config.ConfigStruct, moduleName string) {
+func fileWatch(previousConfigStruct config.ConfigStruct) {
 	//Adding file watcher to detect the change in configuration
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -197,7 +203,7 @@ func FileWatch(previousConfigStruct config.ConfigStruct, moduleName string) {
 			// watch for events
 			case event := <-watcher.Events:
 				if strings.Contains(event.Name, config.ConfigFileName) {
-					if utils.CheckIfMaster(context.Background(), "") && moduleName == "crypto" {
+					if utils.CheckIfMaster(context.Background(), "") {
 						currentConfigStruct, err := config.GetConfig()
 						if err != nil {
 							log.Panic.Println("Error while reading config file : ", err)
@@ -235,22 +241,6 @@ func FileWatch(previousConfigStruct config.ConfigStruct, moduleName string) {
 		log.Error.Println("Error while adding the config file changes to the fileWatcher :", err)
 	}
 	<-done
-}
-
-func StartFetchMetrics() {
-	configStruct, err := config.GetConfig()
-	if err != nil {
-		log.Error.Println("Error validating config file", err)
-		panic(err)
-	}
-	userCfg := configStruct.UserConfig
-
-	if !userCfg.MonitorWithSimulator {
-		fetch.FetchMetrics(userCfg.PollingInterval, userCfg.PurgeAfter)
-	} else {
-		log.Warn.Println("MonitorWithSimulator is enabled. Please disable and re-run the fetch-metrics module.")
-		os.Exit(1)
-	}
 }
 
 // Input:
