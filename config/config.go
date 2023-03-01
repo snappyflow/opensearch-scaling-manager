@@ -118,6 +118,7 @@ func validation(config ConfigStruct) error {
 	validate := validator.New()
 	validate.RegisterValidation("isValidName", isValidName)
 	validate.RegisterValidation("isValidTaskName", isValidTaskName)
+	validate.RegisterStructValidation(RuleStructLevelValidation, task.Rule{})
 	err := validate.Struct(config)
 	return err
 }
@@ -156,6 +157,48 @@ func isValidTaskName(fl validator.FieldLevel) bool {
 	TaskNameRegex := regexp.MustCompile(TaskNameRegexString)
 
 	return TaskNameRegex.MatchString(fl.Field().String())
+}
+
+// Inputs:
+//
+//	fl (validator.StructLevel): The field of StructLevel needs to be validated.
+//
+// Description:
+//
+//	This function will be validating the Rule struct.
+//	It will be Reporting Error when the validation for a field fails.
+//
+// Return:
+func RuleStructLevelValidation(sl validator.StructLevel) {
+
+	tasks := sl.Parent().Interface().(task.Task)
+	rule := sl.Current().Interface().(task.Rule)
+
+	if tasks.Operator == "AND" || tasks.Operator == "OR" {
+		if rule.Metric != "CpuUtil" && rule.Metric != "RamUtil" && rule.Metric != "DiskUtil" &&
+			rule.Metric != "HeapUtil" && rule.Metric != "NumShards" {
+			sl.ReportError(rule.Metric, "metric", "Metric", "OneOf", "")
+		}
+		if rule.Limit <= 0 {
+			sl.ReportError(rule.Limit, "Limit", "Limit", "required", "")
+		}
+		if rule.Stat != "AVG" && rule.Stat != "COUNT" && rule.Stat != "TERM" {
+			sl.ReportError(rule.Stat, "Stat", "Stat", "OneOf", "")
+		}
+		if rule.DecisionPeriod <= 0 {
+			sl.ReportError(rule.DecisionPeriod, "DecisionPeriod", "DecisionPeriod", "required,min", "")
+		}
+		if rule.Stat == "COUNT" && rule.Occurrences <= 0 {
+			sl.ReportError(rule.Occurrences, "Occurrences", "Occurrences", "required_if", "")
+		}
+	} else if tasks.Operator == "EVENT" {
+		if rule.SchedulingTime == "" {
+			sl.ReportError(rule.SchedulingTime, "SchedulingTime", "scheduling_time", "required", "")
+		}
+		if rule.NumNodesRequired <= 0 {
+			sl.ReportError(rule.NumNodesRequired, "NumNodesRequired", "number_of_node", "required", "")
+		}
+	}
 }
 
 // Inputs:

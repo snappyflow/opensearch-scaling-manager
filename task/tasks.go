@@ -16,29 +16,29 @@ type Rule struct {
 	//      Cpu
 	//      Mem
 	//      Shard
-	Metric string `yaml:"metric" validate:"required,oneof=CpuUtil RamUtil HeapUtil DiskUtil NumShards"`
+	Metric string `yaml:"metric"`
 	// Limit indicates the threshold value for a metric.
 	// If this threshold is achieved for a given metric for the decision periond then the rule will be activated.
-	Limit float32 `yaml:"limit" validate:"required"`
+	Limit float32 `yaml:"limit"`
 	// Stat indicates the statistics on which the evaluation of the rule will happen.
 	// For Cpu and Mem the values can be:
 	//              Avg: The average CPU or MEM value will be calculated for a given decision period.
 	//              Count: The number of occurences where CPU or MEM value crossed the threshold limit.
 	//              Term:
 	// For rule: Shard, the stat will not be applicable as the shard will be calculated across the cluster and is not a statistical value.
-	Stat string `yaml:"stat" validate:"required,oneof=AVG COUNT TERM"`
+	Stat string `yaml:"stat"`
 	// DecisionPeriod indicates the time in minutes for which a rule is evalated.
-	DecisionPeriod int `yaml:"decision_period" validate:"required,min=1"`
+	DecisionPeriod int `yaml:"decision_period"`
 	// Occurrences indicate the number of time a rule reached the threshold limit for a give decision period.
 	// It will be applicable only when the Stat is set to Count.
-	Occurrences int `yaml:"occurrences" validate:"required_if=Stat COUNT"`
+	Occurrences int `yaml:"occurrences"`
 	// Scheduling time indicates cron time expression to schedule scaling operations
 	// Example:
 	// SchedulingTime = "30 5 * * 1-5"
 	// In the above example the cron job will run at 5:30 AM from Mon-Fri of every month
-	SchedulingTime string `yaml:"scheduling_time" validate:"required_if=Operator EVENT"`
+	SchedulingTime string `yaml:"scheduling_time"`
 	// NumNodesRequired specifies the integer value of number of nodes to be present in cluster for event based scaling operations
-	NumNodesRequired int `yaml:"number_of_node" validate:"required_if=Operator EVENT"`
+	NumNodesRequired int `yaml:"num_nodes_required"`
 }
 
 // This struct contains the task details which is set of actions.

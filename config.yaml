@@ -56,12 +56,12 @@ task_details:
   operator: EVENT
   rules:
   - scheduling_time: "0 0 * * 1-4"
-    number_of_node: 6
+    num_nodes_required: 6
 - task_name: scale_down_by_1
   operator: EVENT
   rules:
   - scheduling_time: "0 0 * * 5-6"
-    number_of_node: 3
+    num_nodes_required: 3
 - task_name: scale_down_by_1
   operator: AND
   rules:
