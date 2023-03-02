@@ -52,30 +52,6 @@ func SpinNewVm(launchTemplateId string, launchTemplateVersion string, cred confi
 	private_ip := *runResult.Instances[0].PrivateIpAddress
 	log.Info.Println("Created instance, Private IP: ", *runResult.Instances[0].PrivateIpAddress)
 
-	// Add tags to the created instance
-	_, errtag := svc.CreateTags(&ec2.CreateTagsInput{
-		Resources: []*string{runResult.Instances[0].InstanceId},
-		Tags: []*ec2.Tag{
-			{
-				Key:   aws.String("User"),
-				Value: aws.String("meghana.r"),
-			},
-			{
-				Key:   aws.String("Production"),
-				Value: aws.String("Yes"),
-			},
-			{
-				Key:   aws.String("Project"),
-				Value: aws.String("Dev"),
-			},
-		},
-	})
-	if errtag != nil {
-		log.Error.Println("Could not create tags for instance", runResult.Instances[0].InstanceId, errtag)
-		return "", errtag
-	}
-	log.Info.Println("Tagged the instance")
-
 	allInstances := true
 
 	log.Info.Println("Waiting until instanceStatus to be Ok.......")
