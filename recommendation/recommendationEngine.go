@@ -10,10 +10,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
 	"github.com/maplelabs/opensearch-scaling-manager/cluster"
 	"github.com/maplelabs/opensearch-scaling-manager/cluster_sim"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -23,7 +24,7 @@ var ctx = context.Background()
 // Input:
 //
 // Description:
-//		Initialize the recommendation module.
+//              Initialize the recommendation module.
 //
 // Return:
 
@@ -48,7 +49,7 @@ type Rule struct {
 	//      Cpu
 	//      Mem
 	//      Shard
-	Metric string `yaml:"metric" validate:"required,oneof=CpuUtil RamUtil HeapUtil DiskUtil NumShards"`
+	Metric string `yaml:"metric" validate:"required,oneof=CpuUtil RamUtil HeapUtil DiskUtil TotalShards"`
 	// Limit indicates the threshold value for a metric.
 	// If this threshold is achieved for a given metric for the decision periond then the rule will be activated.
 	Limit float32 `yaml:"limit" validate:"required"`
@@ -63,7 +64,7 @@ type Rule struct {
 	DecisionPeriod int `yaml:"decision_period" validate:"required,min=1"`
 	// Occurrences indicate the number of time a rule reached the threshold limit for a give decision period.
 	// It will be applicable only when the Stat is set to Count.
-	Occurrences int `yaml:"occurrences" validate:"required_if=Stat COUNT"`
+	Occurrences string `yaml:"occurrences" validate:"required_if=Stat COUNT"`
 }
 
 // This struct contains the task details which is set of actions.
@@ -78,11 +79,11 @@ type TaskDetails struct {
 }
 
 // Inputs:
-//		simFlag (bool): A flag to check if the task needs to be evaluated from Opensearch data or simulated data.
-//		pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index.
+//              simFlag (bool): A flag to check if the task needs to be evaluated from Opensearch data or simulated data.
+//              pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index.
 //
 // Caller:
-//		Object of TaskDetails
+//              Object of TaskDetails
 //
 // Description:
 //              EvaluateTask will go through all the tasks one by one. and
@@ -90,7 +91,7 @@ type TaskDetails struct {
 //              If the task is meeting the criteria then it will push the task to recommendation queue.
 //
 // Return:
-//		([]map[string]string): Returns an array of the recommendations.
+//              ([]map[string]string): Returns an array of the recommendations.
 
 func (t TaskDetails) EvaluateTask(pollingInterval int, simFlag, isAccelerated bool) []map[string]string {
 	var recommendationArray []map[string]string
@@ -110,8 +111,8 @@ func (t TaskDetails) EvaluateTask(pollingInterval int, simFlag, isAccelerated bo
 }
 
 // Inputs:
-//		simFlag (bool): A flag to check if the task needs to collect stats from Opensearch data or simulated data.
-//		pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index.
+//              simFlag (bool): A flag to check if the task needs to collect stats from Opensearch data or simulated data.
+//              pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index.
 //
 // Caller: Object of Task
 // Description:
@@ -153,7 +154,7 @@ func (t Task) GetNextTask(pollingInterval int, simFlag, isAccelerated bool) (boo
 			if v.Stat == "AVG" {
 				rules = append(rules, fmt.Sprintf("%s-%s-%f-%d", v.Metric, v.Stat, v.Limit, v.DecisionPeriod))
 			} else {
-				rules = append(rules, fmt.Sprintf("%s-%s-%f-%d-%d", v.Metric, v.Stat, v.Limit, v.Occurrences, v.DecisionPeriod))
+				rules = append(rules, fmt.Sprintf("%s-%s-%f-%s-%d", v.Metric, v.Stat, v.Limit, v.Occurrences, v.DecisionPeriod))
 			}
 
 		}
@@ -172,37 +173,37 @@ func (t Task) GetNextTask(pollingInterval int, simFlag, isAccelerated bool) (boo
 }
 
 // Input:
-//		taskOperation (string); Recommended operation
-//		simFlag (bool): A flag to check if the task needs to collect stats from Opensearch data or simulated data.
+//              taskOperation (string); Recommended operation
+//              simFlag (bool): A flag to check if the task needs to collect stats from Opensearch data or simulated data.
 //              pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index.
 //
 // Caller:
-//		Object of Rule
+//              Object of Rule
 //
 // Description:
-//		GetNextRule will fetch the metrics based on the rules MetricName and Stats using GetMetrics
-//		Then it will evaluate if the rule is meeting the criteria or not using EvaluateRule
+//              GetNextRule will fetch the metrics based on the rules MetricName and Stats using GetMetrics
+//              Then it will evaluate if the rule is meeting the criteria or not using EvaluateRule
 //
 // Return:
-// 		(bool, error): Return if a rule is meeting the criteria or not(bool) and error if any
+//              (bool, error): Return if a rule is meeting the criteria or not(bool) and error if any
 
 func (r Rule) GetNextRule(taskOperation string, pollingInterval int, simFlag, isAccelerated bool) (bool, error) {
 	cluster, err := r.GetMetrics(pollingInterval, simFlag, isAccelerated)
 	if err != nil {
 		return false, err
 	}
-	isRecommended := r.EvaluateRule(cluster, taskOperation)
+	isRecommended := r.EvaluateRule(cluster, taskOperation, pollingInterval)
 	log.Debug.Println(r)
 	log.Debug.Println(isRecommended)
 	return isRecommended, nil
 }
 
 // Input:
-//		simFlag (bool): A flag to check if the task needs to collect stats from Opensearch data or simulated data.
-//		pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index.
+//              simFlag (bool): A flag to check if the task needs to collect stats from Opensearch data or simulated data.
+//              pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index.
 //
 // Caller:
-//		Object of Rule
+//              Object of Rule
 //
 // Description:
 //              GetMetrics will be getting the metrics for a metricName based on its stats
@@ -243,8 +244,10 @@ func (r Rule) GetMetrics(pollingInterval int, simFlag, isAccelerated bool) ([]by
 	} else if r.Stat == "COUNT" || r.Stat == "TERM" {
 		if simFlag {
 			clusterCount, err = cluster_sim.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit, isAccelerated)
-		} else {
+		} else if r.Stat == "COUNT" {
 			clusterCount, invalidDatapoints, err = cluster.GetClusterCount(ctx, r.Metric, r.DecisionPeriod, pollingInterval, r.Limit)
+		} else if r.Stat == "TERM" && r.Metric == "TotalShards" {
+			clusterCount, err = cluster.GetShardsCrossed(ctx, r.Metric, r.DecisionPeriod, r.Limit)
 		}
 
 		if err != nil || invalidDatapoints {
@@ -265,20 +268,20 @@ func (r Rule) GetMetrics(pollingInterval int, simFlag, isAccelerated bool) ([]by
 }
 
 // Input:
-//		clusterMetric ([]byte): Marshal struct containing clusterMetric details based on stats.
-//		taskOperation (string); Task recommended
+//              clusterMetric ([]byte): Marshal struct containing clusterMetric details based on stats.
+//              taskOperation (string); Task recommended
 //
 // Caller:
-//		Object of Rule
+//              Object of Rule
 //
 // Description:
-//		EvaluateRule will be compare the collected metric and mentioned rule
-//		It will then decide if rules are meeting the criteria or not and return the result.
+//              EvaluateRule will be compare the collected metric and mentioned rule
+//              It will then decide if rules are meeting the criteria or not and return the result.
 //
 // Return:
 //              (bool): Return whether a rule is meeting the criteria or not.
 
-func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
+func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string, pollingInterval int) bool {
 	log.Debug.Println(taskOperation)
 	if r.Stat == "AVG" {
 		var clusterStats cluster.MetricStats
@@ -301,15 +304,34 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 			panic(err)
 		}
 		if r.Stat == "COUNT" {
-			if taskOperation == "scale_up" && clusterStats.ViolatedCount > r.Occurrences ||
-				taskOperation == "scale_down" && clusterStats.ViolatedCount < r.Occurrences {
-				return true
-			} else {
+			occurence, err := strconv.ParseFloat(strings.Replace(r.Occurrences, "%", "", -1), 64)
+			if err != nil {
+				log.Error.Println("Error reading the float from percentage value given in config")
 				return false
 			}
+			if strings.Contains(r.Occurrences, "%") {
+				counts := (r.DecisionPeriod * 60) / pollingInterval
+				if counts != 0 {
+					if taskOperation == "scale_up" && float64((clusterStats.ViolatedCount*100)/(counts)) >= occurence {
+						return true
+					} else if taskOperation == "scale_down" && float64((clusterStats.ViolatedCount*100)/(counts)) <= occurence {
+						return true
+					}
+				} else {
+					log.Error.Println("Divide by zero error. (Decision period/pollingInterval) ")
+					return false
+				}
+			} else {
+				if taskOperation == "scale_up" && float64(clusterStats.ViolatedCount) > occurence ||
+					taskOperation == "scale_down" && float64(clusterStats.ViolatedCount) < occurence {
+					return true
+				} else {
+					return false
+				}
+			}
 		} else if r.Stat == "TERM" {
-			if taskOperation == "scale_up" && clusterStats.ViolatedCount > int(r.Limit) ||
-				taskOperation == "scale_down" && clusterStats.ViolatedCount < int(r.Limit) {
+			if taskOperation == "scale_up" && clusterStats.ViolatedCount > 0 ||
+				taskOperation == "scale_down" && clusterStats.ViolatedCount == 0 {
 				return true
 			} else {
 				return false
@@ -322,9 +344,9 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string) bool {
 // Input:
 //
 // Caller:
-//		Object of Task
+//              Object of Task
 // Description:
-//		PushToRecommendationQueue will be pushing the task which matches the criteria to recommendation queue.
+//              PushToRecommendationQueue will be pushing the task which matches the criteria to recommendation queue.
 //
 // Return:
 

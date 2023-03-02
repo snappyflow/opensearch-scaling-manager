@@ -53,6 +53,7 @@ func FetchClusterHealthMetrics(ctx context.Context) ClusterMetrics {
 	clusterStats.NumActiveDataNodes = int(clusterStatsInterface["nodes"].(map[string]interface{})["count"].(map[string]interface{})["data"].(float64))
 	clusterStats.NumMasterNodes = int(clusterStatsInterface["nodes"].(map[string]interface{})["count"].(map[string]interface{})["master"].(float64))
 	clusterStats.Timestamp = int64(clusterStatsInterface["timestamp"].(float64))
+	clusterStats.TotalShards = int(clusterStatsInterface["indices"].(map[string]interface{})["shards"].(map[string]interface{})["total"].(float64))
 
 	//create a cluster health request and fetch cluster health
 	clusterHealthRequest, err := osutils.GetClusterHealth(ctx)
