@@ -310,18 +310,18 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string, pollingIn
 				return false
 			}
 			if strings.Contains(r.Occurrences, "%") {
-				log.Info.Println("% encountered****")
-				if taskOperation == "scale_up" {
-					if float64((clusterStats.ViolatedCount*100)/((r.DecisionPeriod*60)/pollingInterval)) >= occurence {
+				counts := (r.DecisionPeriod * 60) / pollingInterval
+				if counts != 0 {
+					if taskOperation == "scale_up" && float64((clusterStats.ViolatedCount*100)/(counts)) >= occurence {
+						return true
+					} else if taskOperation == "scale_down" && float64((clusterStats.ViolatedCount*100)/(counts)) <= occurence {
 						return true
 					}
-				} else if taskOperation == "scale_down" {
-					if float64((clusterStats.ViolatedCount*100)/((r.DecisionPeriod*60)/pollingInterval)) <= occurence {
-						return true
-					}
+				} else {
+					log.Error.Println("Divide by zero error. (Decision period/pollingInterval) ")
+					return false
 				}
 			} else {
-				log.Info.Println("int encountered")
 				if taskOperation == "scale_up" && float64(clusterStats.ViolatedCount) > occurence ||
 					taskOperation == "scale_down" && float64(clusterStats.ViolatedCount) < occurence {
 					return true
