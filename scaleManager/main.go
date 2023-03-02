@@ -85,8 +85,8 @@ func Run() {
 
 	// A periodic check if there is a change in master node to pick up incomplete provisioning
 	go periodicProvisionCheck(configStruct.UserConfig.PollingInterval, t)
-	ticker := time.Tick(time.Duration(configStruct.UserConfig.PollingInterval) * time.Second)
-	for range ticker {
+	ticker := time.NewTicker(time.Duration(configStruct.UserConfig.PollingInterval) * time.Second)
+	for ; true; <-ticker.C {
 		var isMaster bool
 		if configStruct.UserConfig.MonitorWithSimulator {
 			isMaster = true
@@ -133,9 +133,9 @@ func Run() {
 //
 // Output:
 func periodicProvisionCheck(pollingInterval int, t *time.Time) {
-	tick := time.Tick(time.Duration(pollingInterval) * time.Second)
 	previousMaster := utils.CheckIfMaster(context.Background(), "")
-	for range tick {
+	ticker := time.NewTicker(time.Duration(pollingInterval) * time.Second)
+	for ; true; <-ticker.C {
 		state.GetCurrentState()
 		currentMaster := utils.CheckIfMaster(context.Background(), "")
 		if state.CurrentState != "normal" && currentMaster {
