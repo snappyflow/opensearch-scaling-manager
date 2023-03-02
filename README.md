@@ -1,6 +1,6 @@
-# Open-search Scaling Manager
+## Open-search Scaling Manager
 
-Open Search Scaling Manager is to scale up or scale down a node in a cluster based on the rules that are specified by the user and resource utilization.
+Open Search Scaling Manager is to scale up or scale down a node in a cluster based on the rules that are specified by the user in config and the resource utilization in cluster.
 
 
 
@@ -24,8 +24,8 @@ Scaling manager has following modules
 
 - Scaling Manager code is deployed and all the nodes available in the cluster will be running the fetch metrics code.
 - Only the current master node of the cluster will collect the cluster level data and each node will collect the node level data.
-- Node metrics (Usage of CPU, RAM, HEAP, DISK etc.) are collected for each node and those are aggregated for cluster level.
-- In addition to the aggregated data, Cluster metrics (Number of nodes, Cluster Status, Shards) are collected and both are indexed into Elasticsearch
+- Node metrics (Usage of CPU, Mem, Heap, Disk etc.) are collected for each node and those are aggregated for cluster level.
+- In addition to the aggregated data, Cluster metrics (Number of nodes, Cluster Status, Shards) are collected and both are indexed into Elasticsearch.
 - Old data is purged periodically from the index where the duration can be specified by the user.
 - Collected metrics is fetched from recommendation engine periodically.
 
@@ -51,6 +51,8 @@ Scaling manager has following modules
 
   5. Occurrences - Occurrences indicate the number of time a rule reached the threshold limit for a give decision period.
 
+- For a particular task there is two operators(OR,AND). When the operator is OR, task is recommended if any of the mentioned rules is satisfied when the operator is AND, task is recommended only if all the mentioned rules is satisfied. 
+
 - If the metrics are satisfied against the rules, i.e If usage is more than the rules specified then recommendation of Scale-up-by-1 comes as a task or If usage is less then recommendation of Scale-down-by-1 comes as a task.
 
 - The recommendation data(Scale-up-by-1 or Scale-down-by-1) is maintained in a command queue.
@@ -61,21 +63,21 @@ Scaling manager has following modules
 
 **Trigger:** 
 
-- Gets the Task from the recommendation Queue
+- Gets the Task from the recommendation Queue.
 
-- Checks the state of the cluster
+- Checks the state of the cluster.
 
 - If the cluster is in normal state
 
-  - Give command of Scale-up-by-1 or Scale-down-by-1 Provision module
+  - Give command of Scale-up-by-1 or Scale-down-by-1 Provision module.
 
   - Before giving command of Scale-down-by-1, check is made if clusterstatus != green recommendation can not be provisioned untill clusterstate becomes green.
 
   - When the command is given then the states are updated normal to provisioning
 
-    i.e ("states = normal" to "states = provisioning")
+    i.e ("states = normal" to "states = provisioning").
 
-  - Log "provision triggered - Up/Down Number of Nodes"
+  - Log "provision triggered - Up/Down Number of Nodes".
 
 - Else
 
@@ -90,10 +92,11 @@ Scaling manager has following modules
 - Take action based on provisioning command(Scale-up-by-1 or Scale-down-by-1) i.e spin up a  new node in a cluster/delete a node in a cluster. 
 - Scale up will invoke commands to create a VM based on cloud type. Then it will configure the OpenSearch on newly created nodes and add the newly spinned up node to list of nodes available. Check is made if node is added to cluster, if it is added install and start scaling manager on new node. 
 - Scale down will terminate number of node, before scale down it identifies which node should be terminated(It should not be a master  node, 1st node other than master node will be terminated).
-- The execution engine has to be cloud independent
+- The execution engine has to be cloud independent.
 - If provisioning is completed successfully, update "state = provision_completed".
 - Again the state is set back to "state = normal" for next provision to happen.
 - If provisioning failed, update state = provisioning_failed.
+- All the step by step process of scale_up/ scale_down is been logged into OpenSearch where you can check what is the status of provision, At what time did the provision take place, Is the provision successful or failed, reason for failure etc.
 
 
 
@@ -131,11 +134,13 @@ Scaling manager has following modules
 
 ------
 
-- Generate a secret key which will be used for encryption and decryption of credentials which is a random string of length 16. 
-- Credentials(1. os_credentials - os_admin_username, os_admin_password, 2.cloud_credentials - secret_key, access_key) will be taken from config.yaml tp encrypt and encode the credentials and store those encoded data in config file.
+- Crypto is used to convert your credentials like username, password of os_credentials, cloud credentials in a encrypted way to maintain confidentiality of your data. 
+- Crypto generates a secret key which will be used for encryption and decryption of credentials which is a random string of length 16. 
+- Credentials(1. os_credentials - os_admin_username, os_admin_password, 2.cloud_credentials - secret_key, access_key) will be taken from config.yaml to encrypt and encode the credentials and store those encoded data in config file.
 - The credentials is now encrypted and stored in config.
 - The secret key which is stored is decrypted and decoded back.
 - The secret stored will undergo process for scramble and unscramble by converting into matrix and interchanging it.
+- Once the credentials are encrypted,updated in config file, the file is updated over all the nodes present in the cluster. By this way if master node goes down other node which can become as master will have the encrypted data.  
 
 
 
@@ -167,75 +172,75 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 **user_config:**
 
-​	**monitor_with_logs:** Field that contains bool value which specifies whether to monitor with logs or not
+​	**monitor_with_logs:** Field that contains bool value which specifies whether to monitor with logs or not.
 
-​	**monitor_with_simulator:** Field that contains bool value which specifies whether to monitor with simulator or not
+​	**monitor_with_simulator:** Field that contains bool value which specifies whether to monitor with simulator or not.
 
-​	**purge_old_docs_after_hours:** Duration which indicates to delete the documents once it exceed the specified hours
+​	**purge_old_docs_after_hours:** Duration which indicates to delete the documents once it exceed the specified hours.
 
-​	**polling_interval_in_secs:**  polling_interval_in_secs indicates the time in seconds for which polling will be repeated
+​	**polling_interval_in_secs:**  polling_interval_in_secs indicates the time in seconds for which polling will be repeated.
 
-​	**is_accelerated:** Field that contains bool value which accelerates the time
+​	**is_accelerated:** Field that contains bool value which accelerates the time.
 
 **cluster_details:**
 
-​	**ip_address:** IP address of the cluster 
+​	**ip_address:** IP address of the cluster.
 
-​	**launch_template_id:** ID by which launch template can be identified 
+​	**launch_template_id:** ID by which launch template can be identified and deployed.
 
-​	**launch_template_version:** Version of the launch template used
+​	**launch_template_version:** Version of the launch template used.
 
-​	**cluster_name:** Name of the cluster 
+​	**cluster_name:** Name of the cluster. 
 
 ​	**os_credentials:** 
 
-​		**os_admin_username:** Username for the OpenSearch for connecting. This can be set to empty if the security is disable in OpenSearch
+​		**os_admin_username:** Username for the OpenSearch for connecting. This can be set to empty if the security is disable in OpenSearch.
 
-​		**os_admin_password:** Password for the OpenSearch for connecting. This can be set to empty if the security is disable in OpenSearch
+​		**os_admin_password:** Password for the OpenSearch for connecting. This can be set to empty if the security is disable in OpenSearch.
 
-​	**os_user:** SSH login username
+​	**os_user:** Used in ansible for copy files with user.
 
-​	**os_group:** 
+​	**os_group:** Used in ansible for copy files with group.
 
-​	**os_version:** OpenSearch version which needs to be used
+​	**os_version:** OpenSearch version which needs to be used.
 
-​	**os_home: **Default OpenSearch user info
+​	**os_home: **Default OpenSearch user info.
 
-​	**domain_name:** Configure hostnames for OpenSearch nodes which is required to configure SSL
+​	**domain_name:** Configure hostnames for OpenSearch nodes which is required to configure SSL.
 
-​	**cloud_type:** Name of the cloud infrastructure
+​	**cloud_type:** Name of the cloud infrastructure.
 
 ​	 **cloud_credentials:**
 
-​		**secret_key:** Secret key for cluster
+​		**secret_key:** Secret key for cluster.
 
-​		**access_key:** Access key for cluster
+​		**access_key:** Access key for cluster.
 
-​		**pem_file_path:** Path where the pem file is located 
+​		**pem_file_path:** Path where the pem file is located. 
 
-​		**region:** 
+​		**region:** Region at which AWS is used.
 
-​	 **base_node_type:** t2x.large
+​	 **base_node_type:** t2x.large.
 
-​	 **number_cpus_per_node:** Total number of CPU present per node
+​	 **number_cpus_per_node:** Total number of CPU present per node.
 
-​	 **ram_per_node_in_gb:** Size of RAM used per node (GB)
+​	 **ram_per_node_in_gb:** Size of RAM used per node (GB).
 
-​	**disk_per_node_in_gb:** Size of DISK used per node (GB)
+​	**disk_per_node_in_gb:** Size of DISK used per node (GB).
 
-​	**max_nodes_allowed:** Maximum number of nodes allowed for the cluster
+​	**max_nodes_allowed:** Maximum number of nodes allowed for the cluster.
 
-​	**min_nodes_allowed:** Minimum number of nodes allowed for the cluster
+​	**min_nodes_allowed:** Minimum number of nodes allowed for the cluster.
 
-**task_details:** Field that contains details on what task should be performed i.e scale_up_by_1 or scale_down_by_1
+**task_details:** Field that contains details on what task should be performed i.e scale_up_by_1 or scale_down_by_1.
 
 - **task_name:** Task name indicates the name of the task to recommend by the recommendation engine.
-  **operator:** Operator indicates the logical operation needs to be performed while executing the rules
+  **operator:** Operator indicates the logical operation needs to be performed while executing the rules.
   **rules:** Rules indicates list of rules to evaluate the criteria for the recommendation engine.
 
   - **metric:** Metric indicates the name of the metric. These can be CpuUtil, MemUtil, ShardUtil, DiskUtil
     **limit: **Limit indicates the threshold value for a metric.
-    **stat:** Stat indicates the statistics on which the evaluation of the rule will happen. These can be AVG, COUNT
+    **stat:** Stat indicates the statistics on which the evaluation of the rule will happen. These can be AVG, COUNT.
     **decision_period:** Decision Period indicates the time in minutes for which a rule is evaluated.
 
   
@@ -252,16 +257,16 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 ------
 
-- Cluster with OpenSearch installed 
-- OpenSearch version - 1.2.4 and above 
-- Go version - 1.19.1
-- Ansible Version - 2.9
-- Cluster credentials (Username, Password) to access the OpenSearch
-- Cloud credential  (Username, Password) 
-- In AWS we can create a instance by templates which is provided by Domain that is used
-- Launch Template - AWS launch template to spin a new node which has the necessary tags
-- Security certificate to have regex in it to accept the new node 
-- PEM file 
+- Cluster with OpenSearch installed.
+- OpenSearch version - 1.2.4 and above. 
+- Go version - 1.19.1.
+- Ansible Version - 2.9.
+- Cluster credentials (Username, Password) to access the OpenSearch.
+- Cloud credential  (Username, Password). 
+- In AWS we can create a instance by templates which is provided by Domain that is used.
+- Launch Template - AWS launch template to spin a new node which has the necessary tags.
+- Security certificate to have regex in it to accept the new node.
+- PEM file.
 - SSH aspect - If cloud type is AWS then Security group is configured in such a way that newly spin up node should be reached via ssh.
 - Sudo permission - All the nodes, jump host should have sudo permission by which task could be performed with sudo access between nodes and run ansible playbook with sudo access on jump host. Sudo password can be empty which is preferable.
 
@@ -271,11 +276,11 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 ------
 
-- Download any remote computing toolbox like MobaXterm 
-- Click Session -> SSH -> Remote host 
-- Enter Remote host details, mention the username
-- Click Advanced SSH Settings, choose the PEM file that is present in your local and click OK
-- Login using the Cluster and Jump host details 
+- Download any remote computing toolbox like MobaXterm. 
+- Click Session -> SSH -> Remote host.
+- Enter Remote host details, mention the username.
+- Click Advanced SSH Settings, choose the PEM file that is present in your local and click OK.
+- Login using the Cluster and Jump host details.
 
 
 
@@ -342,4 +347,4 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "unin
 
 ------
 
-Find more about Simulator here [opensearch-scaling-manager/readme_simulator.md at release_v0.1_dev · Manojkumar-Chandru-ML/opensearch-scaling-manager (github.com)](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/release_v0.1_dev/docs/readme_simulator.md)
+Find more about Simulator here [opensearch-scaling-manager/readme_simulator.md at release_v0.1_dev · maplelabs/opensearch-scaling-manager (github.com)](https://github.com/maplelabs/opensearch-scaling-manager/blob/release_v0.1_dev/docs/readme_simulator.md)
