@@ -19,15 +19,19 @@ func init() {
 }
 
 // Input:
-// 		pollingInterval(int): Interval (minutes) at which metrics are fetched and indexed
-// Descriptions: 
-// 		Fetch metrics will index node level and cluster level(if current node is master) 
-// 		parameters to opensearch index and deletes documents that are older than
-// 	    72 hours
+//
+//	pollingInterval(int): Interval (minutes) at which metrics are fetched and indexed
+//
+// Descriptions:
+//
+//		Fetch metrics will index node level and cluster level(if current node is master)
+//		parameters to opensearch index and deletes documents that are older than
+//	    72 hours
+//
 // Return:
 func FetchMetrics(pollingInterval int, purgeAfter int) {
-	ticker := time.Tick(time.Duration(pollingInterval) * time.Second)
-	for range ticker {
+	ticker := time.NewTicker(time.Duration(pollingInterval) * time.Second)
+	for ; true; <-ticker.C {
 		//check if current node is the master node and update the cluster stats if it is master
 		if utils.CheckIfMaster(ctx, "") {
 			IndexClusterHealth(ctx)
