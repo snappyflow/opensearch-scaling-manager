@@ -1,6 +1,7 @@
 [Unit]
 Description=OpenSearch Scaling Manager(scale the opensearch cluster based on rules.)
-After=network.target
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=simple 
