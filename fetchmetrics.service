@@ -1,0 +1,16 @@
+[Unit]
+Description=Fetch Metrics module for OpenSearch Scaling Manager.
+After=network.target
+
+[Service]
+Type=simple 
+User=
+Group=
+WorkingDirectory=/usr/local/scaling_manager_lib
+ExecStart=/usr/local/scaling_manager_lib/scaling_manager fetchmetric --start=true
+
+KillMode=process
+TimeoutStopSec=10min
+
+[Install]
+WantedBy=multi-user.target

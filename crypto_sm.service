@@ -1,0 +1,16 @@
+[Unit]
+Description=Crypto module for OpenSearch Scaling Manager.
+After=network.target
+
+[Service]
+Type=simple 
+User=
+Group=
+WorkingDirectory=/usr/local/scaling_manager_lib
+ExecStart=/usr/local/scaling_manager_lib/scaling_manager crypto --start=true
+KillSignal=SIGTERM
+KillMode=process
+TimeoutStopSec=10min
+
+[Install]
+WantedBy=multi-user.target
