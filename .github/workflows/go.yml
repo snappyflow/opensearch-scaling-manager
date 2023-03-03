@@ -24,3 +24,12 @@ jobs:
 
     - name: Pack
       run: make pack
+      
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: scale-manager-artifacts
+        path: |
+          install_scaling_manager.yaml
+          scaling_manager.tar.gz
+          GNUMakefile
