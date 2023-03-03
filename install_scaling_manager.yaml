@@ -50,11 +50,13 @@
     failed_when: no
     changed_when: no
   - name: Install ansible if not installed
+    become_user: root
     become: yes
-    apt:
-      name: ansible
-      state: latest
-      update_cache: yes
+    raw: (sudo apt -y update && sudo apt -y install software-properties-common && sudo add-apt-repository --yes --update ppa:ansible/ansible && sudo apt -y install ansible)
+    register: task_result
+    until: task_result.rc == 0
+    retries: 5
+    delay: 30
     when: is_ansible_installed.rc != 0
   - name: Installing Scalling Manager
     shell:
@@ -105,16 +107,16 @@
     systemd:
       name: scaling_manager
       state: started
-  - name: Starting crypto Service
-    become: yes
-    systemd:
-      name: crypto_sm
-      state: started
-  - name: Starting fetchmetrics Service
-    become: yes
-    systemd:
-      name: fetchmetrics
-      state: started
+  # - name: Starting crypto Service
+  #   become: yes
+  #   systemd:
+  #     name: crypto_sm
+  #     state: started
+  # - name: Starting fetchmetrics Service
+  #   become: yes
+  #   systemd:
+  #     name: fetchmetrics
+  #     state: started
   tags: start
 - name: Stop Scaling manager
   hosts: all
@@ -124,16 +126,16 @@
     systemd:
       name: scaling_manager
       state: stopped
-  - name: Stopping crypto Service
-    become: yes
-    systemd:
-      name: crypto_sm
-      state: stopped
-  - name: Stopping fetchmetrics Service
-    become: yes
-    systemd:
-      name: fetchmetrics
-      state: stopped
+  # - name: Stopping crypto Service
+  #   become: yes
+  #   systemd:
+  #     name: crypto_sm
+  #     state: stopped
+  # - name: Stopping fetchmetrics Service
+  #   become: yes
+  #   systemd:
+  #     name: fetchmetrics
+  #     state: stopped
   tags: stop
 - name: Restart Scaling manager
   hosts: all
