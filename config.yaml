@@ -27,6 +27,7 @@ cluster_details:
   domain_name: snappyflow.com
   cloud_type: AWS
   cloud_credentials:
+    # Either give secret_key & access_key or role_arn
     secret_key: secret_key
     access_key: access_key
     pem_file_path: /usr/share/pemfile.pem
