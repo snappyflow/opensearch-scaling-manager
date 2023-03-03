@@ -463,17 +463,17 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 //
 // Return:
 func CheckClusterHealth(state *State, usrCfg config.UserConfig, t *time.Time) {
-	var clusterDynamic cluster.ClusterDynamic
+	var timedOut bool
 	simFlag := usrCfg.MonitorWithSimulator
 	isAccelerated := usrCfg.IsAccelerated
 	state.GetCurrentState()
 	for {
 		if simFlag {
-			clusterDynamic = cluster_sim.GetClusterCurrent(isAccelerated)
+			_ = cluster_sim.GetClusterCurrent(isAccelerated)
 		} else {
-			clusterDynamic = cluster.GetClusterCurrent()
+			_, timedOut = cluster.GetClusterCurrent(true)
 		}
-		if clusterDynamic.NumRelocatingShards == 0 {
+		if !timedOut {
 			state.PreviousState = state.CurrentState
 			if strings.Contains(state.PreviousState, "scaleup") {
 				state.CurrentState = "provisioned_scaleup_successfully"
