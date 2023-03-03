@@ -90,6 +90,8 @@ install:
     ifeq ($(PLATFORM),linux)
 	@if [ -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config.yaml ];then \
 		cp -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config.yaml $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config_back.yaml; \
+	fi
+	@if [ -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config.json ];then \
 		cp -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config.json $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config_back.json; \
 	fi
 		tar -C $(SCALING_MANAGER_INSTALL) -xzf $(SCALING_MANAGER_TAR_GZ)
@@ -107,6 +109,8 @@ install:
 		systemctl daemon-reload
 	@if [ -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config_back.yaml ];then \
 		mv -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config_back.yaml $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config.yaml; \
+	fi
+	@if [ -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config_back.json ];then \
 		mv -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config_back.json $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config.json; \
 	fi
     endif
