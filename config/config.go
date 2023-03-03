@@ -38,11 +38,11 @@ type OsCredentials struct {
 type CloudCredentials struct {
 	PemFilePath string `yaml:"pem_file_path" validate:"required" json:"pem_file_path"`
 	// SecretKey indicates the Secret key for connecting to the cloud.
-	SecretKey string `yaml:"secret_key" validate:"required" json:"secret_key"`
+	SecretKey string `yaml:"secret_key" validate:"required_without=RoleArn" json:"secret_key"`
 	// AccessKey indicates the Access key for connecting to the cloud.
-	AccessKey string `yaml:"access_key" validate:"required" json:"access_key"`
+	AccessKey string `yaml:"access_key" validate:"required_without=RoleArn" json:"access_key"`
 	Region    string `yaml:"region" validate:"required" json:"region"`
-	RoleArn   string `yaml:"role_arn" validate:"required" json:"role_arn"`
+	RoleArn   string `yaml:"role_arn" validate:"required_without_all=SecretKey AccessKey" json:"role_arn"`
 }
 
 // This struct contains the data structure to parse the cluster details present in the configuration file.
