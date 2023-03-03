@@ -297,7 +297,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 		dataWriter.WriteString("node-" + strings.ReplaceAll(newNodeIp, ".", "-") + " ansible_user=" + clusterCfg.SshUser + " roles=master,data,ingest ansible_private_host=" + newNodeIp + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 		dataWriter.Flush()
 
-		ansibleErr := ansibleutils.UpdateWithTags(clusterCfg.SshUser, hostsFileName, []string{"install", "update_config", "update_pem", "start"})
+		ansibleErr := ansibleutils.UpdateWithTags(clusterCfg.SshUser, hostsFileName, []string{"install", "update_config", "update_pem", "update_secret", "start"})
 		if ansibleErr != nil {
 			log.Error.Println(ansibleErr)
 			log.Error.Println("Node scaled up but unable to run scaling manager on new node. Please check ansible logs for more details. (logs/playbook.log)")
