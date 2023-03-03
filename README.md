@@ -4,6 +4,29 @@ Open Search Scaling Manager is to scale up or scale down a node in a cluster bas
 
 
 
+### Brief explanation, Architecture of Scaling Manager
+
+------
+
+- Lets consider the cluster has 3 nodes. OpenSearch scaling manager is now installed in each of the nodes present in cluster. Node metrics(CPU, Mem, Heap, Disk utilization) is monitored in each nodes present in the cluster and Cluster Metrics(Number of nodes, Shards) of the cluster is also monitored.
+
+- Rules are specified by the user in config.yaml file like what should be maximum usage of CPU, Mem, Heap, Disk, Maximum nodes allowed, Maximum nodes allowed etc. and those rules are verified across the resource utilized in cluster.
+
+- Now scaling manager will check the resource utilization and if the utilization is more than the rules which user specifies in config.yaml it scales up a new node to the cluster in order to accommodate the high  resource utilization.
+
+  ​	For Example if the average cpu usage is more than 80% across the decision_period mentioned in the cluster, you have to scale_up a node in order to bring the cpu usage less, this applies for other metrics(Mem, Heap, Disk) as well. 
+  ​	When it comes to scale_down if the average cpu usage is less than 30% across you have to scale_down a node and similar to other metrics as well.
+
+  1. If cpu_util > 80, scale_up a node
+     If mem_util > 90, scale_up a node
+
+  2. If cpu_util < 80, scale_down a node
+     If mem_util < 90, scale_down a node
+
+     ![Scaling_Manager_Architecture](https://lucid.app/publicSegments/view/de06a44f-6bf1-4d88-9bda-73c19d33fc97/image.png)
+
+     
+
 ### Working Principle of Scaling Manager
 
 ------
@@ -16,10 +39,6 @@ Scaling manager has following modules
 - Provision
 - State
 
-![Scaling_Manager_Architecture](https://lucid.app/publicSegments/view/12de2241-e528-4fb2-a891-194ebd2d9c95/image.png)
-
-
-
 **Fetch Metrics:** 
 
 - Scaling Manager code is deployed and all the nodes available in the cluster will be running the fetch metrics code.
@@ -28,8 +47,6 @@ Scaling manager has following modules
 - In addition to the aggregated data, Cluster metrics (Number of nodes, Cluster Status, Shards) are collected and both are indexed into Elasticsearch.
 - Old data is purged periodically from the index where the duration can be specified by the user.
 - Collected metrics is fetched from recommendation engine periodically.
-
-
 
 **Recommendation:** 
 
@@ -59,8 +76,6 @@ Scaling manager has following modules
 
 - Recommended data is next passed to the trigger module.
 
-
-
 **Trigger:** 
 
 - Gets the Task from the recommendation Queue.
@@ -83,8 +98,6 @@ Scaling manager has following modules
 
   - Clear the command queue and goes to the next recommendation in queue, commands are ignored since the cluster health is in normal state.
 
-  
-
 **Provision:**
 
 - Receives the command from the trigger module.
@@ -98,24 +111,37 @@ Scaling manager has following modules
 - If provisioning failed, update state = provisioning_failed.
 - All the step by step process of scale_up/ scale_down is been logged into OpenSearch where you can check what is the status of provision, At what time did the provision take place, Is the provision successful or failed, reason for failure etc.
 
-
-
 **State:** 
 
 - Check the current state and status of cluster and update state.
+
 - If state == provision completed.
+
   - Check if all system metrics are in a normal state
     - Cluster state is green.
     - No relocating shards.
   - Update "state = Normal".
 
-
+  
 
 ### Scaling Manager Flow Diagram 
 
 ------
 
 ![Scaling_Manager_Flow_diagram](https://lucid.app/publicSegments/view/b8e022c2-8adf-4737-82d8-f3869d61a86a/image.png)
+
+
+
+### Scaling Manager Architecture
+
+------
+
+1. Scaling Manager is deployed in all the nodes in cluster. Lets say cluster has 3 nodes. Now resource utilization went high and there is a need of new node in cluster.
+2. When a new node is added to the cluster ansible scripts will run in new node and it will install Scaling Manger, OpenSearch, All the necessary details which is needed and the new node details will be added to the available nodes list in order to monitor it
+
+![Scaling_Manager_flow](https://lucid.app/publicSegments/view/12de2241-e528-4fb2-a891-194ebd2d9c95/image.png)
+
+![Scaling_Manager_Architecture]([https://github.com/Manojkumar-Chandru-ML/Demo/blob/main/ScaleUpScaleDown.jpg](https://github.com/Manojkumar-Chandru-ML/Demo/blob/main/ScaleUpScaleDown.jpg))
 
 
 
@@ -287,12 +313,6 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 ### Build and Installation of Scaling Manager
 
 ------
-
-To install the scaling manager please download the source code using following command:
-
-```
-git clone https://github.com/maplelabs/opensearch-scaling-manager.git -b release_v0.1_dev
-```
 
 Build, Pack
 
