@@ -108,7 +108,7 @@ func TerminateInstance(privateIp string, cred config.CloudCredentials) error {
 
 	if descErr != nil {
 		log.Info.Println("Could not get the description of instance", descErr)
-		return err
+		return descErr
 	}
 
 	instanceId := *describeResult.Reservations[0].Instances[0].InstanceId
