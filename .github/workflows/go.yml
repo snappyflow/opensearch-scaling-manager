@@ -5,7 +5,7 @@ name: OpenSearch Scaling Manager CI
 
 on:
   push:
-    branches: [ "releaese_v0.1_dev" ]
+    branches: [ "release_v0.1_dev" ]
 
 jobs:
 
