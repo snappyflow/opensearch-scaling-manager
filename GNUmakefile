@@ -5,6 +5,7 @@ GROUP ?= ubuntu
 
 export GO_BUILD=env go build
 export SCALING_MANAGER_TAR_GZ="scaling_manager.tar.gz"
+export SCALING_MANAGER_DEVOPS_TAR_GZ="scaling_manager_devops.tar.gz"
 export SCALING_MANAGER_LIB="scaling_manager_lib"
 export SCALING_MANAGER_INSTALL="/usr/local"
 
@@ -81,6 +82,7 @@ pack: check
 	cp install_scaling_manager.yaml ansible_scripts
 	cp -rf ansible_scripts $(SCALING_MANAGER_LIB)
 	tar -czf $(SCALING_MANAGER_TAR_GZ) $(SCALING_MANAGER_LIB)
+	tar -czf $(SCALING_MANAGER_DEVOPS_TAR_GZ) $(SCALING_MANAGER_TAR_GZ) install_scaling_manager.yaml GNUmakefile
 
 install:
 	@if [ ! -f $(SCALING_MANAGER_TAR_GZ) ]; then \
