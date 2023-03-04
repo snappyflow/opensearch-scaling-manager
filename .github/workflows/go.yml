@@ -33,3 +33,4 @@ jobs:
           install_scaling_manager.yaml
           scaling_manager.tar.gz
           GNUmakefile
+        retention-days: 1
