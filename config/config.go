@@ -58,6 +58,7 @@ type ClusterDetails struct {
 	DomainName            string           `yaml:"domain_name" validate:"required" json:"domain_name"`
 	OsCredentials         OsCredentials    `yaml:"os_credentials" json:"os_credentials"`
 	CloudCredentials      CloudCredentials `yaml:"cloud_credentials" json:"cloud_credentials"`
+	JvmFactor             float64          `yaml:"jvm_factor" validate:"required,max=0.5" json:"jvm_factor"`
 }
 
 // Config for application behaviour from user
