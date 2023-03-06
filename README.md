@@ -235,7 +235,7 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 ​	**os_version:** OpenSearch version which needs to be used.
 
-​	**os_home: **Default OpenSearch user info.
+​	**os_home:** Default OpenSearch user info.
 
 ​	**domain_name:** Configure hostnames for OpenSearch nodes which is required to configure SSL.
 
@@ -331,8 +331,8 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "populate_inventory_yaml" -e master_node_ip=0.0.0.0 -e os_user=USERNAME -e os_pass=PASSWORD
 ```
 
-master_node_ip = IP address of master node
-os_user = Appropriate username
+master_node_ip = IP address of master node,
+os_user = Appropriate username,
 os_pass = Appropriate password
 
 **Build, Pack**
