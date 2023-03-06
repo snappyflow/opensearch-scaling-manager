@@ -1,10 +1,28 @@
-## Open-search Scaling Manager
+### Open-search Scaling Manager
 
-Open Search Scaling Manager is to scale up or scale down a node in a cluster based on the rules that are specified by the user in config and the resource utilization in cluster.
+------
 
+#### Overview
 
+------
 
-### Brief explanation, Architecture of Scaling Manager
+OpenSearch scaling manager is used to elastically scale a cluster to ensure optimum cluster performance and expenses involved. Scaling Manager can automatically scale up or scale down an OpenSearch node based on the effect of load on metric in cluster. Scaling Manager can be used to automate manual scale up, scale down and reduce the manual effort to achieve the same. Scale up, Scale down can happen whenever  it meets the criteria which is mentioned by the user. In addition to this there is event based scaling where as scale up, scale down happens at specific time. 
+
+**List of features:**
+
+- Automatic Scaling 
+
+  Parameters supported are,
+
+  1. CPU usage
+  2. Mem usage
+  3. Heap usage
+  4. Disk usage
+  5. Shards
+
+- Event based Scaling 
+
+#### Brief explanation, Architecture of Scaling Manager
 
 ------
 
@@ -27,7 +45,7 @@ Open Search Scaling Manager is to scale up or scale down a node in a cluster bas
 
      
 
-### Working Principle of Scaling Manager
+#### Working Principle of Scaling Manager
 
 ------
 
@@ -124,7 +142,7 @@ Scaling manager has following modules
 
   
 
-### Scaling Manager Flow Diagram 
+#### Scaling Manager Flow Diagram 
 
 ------
 
@@ -132,7 +150,7 @@ Scaling manager has following modules
 
 
 
-### Scaling Manager Architecture
+#### Scaling Manager Architecture
 
 ------
 
@@ -141,22 +159,9 @@ Scaling manager has following modules
 
 ![Scaling_Manager_flow](https://lucid.app/publicSegments/view/12de2241-e528-4fb2-a891-194ebd2d9c95/image.png)
 
-![Scaling_Manager_Architecture]([https://github.com/Manojkumar-Chandru-ML/Demo/blob/main/ScaleUpScaleDown.jpg](https://github.com/Manojkumar-Chandru-ML/Demo/blob/main/ScaleUpScaleDown.jpg))
 
 
-
-### Event Based Scaling 
-
-------
-
-- Event based scaling is scale up or scale down by n number of nodes at specific time, which is given by user in config.yaml.
-- If task(scale_up or scale_down) comes with the "operator == EVENT" scaling manager will execute the task when the time is hit. For eg: If user specifies scale_up at 11:00 AM, it does scale_up at 11.00 AM.  
-- The rule for event based scaling is when specific time comes in, scaling manger will check if any provision is in progress or not(scale_up or scale_down happens only when "state==normal") and it scale down or scale up a node.
-- When event based task(scale_up or scale_down) comes and when it does the task it will not scale_up once the max_nodes is reached and scale_down when min nodes is reached. 
-
-
-
-### Crypto
+#### Crypto
 
 ------
 
@@ -170,17 +175,17 @@ Scaling manager has following modules
 
 
 
-### Scale Up and Scale Down
+#### Scale Up and Scale Down
 
 ------
 
-#### **Scale Up** 
+##### **Scale Up** 
 
 - New node that is added to the cluster will be configured with all the requirements such as OpenSearch, Security groups, sudo aspects, ssh aspects etc... in order to communicate with the other nodes in the cluster.
 - When the process of scale_up is completed by provision and when scale_up is recommended again in specified decision time, it will discard the scale_up since there was already successful provision done. So it discards provision until next polling interval.
 - When provision(scale_up) is recommended and the cluster has reached maximum number of nodes(specified in config.yaml), scaling manager will not scale up until max_nodes_allowed is increased manually by user in config.yaml and it will log the message to notify the user to increase the size.
 
-#### **Scale Down** 
+##### **Scale Down** 
 
 - Identifies node which is other than master node to remove from the cluster and stores the node IP. Configuring (Reallocating the shards to other nodes) to remove the node from cluster. Remove the node and terminate the instance.
 - When task == scale_down && Cluster_Status != green, recommendation(task) can not be provisioned as open search cluster is unhealthy for a scale_down.
@@ -190,7 +195,7 @@ Scaling manager has following modules
 
 
 
-### Scaling Manager Configuration
+#### Scaling Manager Configuration
 
 ------
 
@@ -271,7 +276,7 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
   
 
-### Sample config.yaml
+#### Sample config.yaml
 
 ------
 
@@ -279,18 +284,19 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 
 
-### Scaling Manager Pre-Requisites
+#### Scaling Manager Pre-Requisites
 
 ------
 
 - Cluster with OpenSearch installed.
 - OpenSearch version - 1.2.4 and above. 
-- Go version - 1.19.1.
+- Go version - 1.19
 - Ansible Version - 2.9.
 - Cluster credentials (Username, Password) to access the OpenSearch.
 - Cloud credential  (Username, Password). 
 - In AWS we can create a instance by templates which is provided by Domain that is used.
 - Launch Template - AWS launch template to spin a new node which has the necessary tags.
+- Template ID format (lt-xxxxxxxxxxxxxxxxx.)
 - Security certificate to have regex in it to accept the new node.
 - PEM file.
 - SSH aspect - If cloud type is AWS then Security group is configured in such a way that newly spin up node should be reached via ssh.
@@ -298,7 +304,7 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 
 
-### Jump Host login details
+#### Jump Host login details
 
 ------
 
@@ -310,7 +316,7 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 
 
-### Build and Installation of Scaling Manager
+#### Build and Installation of Scaling Manager
 
 ------
 
@@ -363,7 +369,7 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "unin
 
 
 
-### Simulator 
+#### Simulator 
 
 ------
 
