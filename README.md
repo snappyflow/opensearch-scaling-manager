@@ -270,8 +270,11 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
   **rules:** Rules indicates list of rules to evaluate the criteria for the recommendation engine.
 
   - **metric:** Metric indicates the name of the metric. These can be CpuUtil, MemUtil, ShardUtil, DiskUtil
-    **limit: **Limit indicates the threshold value for a metric.
+
+    **limit:** Limit indicates the threshold value for a metric.
+
     **stat:** Stat indicates the statistics on which the evaluation of the rule will happen. These can be AVG, COUNT.
+
     **decision_period:** Decision Period indicates the time in minutes for which a rule is evaluated.
 
   
@@ -320,16 +323,36 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 ------
 
-Build, Pack
+**Inventory file** -  Defines the hosts and groups of hosts upon which commands, modules, and tasks in a playbook operate.
+
+**Populate inventory.yaml**
+
+```master_node_ip
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "populate_inventory_yaml" -e master_node_ip=0.0.0.0 -e os_user=USERNAME -e os_pass=PASSWORD
+```
+
+master_node_ip = IP address of master node
+os_user = Appropriate username
+os_pass = Appropriate password
+
+**Build, Pack**
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "build_and_pack" -kK
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "build_and_pack" -kK
 ```
 
-Installation
+-kK is used for password authentication
+
+In case to use key based authentication, Use the following command
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "install" -kK
+udo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_pem" --key-file user-dev-aws-ssh.pem -e pem_path="user-dev-aws-ssh.pem"
+```
+
+**Installation**
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "install" -kK
 ```
 
 - Update should be performed when provision is not happening, then stop, install, start the service. These steps can be performed in the same command as well.  
@@ -337,31 +360,37 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "inst
 - Stop, Install, Start in same command 
 
   ```
-  sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "stop,install,start" -kK
+  sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "stop,install,start" -kK
   ```
 
-Update Config
+**Update Config**
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "update_config" -kK
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" -kK
 ```
 
-Start 
+**Start** 
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "start" -kK
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "start" -kK
 ```
 
-Stop
+**Stop**
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "stop" -kK
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "stop" -kK
 ```
 
-Uninstall
+**Status**
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "uninstall" -kK
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "status" -kK
+```
+
+**Uninstall**
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "uninstall" -kK
 ```
 
 - Stop command works quick when there is no provisioning happening/provisioning is completed.
