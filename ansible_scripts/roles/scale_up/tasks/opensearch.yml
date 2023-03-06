@@ -46,6 +46,15 @@
     dest: "{{ systemctl_path }}/opensearch.service"
   become: yes
 
+- name: OpenSearch Install | Copy jvm.options File for Instance
+  template:
+    src: jvm.options
+    dest: "{{os_conf_dir}}/jvm.options"
+    owner: "{{ os_user }}"
+    group: "{{ os_user }}"
+    mode: 0600
+    force: yes
+  become: yes
 
 - name: Create Unicast_hosts.txt file
   become: yes
