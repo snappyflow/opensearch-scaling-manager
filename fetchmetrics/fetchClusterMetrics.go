@@ -56,7 +56,8 @@ func FetchClusterHealthMetrics(ctx context.Context) ClusterMetrics {
 	clusterStats.TotalShards = int(clusterStatsInterface["indices"].(map[string]interface{})["shards"].(map[string]interface{})["total"].(float64))
 
 	//create a cluster health request and fetch cluster health
-	clusterHealthRequest, err := osutils.GetClusterHealth(ctx)
+	waitForShards := false
+	clusterHealthRequest, err := osutils.GetClusterHealth(ctx, &waitForShards)
 	if err != nil {
 		log.Error.Println("cluster Health fetch ERROR:", err)
 	}

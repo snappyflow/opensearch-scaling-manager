@@ -470,7 +470,7 @@ func GetClusterCount(ctx context.Context, metricName string, decisionPeriod int,
 // Return:
 //              (ClusterDynamic): Return populated ClusterDynamic struct.
 
-func GetClusterCurrent() ClusterDynamic {
+func GetClusterCurrent(waitForShards bool) (ClusterDynamic, bool) {
 	ctx := context.Background()
 	//Create an interface to capture the response from cluster health and cluster stats API
 	var clusterStatsInterface map[string]interface{}
@@ -496,7 +496,7 @@ func GetClusterCurrent() ClusterDynamic {
 	clusterStats.NumMasterNodes = int(clusterStatsInterface["nodes"].(map[string]interface{})["count"].(map[string]interface{})["master"].(float64))
 
 	//create a cluster health request and fetch cluster health
-	clusterHealthRequest, err := osutils.GetClusterHealth(ctx)
+	clusterHealthRequest, err := osutils.GetClusterHealth(ctx, &waitForShards)
 	if err != nil {
 		log.Error.Println("cluster Health fetch ERROR:", err)
 	}
@@ -517,7 +517,7 @@ func GetClusterCurrent() ClusterDynamic {
 	clusterStats.NumUnassignedShards = int(clusterHealthInterface["unassigned_shards"].(float64))
 	clusterStats.NumRelocatingShards = int(clusterHealthInterface["relocating_shards"].(float64))
 
-	return clusterStats
+	return clusterStats, clusterHealthInterface["timed_out"].(bool)
 }
 
 // Input:

@@ -1,5 +1,5 @@
 [Unit]
-Description=OpenSearch Scaling Manager(scale the opensearch cluster based on rules.)
+Description=Crypto module for OpenSearch Scaling Manager.
 Wants=network-online.target
 After=network-online.target
 
@@ -8,8 +8,8 @@ Type=simple
 User=
 Group=
 WorkingDirectory=/usr/local/scaling_manager_lib
-ExecStart=/usr/local/scaling_manager_lib/scaling_manager start
-KillSignal=SIGINT
+ExecStart=/usr/local/scaling_manager_lib/scaling_manager crypto --start=true
+KillSignal=SIGTERM
 KillMode=process
 TimeoutStopSec=10min
 

@@ -36,7 +36,7 @@ func GetRecommendation(state *State, recommendationQueue []map[string]string, cl
 		if usrCfg.MonitorWithSimulator {
 			clusterCurrent = cluster_sim.GetClusterCurrent(usrCfg.IsAccelerated)
 		} else {
-			clusterCurrent = cluster.GetClusterCurrent()
+			clusterCurrent, _ = cluster.GetClusterCurrent(false)
 		}
 
 		state.GetCurrentState()

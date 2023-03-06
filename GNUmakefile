@@ -67,6 +67,7 @@ check:
 pack: check
 	rm -rf $(SCALING_MANAGER_LIB) $(SCALING_MANAGER_TAR_GZ)
 	mkdir -p $(SCALING_MANAGER_LIB)
+	#cp ansible.cfg config.yaml scaling_manager.service crypto_sm.service fetchmetrics.service $(SCALING_MANAGER_LIB)
 	cp ansible.cfg config.yaml scaling_manager.service $(SCALING_MANAGER_LIB)
     ifeq ($(INCLUDESIM),true)
 	cp -rf simulator $(SCALING_MANAGER_LIB)
@@ -89,17 +90,27 @@ install:
     ifeq ($(PLATFORM),linux)
 	@if [ -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config.yaml ];then \
 		cp -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config.yaml $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config_back.yaml; \
+	fi
+	@if [ -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config.json ];then \
 		cp -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config.json $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config_back.json; \
 	fi
 		tar -C $(SCALING_MANAGER_INSTALL) -xzf $(SCALING_MANAGER_TAR_GZ)
 		sed -i "s/User=.*/User=$(USER_NAME)/" $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager.service
 		sed -i "s/Group=.*/Group=$(GROUP)/" $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager.service
+		#sed -i "s/User=.*/User=$(USER_NAME)/" $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/crypto_sm.service
+		#sed -i "s/Group=.*/Group=$(GROUP)/" $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/crypto_sm.service
+		#sed -i "s/User=.*/User=$(USER_NAME)/" $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/fetchmetrics.service
+		#sed -i "s/Group=.*/Group=$(GROUP)/" $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/fetchmetrics.service
 		mv -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager.service /etc/systemd/system/
+		#mv -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/crypto_sm.service /etc/systemd/system/
+		#mv -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/fetchmetrics.service /etc/systemd/system/
 		chown -R $(USER_NAME):$(GROUP) $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)
 		chmod 755 $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/scaling_manager
 		systemctl daemon-reload
 	@if [ -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config_back.yaml ];then \
 		mv -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config_back.yaml $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/config.yaml; \
+	fi
+	@if [ -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config_back.json ];then \
 		mv -f $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config_back.json $(SCALING_MANAGER_INSTALL)/$(SCALING_MANAGER_LIB)/log_config.json; \
 	fi
     endif

@@ -5,10 +5,10 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/base32"
+	ansibleutils "github.com/maplelabs/opensearch-scaling-manager/ansible_scripts"
 	"github.com/maplelabs/opensearch-scaling-manager/config"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
 	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
-	ansibleutils "github.com/maplelabs/opensearch-scaling-manager/ansible_scripts"
 	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
 	mrand "math/rand"
 	"os"
@@ -125,6 +125,11 @@ func GetEncryptedCloudCred(cloudCred *config.CloudCredentials) error {
 		return err
 	}
 
+	cloudCred.RoleArn, err = GetEncryptedData(cloudCred.RoleArn)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -152,6 +157,11 @@ func GetDecryptedCloudCreds(cloudCred *config.CloudCredentials) {
 	access_key := GetDecryptedData(cloudCred.AccessKey)
 	if access_key != "" {
 		cloudCred.AccessKey = access_key
+	}
+
+	role_arn := GetDecryptedData(cloudCred.RoleArn)
+	if role_arn != "" {
+		cloudCred.RoleArn = role_arn
 	}
 
 }
@@ -231,7 +241,7 @@ func OsCredsMismatch(currOsCred config.OsCredentials, prevOsCred config.OsCreden
 }
 
 func CloudCredsMismatch(currCloudCred config.CloudCredentials, prevCloudCred config.CloudCredentials) bool {
-	if (currCloudCred.SecretKey != prevCloudCred.SecretKey) || (currCloudCred.AccessKey != prevCloudCred.AccessKey) {
+	if (currCloudCred.SecretKey != prevCloudCred.SecretKey) || (currCloudCred.AccessKey != prevCloudCred.AccessKey) || (currCloudCred.RoleArn != prevCloudCred.RoleArn) {
 		return true
 	}
 	return false

@@ -4,6 +4,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/maplelabs/opensearch-scaling-manager/config"
@@ -20,13 +21,14 @@ import (
 //
 //	(string, error): Returns the private ip address of the spinned node and error if any
 func SpinNewVm(launchTemplateId string, launchTemplateVersion string, cred config.CloudCredentials) (string, error) {
-	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(cred.Region),
-		Credentials: credentials.NewStaticCredentials(cred.AccessKey, cred.SecretKey, ""),
-	})
-
-	// Create EC2 service client
-	svc := ec2.New(sess)
+	sess := session.Must(session.NewSession())
+	var creds *credentials.Credentials
+	if cred.RoleArn != "" {
+		creds = stscreds.NewCredentials(sess, cred.RoleArn)
+	} else {
+		creds = credentials.NewStaticCredentials(cred.AccessKey, cred.SecretKey, "")
+	}
+	svc := ec2.New(sess, &aws.Config{Region: aws.String(cred.Region), Credentials: creds})
 
 	launchTemplate := &ec2.LaunchTemplateSpecification{
 		LaunchTemplateId: &launchTemplateId,
@@ -80,13 +82,16 @@ func SpinNewVm(launchTemplateId string, launchTemplateVersion string, cred confi
 //
 //	(error): Returns error if any while terminating the instance
 func TerminateInstance(privateIp string, cred config.CloudCredentials) error {
-	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(cred.Region),
-		Credentials: credentials.NewStaticCredentials(cred.AccessKey, cred.SecretKey, ""),
-	})
+	sess := session.Must(session.NewSession())
+	var creds *credentials.Credentials
 
-	// Create EC2 service client
-	svc := ec2.New(sess)
+	if cred.RoleArn != "" {
+		creds = stscreds.NewCredentials(sess, cred.RoleArn)
+	} else {
+		creds = credentials.NewStaticCredentials(cred.AccessKey, cred.SecretKey, "")
+	}
+
+	svc := ec2.New(sess, &aws.Config{Region: aws.String(cred.Region), Credentials: creds})
 
 	describeInput := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
@@ -103,7 +108,7 @@ func TerminateInstance(privateIp string, cred config.CloudCredentials) error {
 
 	if descErr != nil {
 		log.Info.Println("Could not get the description of instance", descErr)
-		return err
+		return descErr
 	}
 
 	instanceId := *describeResult.Reservations[0].Instances[0].InstanceId

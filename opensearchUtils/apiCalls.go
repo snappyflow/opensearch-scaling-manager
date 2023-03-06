@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"strings"
+	"time"
 
 	osapi "github.com/opensearch-project/opensearch-go/opensearchapi"
 )
@@ -25,7 +26,7 @@ func IndexMetrics(ctx context.Context, jsonDoc []byte) (*osapi.Response, error) 
 		Index:        IndexName,
 		DocumentType: "_doc",
 		Body:         bytes.NewReader(jsonDoc),
-		Refresh:        "wait_for",
+		Refresh:      "wait_for",
 	}.Do(ctx, osClient)
 }
 
@@ -55,8 +56,12 @@ func GetClusterStats(ctx context.Context) (*osapi.Response, error) {
 // Return:
 //
 //	(*osapi.Response, error): Returns the api response and error if any
-func GetClusterHealth(ctx context.Context) (*osapi.Response, error) {
-	return osapi.ClusterHealthRequest{}.Do(ctx, osClient)
+func GetClusterHealth(ctx context.Context, WaitForShards *bool) (*osapi.Response, error) {
+	return osapi.ClusterHealthRequest{
+		WaitForNoInitializingShards: WaitForShards,
+		WaitForNoRelocatingShards:   WaitForShards,
+		Timeout:                     time.Duration(90 * time.Second),
+	}.Do(ctx, osClient)
 }
 
 // Input:
@@ -170,7 +175,7 @@ func UpdateDoc(ctx context.Context, docId string, content string) (*osapi.Respon
 		Index:      IndexName,
 		DocumentID: docId,
 		Body:       strings.NewReader(content),
-		Refresh:        "wait_for",
+		Refresh:    "wait_for",
 	}.Do(ctx, osClient)
 }
 
