@@ -241,10 +241,10 @@ func getClusterAvgQuery(metricName string, decisionPeriod int) string {
 // Return:
 //              (MetricViolatedCount, error): Return populated MetricViolatedCount struct and error if any.
 
-func GetShardsCrossed(ctx context.Context, metricName string, decisionPeriod int, limit float32) (MetricViolatedCount, error) {
+func GetShardsCrossed(ctx context.Context, metricName string, decisionPeriod int, limit float32, pollingInterval int) (MetricViolatedCount, error) {
 	var metricViolatedCount MetricViolatedCount
 	//Get the query and convert to json
-	var jsonQuery = []byte(getClusterCountQuery(metricName, decisionPeriod, limit))
+	var jsonQuery = []byte(getClusterCountQuery(metricName, decisionPeriod, limit, pollingInterval))
 
 	//create a search request and pass the query
 	searchResp, err := osutils.SearchQuery(ctx, jsonQuery)
@@ -264,7 +264,7 @@ func GetShardsCrossed(ctx context.Context, metricName string, decisionPeriod int
 		return metricViolatedCount, decodeErr
 	}
 	//Parse the interface and populate the metricStatsCluster
-	metricViolatedCount.ViolatedCount = int(queryResultInterface["aggregations"].(map[string]interface{})[metricName].(map[string]interface{})["buckets"].([]interface{})[0].(map[string]interface{})["doc_count"].(float64))
+	metricViolatedCount.ViolatedCount = len(queryResultInterface["aggregations"].(map[string]interface{})["interval"].(map[string]interface{})["buckets"].([]interface{}))
 
 	return metricViolatedCount, nil
 }
@@ -364,7 +364,7 @@ func GetClusterAvg(ctx context.Context, metricName string, decisionPeriod int, p
 // Return:
 //              (string): Returns the query string that can be given as an OS query api parameter.
 
-func getClusterCountQuery(metricName string, decisionPeriod int, limit float32) string {
+func getClusterCountQuery(metricName string, decisionPeriod int, limit float32, pollingInterval int) string {
 	clusterCountQueryString := `{
 		"query": {
 		  "bool":{
@@ -391,7 +391,7 @@ func getClusterCountQuery(metricName string, decisionPeriod int, limit float32) 
 		  "interval": {
 			"date_histogram": {
 			  "field": "Timestamp",
-			  "interval": "` + strconv.Itoa(decisionPeriod) + `m"
+			  "interval": "` + strconv.Itoa(pollingInterval) + `m"
 			},
 			"aggs": {
 			  "avg_metric_utilization": {
@@ -454,7 +454,7 @@ func GetClusterCount(ctx context.Context, metricName string, decisionPeriod int,
 	}
 
 	//Get the query and convert to json
-	var jsonQuery = []byte(getClusterCountQuery(metricName, decisionPeriod, limit))
+	var jsonQuery = []byte(getClusterCountQuery(metricName, decisionPeriod, limit, pollingInterval))
 
 	//create a search request and pass the query
 	searchResp, err := osutils.SearchQuery(ctx, jsonQuery)

@@ -247,7 +247,7 @@ func (r Rule) GetMetrics(pollingInterval int, simFlag, isAccelerated bool) ([]by
 		} else if r.Stat == "COUNT" {
 			clusterCount, invalidDatapoints, err = cluster.GetClusterCount(ctx, r.Metric, r.DecisionPeriod, pollingInterval, r.Limit)
 		} else if r.Stat == "TERM" && r.Metric == "TotalShards" {
-			clusterCount, err = cluster.GetShardsCrossed(ctx, r.Metric, r.DecisionPeriod, r.Limit)
+			clusterCount, err = cluster.GetShardsCrossed(ctx, r.Metric, r.DecisionPeriod, r.Limit, pollingInterval)
 		}
 
 		if err != nil || invalidDatapoints {
