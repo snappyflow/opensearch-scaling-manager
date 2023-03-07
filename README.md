@@ -1,10 +1,51 @@
-## Open-search Scaling Manager
+### Open-search Scaling Manager
 
-Open Search Scaling Manager is to scale up or scale down a node in a cluster based on the rules that are specified by the user in config and the resource utilization in cluster.
+------
 
+#### Overview
 
+------
 
-### Working Principle of Scaling Manager
+OpenSearch scaling manager is used to elastically scale a cluster to ensure optimum cluster performance and expenses involved. Scaling Manager can automatically scale up or scale down an OpenSearch node based on the effect of load on metric in cluster. Scaling Manager can be used to automate manual scale up, scale down and reduce the manual effort to achieve the same. Scale up, Scale down can happen whenever  it meets the criteria which is mentioned by the user. In addition to this there is event based scaling where as scale up, scale down happens at specific time.
+
+**List of features:**
+
+- Automatic Scaling 
+
+  Parameters supported are,
+
+  1. CPU usage
+  2. Mem usage
+  3. Heap usage
+  4. Disk usage
+  5. Shards
+
+- Event based Scaling 
+
+#### Brief explanation, Architecture of Scaling Manager
+
+------
+
+- Lets consider the cluster has 3 nodes. OpenSearch scaling manager is now installed in each of the nodes present in cluster. Node metrics(CPU, Mem, Heap, Disk utilization) is monitored in each nodes present in the cluster and Cluster Metrics(Number of nodes, Shards) of the cluster is also monitored.
+
+- Rules are specified by the user in config.yaml file like what should be maximum usage of CPU, Mem, Heap, Disk, Maximum nodes allowed, Maximum nodes allowed etc. and those rules are verified across the resource utilized in cluster.
+
+- Now scaling manager will check the resource utilization and if the utilization is more than the rules which user specifies in config.yaml it scales up a new node to the cluster in order to accommodate the high  resource utilization.
+
+  ​	For Example if the average cpu usage is more than 80% across the decision_period mentioned in the cluster, you have to scale_up a node in order to bring the cpu usage less, this applies for other metrics(Mem, Heap, Disk) as well. 
+  ​	When it comes to scale_down if the average cpu usage is less than 30% across you have to scale_down a node and similar to other metrics as well.
+
+  1. If cpu_util > 80, scale_up a node
+     If mem_util > 90, scale_up a node
+
+  2. If cpu_util < 80, scale_down a node
+     If mem_util < 90, scale_down a node
+
+     <img src="https://github.com/maplelabs/opensearch-scaling-manager/blob/release_v0.1_dev/images/ScalingManager_Architecture.png?raw=true" alt="Scaling_Manager_Architecture">
+
+     
+
+#### Working Principle of Scaling Manager
 
 ------
 
@@ -16,10 +57,6 @@ Scaling manager has following modules
 - Provision
 - State
 
-![Scaling_Manager_Architecture](https://lucid.app/publicSegments/view/12de2241-e528-4fb2-a891-194ebd2d9c95/image.png)
-
-
-
 **Fetch Metrics:** 
 
 - Scaling Manager code is deployed and all the nodes available in the cluster will be running the fetch metrics code.
@@ -28,8 +65,6 @@ Scaling manager has following modules
 - In addition to the aggregated data, Cluster metrics (Number of nodes, Cluster Status, Shards) are collected and both are indexed into Elasticsearch.
 - Old data is purged periodically from the index where the duration can be specified by the user.
 - Collected metrics is fetched from recommendation engine periodically.
-
-
 
 **Recommendation:** 
 
@@ -59,8 +94,6 @@ Scaling manager has following modules
 
 - Recommended data is next passed to the trigger module.
 
-
-
 **Trigger:** 
 
 - Gets the Task from the recommendation Queue.
@@ -83,8 +116,6 @@ Scaling manager has following modules
 
   - Clear the command queue and goes to the next recommendation in queue, commands are ignored since the cluster health is in normal state.
 
-  
-
 **Provision:**
 
 - Receives the command from the trigger module.
@@ -98,39 +129,39 @@ Scaling manager has following modules
 - If provisioning failed, update state = provisioning_failed.
 - All the step by step process of scale_up/ scale_down is been logged into OpenSearch where you can check what is the status of provision, At what time did the provision take place, Is the provision successful or failed, reason for failure etc.
 
-
-
 **State:** 
 
 - Check the current state and status of cluster and update state.
+
 - If state == provision completed.
+
   - Check if all system metrics are in a normal state
     - Cluster state is green.
     - No relocating shards.
   - Update "state = Normal".
 
+  
 
-
-### Scaling Manager Flow Diagram 
-
-------
-
-![Scaling_Manager_Flow_diagram](https://lucid.app/publicSegments/view/b8e022c2-8adf-4737-82d8-f3869d61a86a/image.png)
-
-
-
-### Event Based Scaling 
+#### Scaling Manager Flow Diagram 
 
 ------
 
-- Event based scaling is scale up or scale down by n number of nodes at specific time, which is given by user in config.yaml.
-- If task(scale_up or scale_down) comes with the "operator == EVENT" scaling manager will execute the task when the time is hit. For eg: If user specifies scale_up at 11:00 AM, it does scale_up at 11.00 AM.  
-- The rule for event based scaling is when specific time comes in, scaling manger will check if any provision is in progress or not(scale_up or scale_down happens only when "state==normal") and it scale down or scale up a node.
-- When event based task(scale_up or scale_down) comes and when it does the task it will not scale_up once the max_nodes is reached and scale_down when min nodes is reached. 
+![Scaling_Manager_Flow_diagram](https://github.com/maplelabs/opensearch-scaling-manager/blob/release_v0.1_dev/images/Detailed_flow_ScalingManager.png?raw=true)
 
 
 
-### Crypto
+#### Scaling Manager Architecture
+
+------
+
+1. Scaling Manager is deployed in all the nodes in cluster. Lets say cluster has 3 nodes. Now resource utilization went high and there is a need of new node in cluster.
+2. When a new node is added to the cluster ansible scripts will run in new node and it will install Scaling Manger, OpenSearch, All the necessary details which is needed and the new node details will be added to the available nodes list in order to monitor it
+
+![Scaling_Manager_flow](https://github.com/maplelabs/opensearch-scaling-manager/blob/release_v0.1_dev/images/Basic_flow_ScalingManager.png?raw=true)
+
+
+
+#### Crypto
 
 ------
 
@@ -144,27 +175,27 @@ Scaling manager has following modules
 
 
 
-### Scale Up and Scale Down
+#### Scale Up and Scale Down
 
 ------
 
-#### **Scale Up** 
+##### **Scale Up** 
 
 - New node that is added to the cluster will be configured with all the requirements such as OpenSearch, Security groups, sudo aspects, ssh aspects etc... in order to communicate with the other nodes in the cluster.
 - When the process of scale_up is completed by provision and when scale_up is recommended again in specified decision time, it will discard the scale_up since there was already successful provision done. So it discards provision until next polling interval.
 - When provision(scale_up) is recommended and the cluster has reached maximum number of nodes(specified in config.yaml), scaling manager will not scale up until max_nodes_allowed is increased manually by user in config.yaml and it will log the message to notify the user to increase the size.
 
-#### **Scale Down** 
+##### **Scale Down** 
 
 - Identifies node which is other than master node to remove from the cluster and stores the node IP. Configuring (Reallocating the shards to other nodes) to remove the node from cluster. Remove the node and terminate the instance.
 - When task == scale_down && Cluster_Status != green, recommendation(task) can not be provisioned as open search cluster is unhealthy for a scale_down.
 - When provision(scale_down) is recommended and the cluster has reached minimum number of nodes(specified in config.yaml), scaling manager will not scale down until min_nodes_allowed is decreased manually by user in config.yaml and it will log the message to notify the user to decrease the size.
 
-![Scale_up,Scale_down](https://lucid.app/publicSegments/view/ca4a79eb-e978-41fe-8674-14e84f188d13/image.png)
+<img src="https://github.com/maplelabs/opensearch-scaling-manager/blob/release_v0.1_dev/images/Scale_up-Scale_down.png?raw=true" alt="Scale_up,Scale_down" style="zoom:150%;" />
 
 
 
-### Scaling Manager Configuration
+#### Scaling Manager Configuration
 
 ------
 
@@ -204,7 +235,7 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 ​	**os_version:** OpenSearch version which needs to be used.
 
-​	**os_home: **Default OpenSearch user info.
+​	**os_home:** Default OpenSearch user info.
 
 ​	**domain_name:** Configure hostnames for OpenSearch nodes which is required to configure SSL.
 
@@ -239,13 +270,16 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
   **rules:** Rules indicates list of rules to evaluate the criteria for the recommendation engine.
 
   - **metric:** Metric indicates the name of the metric. These can be CpuUtil, MemUtil, ShardUtil, DiskUtil
-    **limit: **Limit indicates the threshold value for a metric.
+
+    **limit:** Limit indicates the threshold value for a metric.
+
     **stat:** Stat indicates the statistics on which the evaluation of the rule will happen. These can be AVG, COUNT.
+
     **decision_period:** Decision Period indicates the time in minutes for which a rule is evaluated.
 
   
 
-### Sample config.yaml
+#### Sample config.yaml
 
 ------
 
@@ -253,18 +287,19 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 
 
-### Scaling Manager Pre-Requisites
+#### Scaling Manager Pre-Requisites
 
 ------
 
 - Cluster with OpenSearch installed.
 - OpenSearch version - 1.2.4 and above. 
-- Go version - 1.19.1.
+- Go version - 1.19
 - Ansible Version - 2.9.
 - Cluster credentials (Username, Password) to access the OpenSearch.
 - Cloud credential  (Username, Password). 
 - In AWS we can create a instance by templates which is provided by Domain that is used.
 - Launch Template - AWS launch template to spin a new node which has the necessary tags.
+- Template ID format (lt-xxxxxxxxxxxxxxxxx.)
 - Security certificate to have regex in it to accept the new node.
 - PEM file.
 - SSH aspect - If cloud type is AWS then Security group is configured in such a way that newly spin up node should be reached via ssh.
@@ -272,7 +307,7 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 
 
-### Jump Host login details
+#### Jump Host login details
 
 ------
 
@@ -284,26 +319,40 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 
 
-### Build and Installation of Scaling Manager
+#### Build and Installation of Scaling Manager
 
 ------
 
-To install the scaling manager please download the source code using following command:
+**Inventory file** -  Defines the hosts and groups of hosts upon which commands, modules, and tasks in a playbook operate.
 
-```
-git clone https://github.com/maplelabs/opensearch-scaling-manager.git -b release_v0.1_dev
-```
+**Populate inventory.yaml**
 
-Build, Pack
-
-```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "build_and_pack" -kK
+```master_node_ip
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "populate_inventory_yaml" -e master_node_ip=0.0.0.0 -e os_user=USERNAME -e os_pass=PASSWORD
 ```
 
-Installation
+master_node_ip = IP address of master node,
+os_user = Appropriate username,
+os_pass = Appropriate password
+
+**Build, Pack**
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "install" -kK
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "build_and_pack" -kK
+```
+
+-kK is used for password authentication
+
+In case to use key based authentication, Use the following command
+
+```
+udo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_pem" --key-file user-dev-aws-ssh.pem -e pem_path="user-dev-aws-ssh.pem"
+```
+
+**Installation**
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "install" -kK
 ```
 
 - Update should be performed when provision is not happening, then stop, install, start the service. These steps can be performed in the same command as well.  
@@ -311,31 +360,37 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "inst
 - Stop, Install, Start in same command 
 
   ```
-  sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "stop,install,start" -kK
+  sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "stop,install,start" -kK
   ```
 
-Update Config
+**Update Config**
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "update_config" -kK
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" -kK
 ```
 
-Start 
+**Start** 
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "start" -kK
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "start" -kK
 ```
 
-Stop
+**Stop**
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "stop" -kK
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "stop" -kK
 ```
 
-Uninstall
+**Status**
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "uninstall" -kK
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "status" -kK
+```
+
+**Uninstall**
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "uninstall" -kK
 ```
 
 - Stop command works quick when there is no provisioning happening/provisioning is completed.
@@ -343,7 +398,7 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yml --tags "unin
 
 
 
-### Simulator 
+#### Simulator 
 
 ------
 

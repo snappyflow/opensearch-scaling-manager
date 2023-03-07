@@ -49,7 +49,7 @@ type Rule struct {
 	//      Cpu
 	//      Mem
 	//      Shard
-	Metric string `yaml:"metric" validate:"required,oneof=CpuUtil RamUtil HeapUtil DiskUtil TotalShards"`
+	Metric string `yaml:"metric" validate:"required,oneof=CpuUtil RamUtil HeapUtil DiskUtil ShardsPerGB"`
 	// Limit indicates the threshold value for a metric.
 	// If this threshold is achieved for a given metric for the decision periond then the rule will be activated.
 	Limit float32 `yaml:"limit" validate:"required"`
@@ -246,8 +246,9 @@ func (r Rule) GetMetrics(pollingInterval int, simFlag, isAccelerated bool) ([]by
 			clusterCount, err = cluster_sim.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit, isAccelerated)
 		} else if r.Stat == "COUNT" {
 			clusterCount, invalidDatapoints, err = cluster.GetClusterCount(ctx, r.Metric, r.DecisionPeriod, pollingInterval, r.Limit)
-		} else if r.Stat == "TERM" && r.Metric == "TotalShards" {
-			clusterCount, err = cluster.GetShardsCrossed(ctx, r.Metric, r.DecisionPeriod, r.Limit, pollingInterval)
+		} else if r.Stat == "TERM" && r.Metric == "ShardsPerGB" {
+			//			clusterCount, err = cluster.GetShardsCrossed(ctx, r.Metric, r.DecisionPeriod, r.Limit, pollingInterval)
+			log.Info.Println("Yet to add logic for ShardsPerGB")
 		}
 
 		if err != nil || invalidDatapoints {

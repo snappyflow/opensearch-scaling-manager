@@ -96,6 +96,7 @@ type ClusterDynamic struct {
 	// NumActiveDataNodes indicates the number of active data nodes present in the cluster.
 	NumActiveDataNodes int
 	TotalShards        int
+	ShardsPerGB        int
 }
 
 // This struct will provide the overall cluster metrcis for a OpenSearch cluster.
@@ -241,33 +242,33 @@ func getClusterAvgQuery(metricName string, decisionPeriod int) string {
 // Return:
 //              (MetricViolatedCount, error): Return populated MetricViolatedCount struct and error if any.
 
-func GetShardsCrossed(ctx context.Context, metricName string, decisionPeriod int, limit float32, pollingInterval int) (MetricViolatedCount, error) {
-	var metricViolatedCount MetricViolatedCount
-	//Get the query and convert to json
-	var jsonQuery = []byte(getClusterCountQuery(metricName, decisionPeriod, limit, pollingInterval))
-
-	//create a search request and pass the query
-	searchResp, err := osutils.SearchQuery(ctx, jsonQuery)
-	if err != nil {
-		log.Error.Println("Cannot fetch total shards: ", err)
-		return metricViolatedCount, err
-	}
-	defer searchResp.Body.Close()
-
-	//Interface to dump the response
-	var queryResultInterface map[string]interface{}
-
-	//decode the response into the interface
-	decodeErr := json.NewDecoder(searchResp.Body).Decode(&queryResultInterface)
-	if decodeErr != nil {
-		log.Error.Println("decode Error: ", decodeErr)
-		return metricViolatedCount, decodeErr
-	}
-	//Parse the interface and populate the metricStatsCluster
-	metricViolatedCount.ViolatedCount = len(queryResultInterface["aggregations"].(map[string]interface{})["interval"].(map[string]interface{})["buckets"].([]interface{}))
-
-	return metricViolatedCount, nil
-}
+//func GetShardsCrossed(ctx context.Context, metricName string, decisionPeriod int, limit float32, pollingInterval int) (MetricViolatedCount, error) {
+//	var metricViolatedCount MetricViolatedCount
+//	//Get the query and convert to json
+//	var jsonQuery = []byte(getClusterCountQuery(metricName, decisionPeriod, limit, pollingInterval))
+//
+//	//create a search request and pass the query
+//	searchResp, err := osutils.SearchQuery(ctx, jsonQuery)
+//	if err != nil {
+//		log.Error.Println("Cannot fetch total shards: ", err)
+//		return metricViolatedCount, err
+//	}
+//	defer searchResp.Body.Close()
+//
+//	//Interface to dump the response
+//	var queryResultInterface map[string]interface{}
+//
+//	//decode the response into the interface
+//	decodeErr := json.NewDecoder(searchResp.Body).Decode(&queryResultInterface)
+//	if decodeErr != nil {
+//		log.Error.Println("decode Error: ", decodeErr)
+//		return metricViolatedCount, decodeErr
+//	}
+//	//Parse the interface and populate the metricStatsCluster
+//	metricViolatedCount.ViolatedCount = len(queryResultInterface["aggregations"].(map[string]interface{})["interval"].(map[string]interface{})["buckets"].([]interface{}))
+//
+//	return metricViolatedCount, nil
+//}
 
 // Input:
 //              metricName (string): The metric name for which the Cluster Average will be calculated
