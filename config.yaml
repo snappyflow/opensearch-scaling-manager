@@ -59,8 +59,8 @@ task_details:
         stat: COUNT
         occurrences: 30
         decision_period: 180
-      - metric: TotalShards
-        limit: 700
+      - metric: ShardsPerGB
+        limit: 30
         stat: TERM
         decision_period: 180
       - metric: DiskUtil
