@@ -366,34 +366,51 @@ func GetClusterAvg(ctx context.Context, metricName string, decisionPeriod int, p
 
 func getClusterCountQuery(metricName string, decisionPeriod int, limit float32) string {
 	clusterCountQueryString := `{
-           "query": {
-             "bool": {
-               "filter": {
-                 "range": {
-                   "Timestamp": {
-                     "from": "now-` + strconv.Itoa(decisionPeriod) + `m",
-                     "include_lower": true,
-                     "include_upper": true,
-                     "to": null
-                   }
-                 }
-               }
-             }
-           },
-           "aggs": {
-             "` + metricName + `": {
-               "range": {
-                 "field": "` + metricName + `",
-                 "ranges": [
-                   {
-                     "from": ` + strconv.FormatFloat(float64(limit), 'E', -1, 32) + `,
-                     "to": null
-                   }
-                 ]
-               }
-             }
-           }
-         }`
+		"query": {
+		  "bool":{
+			"filter": {
+		  "range": {
+			"Timestamp": {
+			  "gte": "now-` + strconv.Itoa(decisionPeriod) + `m",
+			  "include_lower": true,
+			  "include_upper": true,
+			  "to": null
+			}
+		  }}, 
+		  "must": [
+			{
+			  "match": 
+			  {
+				"StatTag": "NodeStatistics"
+			  }
+			}
+			]
+		  }
+		},
+		"aggs": {
+		  "interval": {
+			"date_histogram": {
+			  "field": "Timestamp",
+			  "interval": "` + strconv.Itoa(decisionPeriod) + `m"
+			},
+			"aggs": {
+			  "avg_metric_utilization": {
+				"avg": {
+				  "field": "` + metricName + `"
+				}
+			  },
+			  "aggregated_utilization": {
+				"bucket_selector": {
+				  "buckets_path": {
+					"MetricUtilization": "avg_metric_utilization"
+				  },
+				  "script": "params.MetricUtilization > ` + strconv.FormatFloat(float64(limit), 'E', -1, 32) + `"
+				}
+			  }
+			}
+		  }
+		}
+	  }`
 
 	return clusterCountQueryString
 }
@@ -457,7 +474,7 @@ func GetClusterCount(ctx context.Context, metricName string, decisionPeriod int,
 		return metricViolatedCount, invalidDatapoints, decodeErr
 	}
 	//Parse the interface and populate the metricStatsCluster
-	metricViolatedCount.ViolatedCount = int(queryResultInterface["aggregations"].(map[string]interface{})[metricName].(map[string]interface{})["buckets"].([]interface{})[0].(map[string]interface{})["doc_count"].(float64))
+	metricViolatedCount.ViolatedCount = len(queryResultInterface["aggregations"].(map[string]interface{})["interval"].(map[string]interface{})["buckets"].([]interface{}))
 
 	return metricViolatedCount, invalidDatapoints, nil
 }
