@@ -6,7 +6,7 @@
 
 ------
 
-OpenSearch scaling manager is used to elastically scale a cluster to ensure optimum cluster performance and expenses involved. Scaling Manager can automatically scale up or scale down an OpenSearch node based on the effect of load on metric in cluster. Scaling Manager can be used to automate manual scale up, scale down and reduce the manual effort to achieve the same. Scale up, Scale down can happen whenever  it meets the criteria which is mentioned by the user. In addition to this there is event based scaling where as scale up, scale down happens at specific time. 
+OpenSearch scaling manager is used to elastically scale a cluster to ensure optimum cluster performance and expenses involved. Scaling Manager can automatically scale up or scale down an OpenSearch node based on the effect of load on metric in cluster. Scaling Manager can be used to automate manual scale up, scale down and reduce the manual effort to achieve the same. Scale up, Scale down can happen whenever  it meets the criteria which is mentioned by the user. In addition to this there is event based scaling where as scale up, scale down happens at specific time.
 
 **List of features:**
 
@@ -41,7 +41,7 @@ OpenSearch scaling manager is used to elastically scale a cluster to ensure opti
   2. If cpu_util < 80, scale_down a node
      If mem_util < 90, scale_down a node
 
-     ![Scaling_Manager_Architecture](https://lucid.app/publicSegments/view/de06a44f-6bf1-4d88-9bda-73c19d33fc97/image.png)
+     <img src="https://github.com/maplelabs/opensearch-scaling-manager/blob/release_v0.1_dev/images/ScalingManager_Architecture.png?raw=true" alt="Scaling_Manager_Architecture">
 
      
 
@@ -146,7 +146,7 @@ Scaling manager has following modules
 
 ------
 
-![Scaling_Manager_Flow_diagram](https://lucid.app/publicSegments/view/b8e022c2-8adf-4737-82d8-f3869d61a86a/image.png)
+![Scaling_Manager_Flow_diagram](https://github.com/maplelabs/opensearch-scaling-manager/blob/release_v0.1_dev/images/Detailed_flow_ScalingManager.png?raw=true)
 
 
 
@@ -157,7 +157,7 @@ Scaling manager has following modules
 1. Scaling Manager is deployed in all the nodes in cluster. Lets say cluster has 3 nodes. Now resource utilization went high and there is a need of new node in cluster.
 2. When a new node is added to the cluster ansible scripts will run in new node and it will install Scaling Manger, OpenSearch, All the necessary details which is needed and the new node details will be added to the available nodes list in order to monitor it
 
-![Scaling_Manager_flow](https://lucid.app/publicSegments/view/12de2241-e528-4fb2-a891-194ebd2d9c95/image.png)
+![Scaling_Manager_flow](https://github.com/maplelabs/opensearch-scaling-manager/blob/release_v0.1_dev/images/Basic_flow_ScalingManager.png?raw=true)
 
 
 
@@ -191,7 +191,7 @@ Scaling manager has following modules
 - When task == scale_down && Cluster_Status != green, recommendation(task) can not be provisioned as open search cluster is unhealthy for a scale_down.
 - When provision(scale_down) is recommended and the cluster has reached minimum number of nodes(specified in config.yaml), scaling manager will not scale down until min_nodes_allowed is decreased manually by user in config.yaml and it will log the message to notify the user to decrease the size.
 
-![Scale_up,Scale_down](https://lucid.app/publicSegments/view/ca4a79eb-e978-41fe-8674-14e84f188d13/image.png)
+<img src="https://github.com/maplelabs/opensearch-scaling-manager/blob/release_v0.1_dev/images/Scale_up-Scale_down.png?raw=true" alt="Scale_up,Scale_down" style="zoom:150%;" />
 
 
 
