@@ -1,0 +1,29 @@
+---
+
+- name: check service file to stop service of sfagent
+  stat:
+    path: "{{SERVICEFILE}}"
+  register: service_file
+
+- name: Stop sfagent service, if started
+  ansible.builtin.service:
+    name: sfagent
+    state: stopped
+  when: service_file.stat.exists
+
+- name:  sfagent disable and daemon-reload
+  shell: |
+    systemctl disable sfagent
+    rm -f /etc/systemd/system/sfagent.service
+    systemctl daemon-reload
+    rm -rf /var/log/sfagent
+    rm -rf /opt/td-agent-bit
+    rm -rf /etc/td-agent-bit
+    rm -rf  {{AGENTDIR}}
+  args:
+    warn: false
+
+- name: uninstall status
+  ansible.builtin.debug:
+    msg:
+    -  sfagent uninstalled successfully.

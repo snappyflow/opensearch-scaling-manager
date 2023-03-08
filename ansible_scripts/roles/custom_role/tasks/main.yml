@@ -1,0 +1,105 @@
+---
+- include_tasks:
+    file: pre-install.yml
+    apply:
+      tags:
+        - install
+        - upgrade
+  tags:
+    - install
+    - upgrade
+
+- include_tasks:
+    file: check_jcmd.yml
+    apply:
+      tags:
+        - install
+        - upgrade
+  tags:
+    - install
+    - upgrade
+
+- include_tasks:
+    file: install.yml
+    apply:
+      tags:
+        - install
+  tags:
+    - install
+
+- include_tasks:
+    file: extra-vars.yml
+    apply:
+      tags:
+        - install
+        - upgrade
+  tags:
+    - install
+    - upgrade
+    - never
+  ignore_errors: true
+  when: env_vars is defined or include_paths is defined
+
+- include_tasks:
+    file: upgrade.yml
+    apply:
+      tags:
+        - upgrade
+  tags:
+    - upgrade
+    - never
+
+- include_tasks:
+    file: validate.yml
+    apply:
+      tags:
+        - install
+        - upgrade
+  tags:
+    - install
+    - upgrade
+
+- include_tasks:
+    file: uninstall.yml
+    apply:
+      tags:
+        - uninstall
+  tags:
+    - uninstall
+    - never
+
+- include_tasks:
+    file: help.yml
+    apply:
+      tags:
+        - help
+  tags:
+    - help
+    - never
+
+- include_tasks:
+    file: generate-config.yml
+    apply:
+      tags:
+        - generate-config
+  tags:
+    - generate-config
+    - never
+
+- include_tasks:
+    file: update-config.yml
+    apply:
+      tags:
+        - update-config
+  tags:
+    - update-config
+    - never
+
+- include_tasks:
+    file: update-config-sfagent.yml
+    apply:
+      tags:
+        - update-config-sfagent
+  tags:
+    - update-config-sfagent
+    - never

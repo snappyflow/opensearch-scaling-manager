@@ -1,0 +1,20 @@
+---
+- name: "Check jcmd installation "
+  ansible.builtin.shell: |
+        if jcmd > /dev/null; then
+            echo 'installed'
+        else
+            echo 'not installed'
+        fi
+  register: jcmd_result
+  ignore_errors: yes
+
+- name: "jcmd not installed"
+  debug:
+    msg: "Warning: jcmd is not installed. Java applications will not be detected automatically."
+  when: jcmd_result.stdout=="not installed"
+
+- name: "jcmd installed"
+  debug:
+    msg: "jcmd is  installed."
+  when: jcmd_result.stdout=="installed"

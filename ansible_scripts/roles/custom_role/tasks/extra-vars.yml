@@ -1,0 +1,41 @@
+---
+- name: print includepath
+  ansible.builtin.debug:
+    msg: "Extra paths to include in PATH - {{INCLUDE_PATHS}}"
+  when: include_paths is defined
+
+- name: split includepath 
+  set_fact: 
+    incpth_var: "{{ INCLUDE_PATHS.split(',') }}"
+  when: include_paths is defined
+
+- name: concat the default path.
+  set_fact:
+    DEFAULTPATH : "{{ DEFAULTPATH }}:{{ item }}"
+  with_items: "{{ incpth_var }}"
+  when: include_paths is defined
+
+- name: write to env.conf
+  shell: echo "PATH={{DEFAULTPATH}}" > {{AGENTDIR}}/env.conf
+  args:
+    warn: false
+    
+- name: env_vars
+  ansible.builtin.debug:
+    msg: Append env vars to {{AGENTDIR}}/env.conf
+  when: env_vars is defined 
+
+- name: split env_vars
+  set_fact: 
+    env_var: "{{ ENV_VARS.split(',') }}"
+  when: env_vars is defined 
+
+- name: concat env vars.
+  ansible.builtin.shell: echo "{{item}}" >> {{AGENTDIR}}/env.conf
+  with_items: "{{ env_var }}"
+  when: env_vars is defined 
+
+- name: Restart service sfagent
+  ansible.builtin.service:
+    name: sfagent
+    state: restarted

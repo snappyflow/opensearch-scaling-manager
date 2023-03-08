@@ -1,0 +1,18 @@
+#******************************************************#
+#* Copyright 2019-20, MapleLabs, All Rights Reserved. *#
+#*                                                    *# 
+#******************************************************#
+---
+galaxy_info:
+  author: maplelabs
+  description: Ansible role to install SF Agent
+  company: "Maplelabs"
+  min_ansible_version: 2.0
+  platforms:
+  - name: EL
+    versions:
+    - all
+  galaxy_tags:
+    - development
+    - system
+    - monitoring

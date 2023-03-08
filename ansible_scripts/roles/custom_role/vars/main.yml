@@ -1,0 +1,14 @@
+---
+# vars file for sfagent
+
+  RELEASEURL: "https://api.github.com/repos/snappyflow/apm-agent/releases/latest"
+  SFTRACE_AGENT_x86_64: "https://github.com/snappyflow/apm-agent/releases/download/latest/sftrace-agent.tar.gz"
+  AGENTDIR: "/opt/sfagent"
+  TDAGENTCONFDIR: "/etc/td-agent-bit"
+  SERVICEFILE: "/etc/systemd/system/sfagent.service"
+  DEFAULTPATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  ENV_VARS: "{{ env_vars }}"
+  INITFILE: "/etc/init.d/sfagent"
+  SHOULD_UPGRADE: 0
+  SHOW_HELP: 0
+  INCLUDE_PATHS: "{{ include_paths }}"
