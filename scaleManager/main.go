@@ -104,7 +104,7 @@ func Run() {
 			//              if firstExecution || state.CurrentState == "normal" {
 			firstExecution = false
 			// This function will be responsible for parsing the config file and fill in task_details struct.
-			var task = new(recommendation.TaskDetails)
+			var task config.TaskDetails
 			configStruct, err := config.GetConfig()
 			if err != nil {
 				log.Error.Println("The recommendation can not be made as there is an error in the validation of config file.")
@@ -114,7 +114,7 @@ func Run() {
 			task.Tasks = configStruct.TaskDetails
 			userCfg := configStruct.UserConfig
 			clusterCfg := configStruct.ClusterDetails
-			recommendationList := task.EvaluateTask(userCfg.PollingInterval, userCfg.MonitorWithSimulator, userCfg.IsAccelerated)
+			recommendationList := recommendation.EvaluateTask(userCfg.PollingInterval, userCfg.MonitorWithSimulator, userCfg.IsAccelerated, task)
 			provision.GetRecommendation(state, recommendationList, clusterCfg, userCfg, t)
 			if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
 				*t = t.Add(time.Minute * 5)

@@ -303,7 +303,7 @@ func getCountQuery(metricName string, decisionPeriod int, limit float32) string 
 // Return:
 //              (MetricViolatedCount, error): Return populated MetricViolatedCount struct and error if any.
 
-func GetShardsCrossed(ctx context.Context, metricName string, decisionPeriod int, limit float32, pollingInterval int) (MetricViolatedCount, bool, error) {
+func GetShardsPerGBLimit(ctx context.Context, metricName string, decisionPeriod int, limit float32, pollingInterval int) (MetricViolatedCount, bool, error) {
 	var metricViolatedCount MetricViolatedCount
 	var invalidDatapoints bool
 

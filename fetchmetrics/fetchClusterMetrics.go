@@ -111,5 +111,5 @@ func IndexClusterHealth(ctx context.Context) {
 		panic(err)
 	}
 	defer resp.Body.Close()
-	log.Info.Println("Cluster document indexed successfull")
+	log.Info.Println("Cluster document indexed successfully")
 }
