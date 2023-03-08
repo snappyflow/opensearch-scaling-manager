@@ -10,17 +10,25 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+
+	cron "github.com/robfig/cron/v3"
+
 	"github.com/maplelabs/opensearch-scaling-manager/cluster"
 	"github.com/maplelabs/opensearch-scaling-manager/cluster_sim"
 	"github.com/maplelabs/opensearch-scaling-manager/config"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
-	"regexp"
-	"strconv"
-	"strings"
+	"github.com/maplelabs/opensearch-scaling-manager/provision"
 )
 
 var log logger.LOG
 var ctx = context.Background()
+
+// A global variable to keep track of cronJob details
+var cronJobList []*cron.Cron
 
 // Input:
 //
@@ -297,12 +305,77 @@ func EvaluateRule(clusterMetric []byte, taskOperation string, pollingInterval in
 	return false
 }
 
+//	Input:
+//
+// 	Caller:
+// 		Object of TaskDetails
+//
+// 	Description:
+// 		Parser over the Tasks and seperates metric and event based tasks
+//
+// 	Return:
+// 		(*TaskDetails): Pointer to metric and event based Tasks
+
+func ParseTasks(taskDetails config.TaskDetails) (*config.TaskDetails, *config.TaskDetails) {
+	var metricTaskDetails = new(config.TaskDetails)
+	var eventTaskDetails = new(config.TaskDetails)
+
+	for _, task := range taskDetails.Tasks {
+		task := task
+
+		if task.Operator == "EVENT" {
+			eventTaskDetails.Tasks = append(eventTaskDetails.Tasks, task)
+		} else {
+			metricTaskDetails.Tasks = append(metricTaskDetails.Tasks, task)
+		}
+	}
+
+	return metricTaskDetails, eventTaskDetails
+}
+
+// Input:
+//
+//	cronTasks ([]]recommendation.Task): List of tasks to be added to Cron Job
+//	state (*provision.State): A pointer to the state struct which is state maintained in OS document
+//	clusterCfg (config.ClusterDetails): Cluster Level config details
+//	usrCfg (config.UserConfig): User defined config for application behavior
+//
+// Description:
+//
+//		At each polling interval creates the cron jobs based on the config file. It removes the Cron Jobs that were
+//	 added in previous polling interval and creates required jobs. It will use the list of tasks (cronTasks) to
+//		schedule and create cron job.
+//
+// Return:
+func CreateCronJob(state *provision.State, eventTasks *config.TaskDetails, clusterCfg config.ClusterDetails, userCfg config.UserConfig, t *time.Time) {
+	for _, cronJob := range cronJobList {
+		for _, jobs := range cronJob.Entries() {
+			cronJob.Remove(jobs.ID)
+		}
+	}
+
+	cronJobList = nil
+
+	for _, cronTask := range eventTasks.Tasks {
+		cronTask := cronTask
+		cronJob := cron.New()
+		for _, rules := range cronTask.Rules {
+			rules := rules
+			cronJob.AddFunc(rules.SchedulingTime, func() {
+				provision.TriggerCron(rules.NumNodesRequired, t, state, clusterCfg, userCfg, rules.SchedulingTime, cronTask.TaskName)
+			})
+			cronJobList = append(cronJobList, cronJob)
+		}
+		cronJob.Start()
+	}
+}
+
 // Input:
 //
 // Caller:
-//              Object of Task
+//		Object of Task
 // Description:
-//              PushToRecommendationQueue will be pushing the task which matches the criteria to recommendation queue.
+//		PushToRecommendationQueue will be pushing the task which matches the criteria to recommendation queue.
 //
 // Return:
 
