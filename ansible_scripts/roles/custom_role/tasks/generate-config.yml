@@ -1,0 +1,44 @@
+---
+- include_vars: ../config-params.yml
+  ignore_errors: yes
+
+- name: generate config
+  shell: ./sfagent -generate-config
+  args:
+    chdir: /opt/sfagent
+
+- name: config-generated.yaml verification
+  stat:
+    path: /opt/sfagent/config-generated.yaml
+  register: stat_result
+
+- name: status of the config-generated.yaml
+  ansible.builtin.debug:
+    msg: successfully generated config-generated.yaml
+  when: stat_result.stat.exists
+
+- name: status of the config-generated.yaml
+  ansible.builtin.debug:
+    msg: config-generated.yaml could not be generated
+  when: not stat_result.stat.exists
+  
+- name: copy generated config to config.yaml
+  shell: cp config-generated.yaml config.yaml
+  args:
+    chdir: /opt/sfagent
+
+- name: status of the config-generated.yaml
+  ansible.builtin.debug:
+    msg: successfully copied config-generated.yaml to config.yaml
+
+- name: Replace values in config file
+  ansible.builtin.replace:
+    path: /opt/sfagent/config.yaml
+    regexp: '{{item.search}}'
+    replace: '{{ item.replace }}'
+  with_items:
+    - { search: "key: CHANGEME" , replace: 'key: {{key | default("")}}' }
+    - { search: "appName: CHANGEME" , replace: 'appName: {{appName | default("CHANGEME")}}' }
+    - { search: "projectName: CHANGEME" , replace: 'projectName: {{projectName | default("CHANGEME")}}' }
+    - { search: "Name: CHANGEME" , replace: 'Name: {{Name | default("CHANGEME")}}' }
+    - { search: "Name: $HOSTNAME" , replace: 'Name: {{Name | default("$HOSTNAME")}}' }
