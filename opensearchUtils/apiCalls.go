@@ -197,3 +197,21 @@ func DeleteWithQuery(ctx context.Context, jsonQuery []byte) (*osapi.Response, er
 		Body:  bytes.NewReader(jsonQuery),
 	}.Do(ctx, osClient)
 }
+
+// Input:
+//
+//	ctx (context.Context): Request-scoped data that transits processes and APIs.
+//
+// Description:
+//
+//	Calls the osapi ClusterRerouteRequest with true and returns the response
+//
+// Return:
+//
+//	(*osapi.Response, error): Returns the api response and error if any
+func RerouteRetryFailed(ctx context.Context) (*osapi.Response, error) {
+	retry := true
+	return osapi.ClusterRerouteRequest{
+		RetryFailed: &retry,
+	}.Do(ctx, osClient)
+}
