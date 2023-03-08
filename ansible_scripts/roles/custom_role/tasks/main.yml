@@ -96,10 +96,10 @@
     - never
 
 - include_tasks:
-    file: update-config-sfagent.yml
+    file: copy-config-sfagent.yml
     apply:
       tags:
-        - update-config-sfagent
+        - copy-config-sfagent
   tags:
-    - update-config-sfagent
+    - copy-config-sfagent
     - never
