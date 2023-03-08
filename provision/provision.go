@@ -441,7 +441,6 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 		}
 		log.Info.Println("Wait for the cluster to become healthy and then proceed")
 		CheckClusterHealth(state, usrCfg, t)
-		log.Info.Println("Shutdown the node")
 		if simFlag && isAccelerated {
 			fakeSleep(t)
 		}
