@@ -54,6 +54,8 @@ type Node struct {
 	DiskUtil float32
 	// NumShards Number of shards present on a node.
 	NumShards int
+	// Number of shards per GB
+	ShardsPerGB float64
 }
 
 // This struct will contain the static metrics of the cluster.
@@ -141,6 +143,8 @@ type MetricStatsCluster struct {
 type MetricViolatedCount struct {
 	// Count indicates number of times the limit is reached calulated for a given period
 	ViolatedCount int
+	// Total documents count
+	TotalCount int
 }
 
 // This struct will provide count, number of times a rule is voilated for a metric in a node
@@ -231,6 +235,63 @@ func getClusterAvgQuery(metricName string, decisionPeriod int) string {
 }
 
 // Input:
+//              metricName (string): The metric for which the count is needed.
+//              decisionPeriod (int): Time in minutes used to specify the time range for collecting data from Opensearch.
+//              limit (float32): The limit which needs to checked for the metric if it has been reached
+//              pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index
+//
+// Description:
+//              Generates the query string for determining the number of times the limit for the defined measure has been reached.
+//
+// Return:
+//              (string): Returns the query string that can be given as an OS query api parameter.
+
+func getCountQuery(metricName string, decisionPeriod int, limit float32) string {
+	countQueryString := `{
+          "query": {
+            "bool": {
+              "filter": {
+                "range": {
+                  "Timestamp": {
+                    "gte": "now-` + strconv.Itoa(decisionPeriod) + `m",
+                    "include_lower": true,
+                    "include_upper": true,
+                    "to": null
+                  }
+                }
+              },
+              "must": [
+                {
+                  "match": {
+                    "StatTag": "NodeStatistics"
+                  }
+                }
+              ]
+            }
+          },
+          "aggs": {
+            "docs_count": {
+              "value_count": {
+                "field": "StatTag.keyword"
+              }
+            },
+            "` + metricName + `": {
+              "range": {
+                "field": "` + metricName + `",
+                "ranges": [
+                  {
+                    "from": ` + strconv.FormatFloat(float64(limit), 'E', -1, 32) + `,
+                    "to": null
+                  }
+                ]
+              }
+            }
+          }
+        }`
+	return countQueryString
+}
+
+// Input:
 //              metricName (string): The name of the metric that will be used to compute the number of times the limit is reached.
 //              decisionPeriod (int): The evaluation period for which the Count will be determined.
 //              limit (float32): The limit for the metric for which the count is calculated.
@@ -242,33 +303,58 @@ func getClusterAvgQuery(metricName string, decisionPeriod int) string {
 // Return:
 //              (MetricViolatedCount, error): Return populated MetricViolatedCount struct and error if any.
 
-//func GetShardsCrossed(ctx context.Context, metricName string, decisionPeriod int, limit float32, pollingInterval int) (MetricViolatedCount, error) {
-//	var metricViolatedCount MetricViolatedCount
-//	//Get the query and convert to json
-//	var jsonQuery = []byte(getClusterCountQuery(metricName, decisionPeriod, limit, pollingInterval))
-//
-//	//create a search request and pass the query
-//	searchResp, err := osutils.SearchQuery(ctx, jsonQuery)
-//	if err != nil {
-//		log.Error.Println("Cannot fetch total shards: ", err)
-//		return metricViolatedCount, err
-//	}
-//	defer searchResp.Body.Close()
-//
-//	//Interface to dump the response
-//	var queryResultInterface map[string]interface{}
-//
-//	//decode the response into the interface
-//	decodeErr := json.NewDecoder(searchResp.Body).Decode(&queryResultInterface)
-//	if decodeErr != nil {
-//		log.Error.Println("decode Error: ", decodeErr)
-//		return metricViolatedCount, decodeErr
-//	}
-//	//Parse the interface and populate the metricStatsCluster
-//	metricViolatedCount.ViolatedCount = len(queryResultInterface["aggregations"].(map[string]interface{})["interval"].(map[string]interface{})["buckets"].([]interface{}))
-//
-//	return metricViolatedCount, nil
-//}
+func GetShardsCrossed(ctx context.Context, metricName string, decisionPeriod int, limit float32, pollingInterval int) (MetricViolatedCount, bool, error) {
+	var metricViolatedCount MetricViolatedCount
+	var invalidDatapoints bool
+
+	// Check data points
+	dataPointsResp, dpErr := osutils.SearchQuery(ctx, []byte(dataPointsQuery(decisionPeriod, pollingInterval)))
+	if dpErr != nil {
+		log.Error.Println("Can't query for data points!", dpErr)
+		return metricViolatedCount, invalidDatapoints, dpErr
+	}
+	defer dataPointsResp.Body.Close()
+
+	var dpRespInterface map[string]interface{}
+
+	decodeErr := json.NewDecoder(dataPointsResp.Body).Decode(&dpRespInterface)
+	if decodeErr != nil {
+		log.Error.Println("decode Error: ", decodeErr)
+		return metricViolatedCount, invalidDatapoints, decodeErr
+	}
+
+	if int(dpRespInterface["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64)) == 0 {
+		invalidDatapoints = true
+		return metricViolatedCount, invalidDatapoints, nil
+	}
+
+	//Get the query and convert to json
+	var jsonQuery = []byte(getCountQuery(metricName, decisionPeriod, limit))
+
+	//create a search request and pass the query
+	searchResp, err := osutils.SearchQuery(ctx, jsonQuery)
+	if err != nil {
+		log.Error.Println("Cannot fetch total shards: ", err)
+		return metricViolatedCount, invalidDatapoints, err
+	}
+	defer searchResp.Body.Close()
+
+	//Interface to dump the response
+	var queryResultInterface map[string]interface{}
+
+	//decode the response into the interface
+	decodeErr = json.NewDecoder(searchResp.Body).Decode(&queryResultInterface)
+	if decodeErr != nil {
+		log.Error.Println("decode Error: ", decodeErr)
+		return metricViolatedCount, invalidDatapoints, decodeErr
+	}
+
+	//Parse the interface and populate the metricStatsCluster
+	metricViolatedCount.ViolatedCount = int(queryResultInterface["aggregations"].(map[string]interface{})[metricName].(map[string]interface{})["buckets"].([]interface{})[0].(map[string]interface{})["doc_count"].(float64))
+	metricViolatedCount.TotalCount = int(queryResultInterface["aggregations"].(map[string]interface{})["docs_count"].(map[string]interface{})["value"].(float64))
+
+	return metricViolatedCount, invalidDatapoints, nil
+}
 
 // Input:
 //              metricName (string): The metric name for which the Cluster Average will be calculated
@@ -367,51 +453,51 @@ func GetClusterAvg(ctx context.Context, metricName string, decisionPeriod int, p
 
 func getClusterCountQuery(metricName string, decisionPeriod int, limit float32, pollingInterval int) string {
 	clusterCountQueryString := `{
-		"query": {
-		  "bool":{
-			"filter": {
-		  "range": {
-			"Timestamp": {
-			  "gte": "now-` + strconv.Itoa(decisionPeriod) + `m",
-			  "include_lower": true,
-			  "include_upper": true,
-			  "to": null
-			}
-		  }}, 
-		  "must": [
-			{
-			  "match": 
-			  {
-				"StatTag": "NodeStatistics"
-			  }
-			}
-			]
-		  }
-		},
-		"aggs": {
-		  "interval": {
-			"date_histogram": {
-			  "field": "Timestamp",
-			  "interval": "` + strconv.Itoa(pollingInterval) + `m"
-			},
-			"aggs": {
-			  "avg_metric_utilization": {
-				"avg": {
-				  "field": "` + metricName + `"
-				}
-			  },
-			  "aggregated_utilization": {
-				"bucket_selector": {
-				  "buckets_path": {
-					"MetricUtilization": "avg_metric_utilization"
-				  },
-				  "script": "params.MetricUtilization > ` + strconv.FormatFloat(float64(limit), 'E', -1, 32) + `"
-				}
-			  }
-			}
-		  }
-		}
-	  }`
+                "query": {
+                  "bool":{
+                        "filter": {
+                  "range": {
+                        "Timestamp": {
+                          "gte": "now-` + strconv.Itoa(decisionPeriod) + `m",
+                          "include_lower": true,
+                          "include_upper": true,
+                          "to": null
+                        }
+                  }},
+                  "must": [
+                        {
+                          "match":
+                          {
+                                "StatTag": "NodeStatistics"
+                          }
+                        }
+                        ]
+                  }
+                },
+                "aggs": {
+                  "interval": {
+                        "date_histogram": {
+                          "field": "Timestamp",
+                          "interval": "` + strconv.Itoa(pollingInterval) + `m"
+                        },
+                        "aggs": {
+                          "avg_metric_utilization": {
+                                "avg": {
+                                  "field": "` + metricName + `"
+                                }
+                          },
+                          "aggregated_utilization": {
+                                "bucket_selector": {
+                                  "buckets_path": {
+                                        "MetricUtilization": "avg_metric_utilization"
+                                  },
+                                  "script": "params.MetricUtilization > ` + strconv.FormatFloat(float64(limit), 'E', -1, 32) + `"
+                                }
+                          }
+                        }
+                  }
+                }
+          }`
 
 	return clusterCountQueryString
 }

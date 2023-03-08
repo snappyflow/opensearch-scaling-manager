@@ -3,10 +3,10 @@ package fetchmetrics
 import (
 	"context"
 	"encoding/json"
-	"os/exec"
 	"github.com/maplelabs/opensearch-scaling-manager/cluster"
 	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
 	utils "github.com/maplelabs/opensearch-scaling-manager/utilities"
+	"os/exec"
 	"strconv"
 	"strings"
 )
@@ -162,6 +162,9 @@ func IndexNodeStats(ctx context.Context) {
 	nodeMetrics.CpuUtil = getCpuUtil()
 	nodeMetrics.RamUtil = getRamUtil()
 	nodeMetrics.HeapUtil = float32(nodeInfo["jvm"].(map[string]interface{})["mem"].(map[string]interface{})["heap_used_percent"].(float64))
+	heapInBytes := nodeInfo["jvm"].(map[string]interface{})["mem"].(map[string]interface{})["heap_committed_in_bytes"].(float64)
+	heapInGB := heapInBytes / (1 << 30)
+	nodeMetrics.ShardsPerGB = float64(nodeMetrics.NumShards) / heapInGB
 	nodeMetrics.DiskUtil = getDiskUtil(nodeStatsInterface, nodeId)
 	nodeMetrics.StatTag = "NodeStatistics"
 	nodeMetrics._documentType = "NodeStatistics"

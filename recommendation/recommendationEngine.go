@@ -247,8 +247,7 @@ func (r Rule) GetMetrics(pollingInterval int, simFlag, isAccelerated bool) ([]by
 		} else if r.Stat == "COUNT" {
 			clusterCount, invalidDatapoints, err = cluster.GetClusterCount(ctx, r.Metric, r.DecisionPeriod, pollingInterval, r.Limit)
 		} else if r.Stat == "TERM" && r.Metric == "ShardsPerGB" {
-			//			clusterCount, err = cluster.GetShardsCrossed(ctx, r.Metric, r.DecisionPeriod, r.Limit, pollingInterval)
-			log.Info.Println("Yet to add logic for ShardsPerGB")
+			clusterCount, invalidDatapoints, err = cluster.GetShardsCrossed(ctx, r.Metric, r.DecisionPeriod, r.Limit, pollingInterval)
 		}
 
 		if err != nil || invalidDatapoints {
@@ -331,7 +330,7 @@ func (r Rule) EvaluateRule(clusterMetric []byte, taskOperation string, pollingIn
 				}
 			}
 		} else if r.Stat == "TERM" {
-			if taskOperation == "scale_up" && clusterStats.ViolatedCount > 0 ||
+			if taskOperation == "scale_up" && clusterStats.ViolatedCount == clusterStats.TotalCount ||
 				taskOperation == "scale_down" && clusterStats.ViolatedCount == 0 {
 				return true
 			} else {
