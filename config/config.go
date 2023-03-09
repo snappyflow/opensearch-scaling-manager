@@ -65,9 +65,9 @@ type ClusterDetails struct {
 type UserConfig struct {
 	MonitorWithLogs               bool `yaml:"monitor_with_logs"`
 	MonitorWithSimulator          bool `yaml:"monitor_with_simulator"`
-	PurgeAfter                    int  `yaml:"purge_old_docs_after_hours" validate:"required"`
-	RecommendationPollingInterval int  `yaml:"recommendation_polling_interval_in_secs" validate:"required"`
-	FetchPollingInterval          int  `yaml:"fetchmetrics_polling_interval_in_secs" validate:"required"`
+	PurgeAfter                    int  `yaml:"purge_old_docs_after_hours" validate:"required,min=1"`
+	RecommendationPollingInterval int  `yaml:"recommendation_polling_interval_in_secs" validate:"required,min=60"`
+	FetchPollingInterval          int  `yaml:"fetchmetrics_polling_interval_in_secs" validate:"required,min=60"`
 	IsAccelerated                 bool `yaml:"is_accelerated"`
 }
 
@@ -106,7 +106,7 @@ type Rule struct {
 	// For rule: Shard, the stat will not be applicable as the shard will be calculated across the cluster and is not a statistical value.
 	Stat string `yaml:"stat,omitempty"`
 	// DecisionPeriod indicates the time in minutes for which a rule is evalated.
-	DecisionPeriod int `yaml:"decision_period,omitempty"`
+	DecisionPeriod int `yaml:"decision_period,omitempty" validate:"min=60"`
 	// Occurrences indicate the number of time a rule reached the threshold limit for a give decision period.
 	// It will be applicable only when the Stat is set to Count.
 	Occurrences int `yaml:"occurrences_percent,omitempty" validate:"required_if=Stat COUNT,max=100"`
