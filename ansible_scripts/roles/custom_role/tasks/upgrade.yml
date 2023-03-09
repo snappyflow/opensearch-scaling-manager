@@ -1,0 +1,398 @@
+---
+- name: register agent directory
+  stat:
+    path: "{{AGENTDIR}}"
+  register: agentdir
+
+- name: check if sfagent is installed or not
+  ansible.builtin.debug:
+    msg:
+    -  sfagent directory /opt/sfagent does not exist. 
+    -  installing sfagent
+  when: not agentdir.stat.exists
+
+- name : install sfagent
+  block:
+    - name: download fluentbit for systemd
+      shell: |
+        curl https://api.github.com/repos/snappyflow/apm-agent/releases?per_page=100 \
+            | grep -w "browser_download_url"|grep fluentbit \
+            | head -n 1 \
+            | cut -d":" -f 2,3 \
+            | tr -d '"' \
+            | xargs wget -q -N && mkdir -p /opt/td-agent-bit/bin && mkdir -p /etc/td-agent-bit/ 
+      args:
+        chdir: /tmp
+        warn: false
+      when: ansible_service_mgr == 'systemd'
+
+    - name: download fluentbit for others service manager(upstart)
+      shell: |
+        curl https://api.github.com/repos/snappyflow/apm-agent/releases?per_page=100 \
+            | grep -w "browser_download_url"|grep centos6-td-agent-bit \
+            | head -n 1 \
+            | cut -d":" -f 2,3 \
+            | tr -d '"' \
+            | xargs wget -q -N && mkdir -p /opt/td-agent-bit/bin && mkdir -p /etc/td-agent-bit/
+      args:
+        chdir: /tmp
+        warn: false
+      when: ansible_service_mgr != 'systemd'
+
+    - name: Install fluent-bit 
+      shell: tar -zxvf fluentbit.tar.gz >/dev/null && mv -f fluent-bit /opt/td-agent-bit/bin/td-agent-bit && mv -f GeoLite2-City.mmdb {{TDAGENTCONFDIR}} && mv -f uaparserserver /opt/td-agent-bit/bin/ && mv -f url-normalizer /opt/td-agent-bit/bin/ && mv -f td-agent-bit.conf /etc/td-agent-bit/  && rm fluentbit.tar.gz* && rm td-agent-bit.service
+      args:
+        chdir: /tmp
+        warn: false
+
+    - name: Configure logrotate
+      shell: |
+        cat > /etc/logrotate.d/td-agent-bit << EOF
+        /var/log/td-agent-bit.log {
+        daily
+        dateext
+        missingok
+        copytruncate
+        notifempty
+        compress
+        rotate 7
+        }
+        EOF
+
+    - name: remove files sfagent
+      shell: rm -rf checksum* sfagent* mappings normalization {{AGENTDIR}}
+      args:
+        chdir: /tmp
+        warn: false
+
+    - name: Create a Directory /opt/sfagent
+      file:
+        path: /opt/sfagent
+        state: directory
+
+    - name: Install sfagent started
+      shell: |
+        curl -sL {{ RELEASEURL }} \
+            | grep -w "browser_download_url" \
+            | cut -d":" -f 2,3 \
+            | tr -d '"' \
+            | xargs wget -q
+      args:
+        chdir: /opt/sfagent/
+        warn: false
+
+    - name: unzip sfagent
+      shell: tar -zxvf /opt/sfagent/sfagent*linux_{{ansible_architecture}}.tar.gz && rm sfagent*linux_* checksum*
+      args:
+        chdir: /opt/sfagent/
+        warn: false
+
+    - include_vars: ../config-params.yml
+      ignore_errors: yes
+
+    - name: generate config
+      shell: ./sfagent -generate-config
+      args:
+        chdir: /opt/sfagent
+
+    - name: config-generated.yaml verification
+      stat:
+        path: /opt/sfagent/config-generated.yaml
+      register: stat_result
+
+    - name: status of the config-generated.yaml
+      ansible.builtin.debug:
+        msg: successfully generated config-generated.yaml
+      when: stat_result.stat.exists
+
+    - name: status of the config-generated.yaml
+      ansible.builtin.debug:
+        msg: config-generated.yaml could not be generated
+      when: not stat_result.stat.exists
+      
+    - name: copy generated config to config.yaml
+      shell: cp config-generated.yaml config.yaml
+      args:
+        chdir: /opt/sfagent
+
+    - name: status of the config-generated.yaml
+      ansible.builtin.debug:
+        msg: successfully copied config-generated.yaml to config.yaml
+
+    - name: Replace values in config file
+      ansible.builtin.replace:
+        path: /opt/sfagent/config.yaml
+        regexp: '{{item.search}}'
+        replace: '{{ item.replace }}'
+      with_items:
+        - { search: "key: CHANGEME" , replace: 'key: {{key | default("")}}' }
+        - { search: "appName: CHANGEME" , replace: 'appName: {{appName | default("CHANGEME")}}' }
+        - { search: "projectName: CHANGEME" , replace: 'projectName: {{projectName | default("CHANGEME")}}' }
+        - { search: "Name: CHANGEME" , replace: 'Name: {{Name | default("CHANGEME")}}' }
+        - { search: "Name: $HOSTNAME" , replace: 'Name: {{Name | default("$HOSTNAME")}}' }
+
+    - name: create to env.conf
+      shell: echo "PATH={{DEFAULTPATH}}" > {{AGENTDIR}}/env.conf
+      args:
+        warn: false
+
+    - name: create sfagent service systemd
+      shell: |
+        cat > {{SERVICEFILE}} <<EOF
+        [Unit]
+        Description=snappyflow apm agent service
+        ConditionPathExists={{AGENTDIR}}/sfagent
+        After=network.target
+        [Service]
+        Type=simple
+        Restart=on-failure
+        RestartSec=10
+        WorkingDirectory={{AGENTDIR}}
+        EnvironmentFile=-{{AGENTDIR}}/env.conf
+        ExecStartPre=/bin/mkdir -p /var/log/sfagent
+        ExecStartPre=/bin/chmod 755 /var/log/sfagent
+        ExecStartPre=/bin/bash -c -e "/opt/sfagent/sfagent -config-file /opt/sfagent/config.yaml -check-config"
+        ExecStart=/bin/bash -c -e "/opt/sfagent/sfagent -config-file /opt/sfagent/config.yaml"
+        StandardOutput=syslog
+        StandardError=syslog
+        SyslogIdentifier=sfagent
+        [Install]
+        WantedBy=multi-user.target
+        EOF
+      when: ansible_service_mgr == 'systemd'
+
+    - name: create sfagent service for other service managers(upstart)
+      shell: |
+        cat > {{INITFILE}} <<EOF
+        #!/bin/bash
+        # sfagent daemon
+        # processname: sfagent
+        DAEMON_PATH="/opt/sfagent"
+        NAME=sfagent
+        DESC="My daemon description"
+        PIDFILE=/var/run/$NAME.pid
+        SCRIPTNAME=/etc/init.d/sfagent
+        LOG_PATH=/var/log/sfagent/sfagent.log
+        DAEMON=/opt/sfagent/sfagent
+        DAEMONOPTS="-config /opt/sfagent/config.yaml"
+        if [[ $# -eq 0 ]]; then
+            echo "Usage: $0 {start|stop|restart}"
+            exit 1
+        else
+            COMMAND="$1"
+        fi
+        case $COMMAND in
+        start)
+                printf "%-50s" "Starting $NAME..."
+                if [[ -f $PIDFILE ]]; then
+                        PID=`cat $PIDFILE`
+                        if [[ "`ps axf | grep ${PID} | grep -v grep`" ]]; then
+                                echo "sfagent is already running"
+                                exit 0
+                        fi
+                fi
+                cd $DAEMON_PATH
+                CMD="$DAEMON $DAEMONOPTS > /dev/null 2>&1"
+                echo $CMD
+                $CMD &
+                if [ $? -eq 0 ]; then
+                        printf "%s\n" "Ok"
+                        echo $! > $PIDFILE
+                else
+                        printf "%s\n" "Fail. Check logs $LOG_PATH"
+                        exit 1
+                fi
+        ;;
+        status)
+                printf "%-50s" "Checking $NAME..."
+                if [[ -f $PIDFILE ]]; then
+                        PID=`cat $PIDFILE`
+                        if [[ -z "`ps axf | grep ${PID} | grep -v grep`" ]]; then
+                                printf "%s\n" "Process dead but pidfile exists"
+                        else
+                                echo "Running"
+                        fi
+                else
+                        printf "%s\n" "Service not running"
+                fi
+        ;;
+        stop)
+                printf "%-50s" "Stopping $NAME"
+                if [[ -f $PIDFILE ]]; then
+                        PID=`cat $PIDFILE`
+                        kill -HUP $PID
+                        killall -w td-agent-bit
+                        printf "%s\n" "Ok"
+                        rm -f $PIDFILE
+                        exit 0
+                else
+                        printf "%s\n" "already stopped"
+                        exit 0
+                fi
+        ;;
+        restart)
+                $0 stop
+                $0 start
+        ;;
+        *)
+                echo "Usage: $0 {status|start|stop|restart}"
+                exit 1
+        esac
+        EOF 
+        chmod +x {{INITFILE}}
+      when: ansible_service_mgr != 'systemd'
+
+    - name: enable and restart sfagent service for systemd
+      shell: |
+        systemctl daemon-reload 
+        systemctl enable sfagent
+        service sfagent restart
+      when: ansible_service_mgr == 'systemd'
+
+    - name: download and unzip sftrace_file 
+      ansible.builtin.unarchive:
+        src: '{{SFTRACE_AGENT_x86_64}}'
+        dest: /opt/sfagent
+        remote_src: yes
+
+    - name: Install sftrace java-agent and python-agent started
+      shell: mv -f /opt/sfagent/sftrace/sftrace /bin && mv -f /opt/sfagent/sftrace/java/sftrace /opt/sfagent/sftrace 
+      args:
+        chdir: /opt/sfagent/
+
+    - name: install status
+      ansible.builtin.debug:
+        msg:
+        -  sfagent installed successfully.
+  when: not agentdir.stat.exists
+
+- name: upgrade sfagent
+  block:
+    - name: check if sfagent is installed or not
+      ansible.builtin.debug:
+        msg:
+        -  sfagent directory /opt/sfagent exists continuing with upgrade. 
+      when: agentdir.stat.exists
+
+    - name: check service file to stop service of sfagent
+      stat:
+        path: "{{SERVICEFILE}}"
+      register: service_file
+      when: agentdir.stat.exists
+
+    - name: Stop sfagent service, if started
+      ansible.builtin.service:
+        name: sfagent
+        state: stopped
+      when: service_file.stat.exists
+
+    - name: upgrading fluentbit for systemd
+      shell: |
+        curl https://api.github.com/repos/snappyflow/apm-agent/releases?per_page=100 \
+            | grep -w "browser_download_url"|grep fluentbit \
+            | head -n 1 \
+            | cut -d":" -f 2,3 \
+            | tr -d '"' \
+            | xargs wget -q -N 
+      args:
+        chdir: /tmp
+        warn: false
+      when: ansible_service_mgr == 'systemd'
+
+    - name: upgrading fluentbit for others service manager
+      shell: |
+        curl https://api.github.com/repos/snappyflow/apm-agent/releases?per_page=100 \
+            | grep -w "browser_download_url"|grep centos6-td-agent-bit \
+            | head -n 1 \
+            | cut -d":" -f 2,3 \
+            | tr -d '"' \
+            | xargs wget -q -N 
+      args:
+        chdir: /tmp
+        warn: false
+      when: ansible_service_mgr != 'systemd'
+
+    - name: upgrade fluent-bit 
+      shell: tar -zxvf fluentbit.tar.gz >/dev/null && mv -f fluent-bit /opt/td-agent-bit/bin/td-agent-bit && mv -f GeoLite2-City.mmdb {{TDAGENTCONFDIR}} && mv -f uaparserserver /opt/td-agent-bit/bin/ && mv -f url-normalizer /opt/td-agent-bit/bin/ && mv -f td-agent-bit.conf /etc/td-agent-bit/  && rm fluentbit.tar.gz* && rm td-agent-bit.service
+      args:
+        chdir: /tmp
+        warn: false
+
+    - name: Backingup config.yaml and customer scripts
+      shell: |
+        cp -f {{AGENTDIR}}/config.yaml _config_backup.yaml
+        [ -f {{AGENTDIR}}/normalization/config.yaml ] && cp {{AGENTDIR}}/normalization/config.yaml _norm_config_backup.yaml
+        [ -f {{AGENTDIR}}/mappings/custom_logging_plugins.yaml ] && cp {{AGENTDIR}}/mappings/custom_logging_plugins.yaml _custom_logging_backup.yaml
+        [ -f {{AGENTDIR}}/scripts/custom_scripts.lua ] && cp {{AGENTDIR}}/scripts/custom_scripts.lua _custom_script_backup.yaml
+      args:
+        chdir: /tmp
+        warn: false
+    - name: removing old files
+      shell: rm -rf checksum* sfagent* mappings normalization 
+      args:
+        chdir: /opt/sfagent
+        warn: false
+      
+    - name: upgrade sfagent started
+      shell: |
+        curl -sL {{ RELEASEURL }} \
+            | grep -w "browser_download_url" \
+            | cut -d":" -f 2,3 \
+            | tr -d '"' \
+            | xargs wget -q
+      args:
+        chdir: /tmp
+        warn: false
+      
+    - name: upgrade sfagent started
+      shell: |
+        tar -zxvf sfagent*linux_{{ansible_architecture}}.tar.gz >/dev/null 
+        mkdir -p {{AGENTDIR}}/normalization
+        mkdir -p {{AGENTDIR}}/certs
+        mkdir -p {{AGENTDIR}}/mappings
+        mv -f sfagent {{AGENTDIR}}
+        mv -f jolokia.jar {{AGENTDIR}}
+        mv -f mappings/* {{AGENTDIR}}/mappings/
+        mv -f scripts/* {{AGENTDIR}}/scripts/
+        mv -f certs/* {{AGENTDIR}}/certs/
+        mv -f normalization/* {{AGENTDIR}}/normalization/
+        mv -f config.yaml.sample {{AGENTDIR}}/config.yaml.sample     
+        rm sfagent*linux_* checksum* 
+      args:
+        chdir: /tmp
+        warn: false
+
+    - name: Copying back config.yaml and customer scripts
+      shell: |
+        mv -f _config_backup.yaml {{AGENTDIR}}/config.yaml
+        [ -f _norm_config_backup.yaml ] && yes | mv _norm_config_backup.yaml {{AGENTDIR}}/normalization/config.yaml
+        [ -f _custom_logging_backup.yaml ] && yes | mv _custom_logging_backup.yaml {{AGENTDIR}}/mappings/custom_logging_plugins.yaml
+        [ -f _custom_script_backup.yaml ] && yes | mv _custom_script_backup.yaml {{AGENTDIR}}/scripts/custom_scripts.lua
+      args:
+        chdir: /tmp
+        warn: false
+
+    - name: upgrading sftrace java-agent and python-agent started
+      shell: |
+        wget {{SFTRACE_AGENT_x86_64}}
+        mv -f /opt/sfagent/sftrace/java/elasticapm.properties .
+        rm -rf /opt/sfagent/sftrace
+        rm -rf /bin/sftrace
+        tar -zxvf sftrace-agent.tar.gz >/dev/null && mv -f sftrace /opt/sfagent && mv -f /opt/sfagent/sftrace/sftrace /bin && mv -f /opt/sfagent/sftrace/java/sftrace /opt/sfagent/sftrace
+        mv -f elasticapm.properties /opt/sfagent/sftrace/java/ && rm sftrace-agent.tar.gz* 
+      args:
+        chdir: /tmp
+        warn: false
+
+    - name: enable and restart sfagent service for systemd
+      shell: |
+        systemctl daemon-reload 
+        systemctl enable sfagent
+        service sfagent restart
+      when: ansible_service_mgr == 'systemd'
+      
+    - name: upgrade status
+      ansible.builtin.debug:
+        msg:
+        -  sfagent upgradeded successfully.
+  when: agentdir.stat.exists

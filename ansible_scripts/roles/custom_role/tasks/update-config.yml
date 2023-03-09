@@ -1,0 +1,24 @@
+---
+- include_vars: ../config-params.yml
+  ignore_errors: yes
+- name: backup config.yaml to config.yaml.bak
+  shell: cp config.yaml config.yaml.bak
+  args:
+    chdir: /opt/sfagent
+
+- name: update config file
+  ansible.builtin.replace:
+    path: /opt/sfagent/config.yaml
+    regexp: '{{item.search}}'
+    replace: '{{ item.replace }}'
+  with_items:
+    - { search: "key: CHANGEME" , replace: 'key: {{key | default("")}}' }
+    - { search: "appName: CHANGEME" , replace: 'appName: {{appName | default("CHANGEME")}}' }
+    - { search: "projectName: CHANGEME" , replace: 'projectName: {{projectName | default("CHANGEME")}}' }
+    - { search: "Name: CHANGEME" , replace: 'Name: {{Name | default("CHANGEME")}}' }
+    - { search: "Name: $HOSTNAME" , replace: 'Name: {{Name | default("$HOSTNAME")}}' }
+
+- name: Restart service sfagent
+  ansible.builtin.service:
+    name: sfagent
+    state: restarted

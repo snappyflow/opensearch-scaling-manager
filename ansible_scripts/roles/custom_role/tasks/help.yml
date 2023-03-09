@@ -1,0 +1,39 @@
+---
+- name: help
+  ansible.builtin.debug:
+    msg:
+    -  ----------------------------------------------------------------------------------------------------------
+    -  ----------------------------------------------------------------------------------------------------------
+    -  usage of sfagent ansible script
+    -  ----------------------------------------------------------------------------------------------------------
+    -  ----------------------------------------------------------------------------------------------------------
+    -  to uninstall use this command
+    -  ansible-playbook ansible-sfagent.yml --tags "uninstall" --key-file=<path to ssh key file>
+    -  ----------------------------------------------------------------------------------------------------------
+    -  to install use this command
+    -  ansible-playbook ansible-sfagent.yml --tags "install" --key-file=<path to ssh key file>
+    -  ----------------------------------------------------------------------------------------------------------
+    -  to install with extra-vars use this command
+    -  ansible-playbook ansible-sfagent.yml --tags "install" -e "env_vars=<something> include_paths=<something>" --key-file=<path to ssh key file>
+    -  ----------------------------------------------------------------------------------------------------------
+    -  to upgrade with extra-vars use this command
+    -  ansible-playbook ansible-sfagent.yml --tags "upgrade" -e "env_vars=<something> include_paths=<something>" --key-file=<path to ssh key file>
+    -  ----------------------------------------------------------------------------------------------------------
+    -  to upgrade use this command
+    -  ansible-playbook ansible-sfagent.yml --tags "upgrade" --key-file=<path to ssh key file>
+    -  ----------------------------------------------------------------------------------------------------------
+    -  to get help on the usage  use this command
+    -  ansible-playbook ansible-sfagent.yml --tags "help" --key-file=<path to ssh key file>
+    -  ----------------------------------------------------------------------------------------------------------
+    -  NOTE -e or --extra-vars is optional and is required if u pass extra variables from the command-line
+    -  ----------------------------------------------------------------------------------------------------------
+    -  NOTE --key-file can be optional as keyfile can be passed in hosts file as the below line
+    -  xxx.xxx.xxx.xxx ansible_user=username ansible_ssh_private_key_file=somepath/some.pem
+    -  where xxx.xxx.xxx.xxx is ip address
+    -  ----------------------------------------------------------------------------------------------------------
+    -  to update the config file use this command
+    -  ansible-playbook ansible-sfagent.yml --tags "update-config" --key-file=<path to ssh key file>
+    -  ----------------------------------------------------------------------------------------------------------
+    -  to generate config to auto discover applications use this command
+    -  ansible-playbook ansible-sfagent.yml --tags "generate-config" --key-file=<path to ssh key file>
+    -  ----------------------------------------------------------------------------------------------------------

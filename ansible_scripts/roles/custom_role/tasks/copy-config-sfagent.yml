@@ -1,0 +1,15 @@
+---
+- name: backup config.yaml to config.yaml.bak
+  shell: cp config.yaml config.yaml.bak
+  args:
+    chdir: /opt/sfagent
+
+- name: update config file
+  ansible.builtin.copy:
+    src: /opt/sfagent/config.yaml
+    dest: /opt/sfagent  
+
+- name: Restart service sfagent
+  ansible.builtin.service:
+    name: sfagent
+    state: restarted
