@@ -466,6 +466,14 @@ func CheckClusterHealth(state *State, usrCfg config.UserConfig, t *time.Time) {
 	simFlag := usrCfg.MonitorWithSimulator
 	isAccelerated := usrCfg.IsAccelerated
 	state.GetCurrentState()
+	clusterDynamic, _ := cluster.GetClusterCurrent(false)
+	if clusterDynamic.NumUnassignedShards > 0 {
+		log.Info.Println("Retrying to reroute unassigned shards once before waiting for rebalancing")
+		_, err := osutils.RerouteRetryFailed(context.Background())
+		if err != nil {
+			log.Error.Println("Failed to retry reroute", err)
+		}
+	}
 	for {
 		if simFlag {
 			_ = cluster_sim.GetClusterCurrent(isAccelerated)
@@ -482,7 +490,7 @@ func CheckClusterHealth(state *State, usrCfg config.UserConfig, t *time.Time) {
 			state.UpdateState()
 			break
 		} else {
-			log.Info.Println("Waiting for cluster to be healthy.......")
+			log.Info.Println("Waiting for cluster to rebalance.......")
 			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
 			if simFlag && isAccelerated {
 				fakeSleep(t)

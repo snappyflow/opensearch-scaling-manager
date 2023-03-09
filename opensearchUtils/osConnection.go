@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"github.com/maplelabs/opensearch-scaling-manager/logger"
 	"net/http"
 	"os"
-	"github.com/maplelabs/opensearch-scaling-manager/logger"
 
 	opensearch "github.com/opensearch-project/opensearch-go"
 	osapi "github.com/opensearch-project/opensearch-go/opensearchapi"
