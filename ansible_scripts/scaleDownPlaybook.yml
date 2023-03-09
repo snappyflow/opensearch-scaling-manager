@@ -29,3 +29,10 @@
       state: absent
       backup: yes
     with_items: "{{ groups['remove_node'] }}"
+
+- hosts: new_node
+  name: Custom role-based tasks for scale down
+  become: yes
+
+  roles:
+    - custom_scaledown_role
