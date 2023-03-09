@@ -114,7 +114,8 @@ type Rule struct {
 	// In the above example the cron job will run at 5:30 AM from Mon-Fri of every month
 	SchedulingTime string `yaml:"scheduling_time"`
 	// NumNodesRequired specifies the integer value of number of nodes to be present in cluster for event based scaling operations
-	NumNodesRequired int `yaml:"num_nodes_required"`
+	// To be implemented.
+	// NumNodesRequired int `yaml:"num_nodes_required"`
 }
 
 // This struct contains the task details which is set of actions.
