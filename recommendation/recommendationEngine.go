@@ -362,7 +362,7 @@ func CreateCronJob(eventTasks *config.TaskDetails, clusterCfg config.ClusterDeta
 		for _, rules := range cronTask.Rules {
 			rules := rules
 			cronJob.AddFunc(rules.SchedulingTime, func() {
-				provision.TriggerCron(rules.NumNodesRequired, t, clusterCfg, userCfg, rules.SchedulingTime, cronTask.TaskName)
+				provision.TriggerCron(t, clusterCfg, userCfg, rules.SchedulingTime, cronTask.TaskName)
 			})
 			cronJobList = append(cronJobList, cronJob)
 		}

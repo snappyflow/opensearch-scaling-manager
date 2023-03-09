@@ -244,7 +244,7 @@ func comparePreviousProvision(ruleResponsible string, operation string) bool {
 //		logs the event and returns
 //
 // Return:
-func TriggerCron(nodesRequired int, t *time.Time, clusterCfg config.ClusterDetails, userCfg config.UserConfig, ruleResponsible, task string) {
+func TriggerCron(t *time.Time, clusterCfg config.ClusterDetails, userCfg config.UserConfig, ruleResponsible, task string) {
 
 	state.GetCurrentState()
 	if state.CurrentState != "normal" {
