@@ -262,7 +262,7 @@ func TriggerCron(t *time.Time, clusterCfg config.ClusterDetails, userCfg config.
 	operation := subMatch[1]
 
 	numNodesProceed := checkNumNodesCondition(operation, clusterCfg, userCfg)
-	
+
 	if numNodesProceed {
 		log.Info.Println("The ", task, " is triggered as event based scaling and will be provisioned.")
 		TriggerProvision(clusterCfg, userCfg, numNodes, t, operation, ruleResponsible)

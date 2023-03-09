@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -268,30 +267,16 @@ func EvaluateRule(clusterMetric []byte, taskOperation string, pollingInterval in
 			panic(err)
 		}
 		if r.Stat == "COUNT" {
-			occurence, err := strconv.ParseFloat(strings.Replace(r.Occurrences, "%", "", -1), 64)
-			if err != nil {
-				log.Error.Println("Error reading the float from percentage value given in config")
-				return false
-			}
-			if strings.Contains(r.Occurrences, "%") {
-				counts := (r.DecisionPeriod * 60) / pollingInterval
-				if counts != 0 {
-					if taskOperation == "scale_up" && float64((clusterStats.ViolatedCount*100)/(counts)) >= occurence {
-						return true
-					} else if taskOperation == "scale_down" && float64((clusterStats.ViolatedCount*100)/(counts)) <= occurence {
-						return true
-					}
-				} else {
-					log.Error.Println("Divide by zero error. (Decision period/pollingInterval) ")
-					return false
+			counts := (r.DecisionPeriod * 60) / pollingInterval
+			if counts != 0 {
+				if taskOperation == "scale_up" && (clusterStats.ViolatedCount*100)/(counts) >= r.Occurrences {
+					return true
+				} else if taskOperation == "scale_down" && (clusterStats.ViolatedCount*100)/(counts) <= r.Occurrences {
+					return true
 				}
 			} else {
-				if taskOperation == "scale_up" && float64(clusterStats.ViolatedCount) > occurence ||
-					taskOperation == "scale_down" && float64(clusterStats.ViolatedCount) < occurence {
-					return true
-				} else {
-					return false
-				}
+				log.Error.Println("Divide by zero error. (Decision period/pollingInterval) ")
+				return false
 			}
 		} else if r.Stat == "TERM" {
 			if taskOperation == "scale_up" && clusterStats.ViolatedCount == clusterStats.TotalCount ||
@@ -305,16 +290,16 @@ func EvaluateRule(clusterMetric []byte, taskOperation string, pollingInterval in
 	return false
 }
 
-//	Input:
+//      Input:
 //
-// 	Caller:
-// 		Object of TaskDetails
+//      Caller:
+//              Object of TaskDetails
 //
-// 	Description:
-// 		Parser over the Tasks and seperates metric and event based tasks
+//      Description:
+//              Parser over the Tasks and seperates metric and event based tasks
 //
-// 	Return:
-// 		(*TaskDetails): Pointer to metric and event based Tasks
+//      Return:
+//              (*TaskDetails): Pointer to metric and event based Tasks
 
 func ParseTasks(taskDetails config.TaskDetails) (*config.TaskDetails, *config.TaskDetails) {
 	var metricTaskDetails = new(config.TaskDetails)
@@ -342,9 +327,9 @@ func ParseTasks(taskDetails config.TaskDetails) (*config.TaskDetails, *config.Ta
 //
 // Description:
 //
-//		At each polling interval creates the cron jobs based on the config file. It removes the Cron Jobs that were
-//	 added in previous polling interval and creates required jobs. It will use the list of tasks (cronTasks) to
-//		schedule and create cron job.
+//	       At each polling interval creates the cron jobs based on the config file. It removes the Cron Jobs that were
+//	added in previous polling interval and creates required jobs. It will use the list of tasks (cronTasks) to
+//	       schedule and create cron job.
 //
 // Return:
 func CreateCronJob(eventTasks *config.TaskDetails, clusterCfg config.ClusterDetails, userCfg config.UserConfig, t *time.Time) {
@@ -373,9 +358,9 @@ func CreateCronJob(eventTasks *config.TaskDetails, clusterCfg config.ClusterDeta
 // Input:
 //
 // Caller:
-//		Object of Task
+//              Object of Task
 // Description:
-//		PushToRecommendationQueue will be pushing the task which matches the criteria to recommendation queue.
+//              PushToRecommendationQueue will be pushing the task which matches the criteria to recommendation queue.
 //
 // Return:
 
