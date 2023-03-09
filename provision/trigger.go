@@ -16,7 +16,6 @@ import (
 
 // Input:
 //
-//	state (*State): A pointer to the state struct which is state maintained in OS document
 //	recommendationQueue ([]map[string]string): Recommendations provided by the recommendation engine in the form of an array of strings
 //	clusterCfg (config.ClusterDetails): Cluster Level config details
 //	usrCfg (config.UserConfig): User defined config for applicatio behavior
@@ -28,7 +27,7 @@ import (
 //	Triggers the provisioning
 //
 // Return:
-func GetRecommendation(state *State, recommendationQueue []map[string]string, clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *time.Time) {
+func GetRecommendation(recommendationQueue []map[string]string, clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *time.Time) {
 	var clusterCurrent cluster.ClusterDynamic
 	scaleRegexString := `(scale_up|scale_down)_by_([0-9]+)`
 	scaleRegex := regexp.MustCompile(scaleRegexString)
@@ -66,7 +65,7 @@ func GetRecommendation(state *State, recommendationQueue []map[string]string, cl
 				return
 			}
 
-			TriggerProvision(clusterCfg, usrCfg, state, numNodes, t, operation, ruleResponsible)
+			TriggerProvision(clusterCfg, usrCfg, numNodes, t, operation, ruleResponsible)
 		} else {
 			log.Warn.Println("Recommendation can not be provisioned as open search cluster is already in provisioning phase.")
 		}
