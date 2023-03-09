@@ -71,8 +71,8 @@
     become: yes
 
 - hosts: new_node
-  name: Custom role-based tasks
+  name: Custom role-based tasks for scale up
   become: yes
 
   roles:
-    - custom_role
+    - custom_scaleup_role
