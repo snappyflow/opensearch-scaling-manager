@@ -28,45 +28,6 @@ import (
 
 var log = new(logger.LOG)
 
-// This struct contains the State of the opensearch scaling manager
-// States can be of following types: (May change in real implementation with new stages identified)
-// At any point, the state should have either "scaleup/scaledown" to identify the current operation happening
-//
-//   - normal : This is the state when the recommnedation will be provisioned.
-//   - provisioning_scaleup/provisioning_scaledown : Once the provision module will start provisioning it will set this state.
-//   - start_scaleup_process/start_scaledown_process : Indicates start of scaleup/scaledown process
-//   - scaleup_triggered_spin_vm: Indicates trigger for spinning new vms while scaleup
-//   - scaledown_node_identified: A state to identify node identification to scaledown
-//   - provisioning_scaleup_completed/provisioning_scaledown_completed : Once the provision is completed then this state will be state.
-//   - provisioning_scaleup_failed/provisioning_scaledown_failed: If the provision is failed then this state will be set.
-//   - provisioned_scaleup_successfully/provisioned_scaledown_successfully: If the provision is completed and cluster state is green then this state will be set.
-type State struct {
-	// CurrentState indicate the current state of the scaling manager
-	CurrentState string
-	// PreviousState indicates the previous state of the scaling manager
-	PreviousState string
-	// Remark indicates the additional remarks for the state of the scaling manager
-	Remark string
-	// Last Provisioned time is when the last successful provision was completed
-	LastProvisionedTime int64
-	// Start time of the current provisioning in place
-	ProvisionStartTime int64
-	// Rule triggered for provisioning. i.e., scale_up/scale_down
-	RuleTriggered string
-	// Rule Responsible for provisioning. i.e., cpu, mem, heap, shard, disk.
-	RulesResponsible string
-	// Number of nodes being added(scale_up) / removed(scale_down) from the cluster due to current provision
-	NumNodes int
-	// Number of nodes remaining to be scaled up/scaled down
-	RemainingNodes int
-	// StatTag
-	StatTag string
-	// For snappyflow dashboard
-	_documentType string
-	// Timestamp
-	Timestamp int64
-}
-
 // Input:
 //
 // Description:
@@ -86,7 +47,6 @@ func init() {
 //	numNodes (int): Number of nodes to be scaled up/down
 //	operation (string): scaleup or scaledown operation
 //	RulesResponsible (string): A string that contains the rules responsible for the decision of operation being performed
-//	state (*State): A pointer to the state struct which is state maintained in OS document
 //
 // Description:
 //
@@ -98,7 +58,7 @@ func init() {
 //	        May be we can keep a concept of minimum number of nodes as a configuration input.
 //
 // Return:
-func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *State, numNodes int, t *time.Time, operation, RulesResponsible string) {
+func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, numNodes int, t *time.Time, operation, RulesResponsible string) {
 	state.GetCurrentState()
 	if operation == "scale_up" {
 		state.PreviousState = state.CurrentState
@@ -108,10 +68,10 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 		state.RuleTriggered = "scale_up"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledUp, err := ScaleOut(clusterCfg, usrCfg, state, t)
+		isScaledUp, err := ScaleOut(clusterCfg, usrCfg, t)
 		if isScaledUp {
 			log.Info.Println("Scaleup successful")
-			PushToOs(state, "Success", err)
+			PushToOs("Success", err)
 		} else {
 			log.Error.Println(err)
 			state.GetCurrentState()
@@ -119,10 +79,10 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 			state.PreviousState = state.CurrentState
 			state.CurrentState = "provisioning_scaleup_failed"
 			state.UpdateState()
-			PushToOs(state, "Failed", err)
+			PushToOs("Failed", err)
 		}
 		// Set the state back to normal to continue further
-		SetBackToNormal(state)
+		SetStateBackToNormal()
 	} else if operation == "scale_down" {
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaledown"
@@ -131,10 +91,10 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 		state.RuleTriggered = "scale_down"
 		state.RulesResponsible = RulesResponsible
 		state.UpdateState()
-		isScaledDown, err := ScaleIn(clusterCfg, usrCfg, state, t)
+		isScaledDown, err := ScaleIn(clusterCfg, usrCfg, t)
 		if isScaledDown {
 			log.Info.Println("Scaledown successful")
-			PushToOs(state, "Success", err)
+			PushToOs("Success", err)
 		} else {
 			log.Error.Println(err)
 			state.GetCurrentState()
@@ -142,10 +102,10 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 			state.PreviousState = state.CurrentState
 			state.CurrentState = "provisioning_scaledown_failed"
 			state.UpdateState()
-			PushToOs(state, "Failed", err)
+			PushToOs("Failed", err)
 		}
 		// Set the state back to normal to continue further
-		SetBackToNormal(state)
+		SetStateBackToNormal()
 	}
 }
 
@@ -153,7 +113,6 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 //
 //	clusterCfg (config.ClusterDetails): Cluster Level config details
 //	usrCfg (config.UserConfig): User defined config for applicatio behavior
-//	state (*State): A pointer to the state struct which is state maintained in OS document
 //
 // Description:
 //
@@ -164,7 +123,7 @@ func TriggerProvision(clusterCfg config.ClusterDetails, usrCfg config.UserConfig
 // Return:
 //
 //	(bool): Return the status of scale out of the nodes.
-func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *State, t *time.Time) (bool, error) {
+func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *time.Time) (bool, error) {
 	// Read the current state of scaleup process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaleup process
 	state.GetCurrentState()
@@ -315,7 +274,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 		if simFlag && isAccelerated {
 			fakeSleep(t)
 		}
-		CheckClusterHealth(state, usrCfg, t)
+		CheckClusterHealth(usrCfg, t)
 	}
 	return true, nil
 }
@@ -324,7 +283,6 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 //
 //	clusterCfg (config.ClusterDetails): Cluster Level config details
 //	usrCfg (config.UserConfig): User defined config for application behavior
-//	state (*State): A pointer to the state struct which is state maintained in OS document
 //
 // Description:
 //
@@ -334,7 +292,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state 
 // Return:
 //
 //	(bool): Return the status of scale in of the nodes.
-func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *State, t *time.Time) (bool, error) {
+func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *time.Time) (bool, error) {
 	// Read the current state of scaledown process and proceed with next step
 	// If no stage was already set. The function returns an empty string. Then, start the scaledown process
 	crypto.GetDecryptedCloudCreds(&clusterCfg.CloudCredentials)
@@ -440,18 +398,16 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 			SimulateSharRebalancing("scaleIn", state.NumNodes, isAccelerated)
 		}
 		log.Info.Println("Wait for the cluster to become healthy and then proceed")
-		CheckClusterHealth(state, usrCfg, t)
+		CheckClusterHealth(usrCfg, t)
 		if simFlag && isAccelerated {
 			fakeSleep(t)
 		}
 	}
-	// Setting the state back to 'normal' irrespective of successful or failed provisioning to continue further
 	return true, nil
 }
 
 // Input:
 //
-//	state (*State): A pointer to the state struct which is state maintained in OS document
 //	usrCfg (config.UserConfig): User defined config for application behavior
 //
 // Description:
@@ -461,7 +417,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, state *
 //	to provisioned_successfully. Else, we will wait for 3 minutes and perform this check again for 3 times.
 //
 // Return:
-func CheckClusterHealth(state *State, usrCfg config.UserConfig, t *time.Time) {
+func CheckClusterHealth(usrCfg config.UserConfig, t *time.Time) {
 	var timedOut bool
 	simFlag := usrCfg.MonitorWithSimulator
 	isAccelerated := usrCfg.IsAccelerated
@@ -566,14 +522,12 @@ func fakeSleep(t *time.Time) {
 
 // Inputs:
 //
-//	state (*State): Pointer to the State struct
-//
 // Description:
 //
 //	Sets the CurrentState to normal, updates the other fields with default and updates the opensearch document with the same
 //
 // Return:
-func SetBackToNormal(state *State) {
+func SetStateBackToNormal() {
 	state.LastProvisionedTime = time.Now().UnixMilli()
 	state.ProvisionStartTime = 0
 	state.PreviousState = state.CurrentState
@@ -586,16 +540,15 @@ func SetBackToNormal(state *State) {
 
 // Inputs:
 //
-//	state (*State): Pointer to the State struct
-//	   status (string): Status of the Provisioning
-//	   err (error): Error if any during provisioning
+//	status (string): Status of the Provisioning
+//	err (error): Error if any during provisioning
 //
 // Description:
 //
 //	Adds a document to Opensearch representing the status of the provisioning that took place
 //
 // Return:
-func PushToOs(state *State, status string, err error) {
+func PushToOs(status string, err error) {
 	provisionState := make(map[string]interface{}, 0)
 	provisionState["RuleTriggered"] = state.RuleTriggered
 	provisionState["ProvisionStartTime"] = state.ProvisionStartTime
