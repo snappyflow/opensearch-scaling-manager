@@ -149,12 +149,12 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *tim
 	case "start_scaleup_process":
 		if monitorWithLogs {
 			log.Info.Println("Spin new vms based on the cloud type")
-			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.RecommendationPollingInterval) * time.Second)
 			if simFlag && isAccelerated {
 				fakeSleep(t)
 			}
 			log.Info.Println("Spinning AWS instance")
-			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.RecommendationPollingInterval) * time.Second)
 			if simFlag && isAccelerated {
 				fakeSleep(t)
 			}
@@ -178,12 +178,12 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *tim
 		newNodeIp = state.NodeIp
 		if monitorWithLogs {
 			log.Info.Println("Adding the spinned nodes into the list of vms")
-			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.RecommendationPollingInterval) * time.Second)
 			if simFlag && isAccelerated {
 				fakeSleep(t)
 			}
 			log.Info.Println("Configure ES")
-			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.RecommendationPollingInterval) * time.Second)
 			if simFlag && isAccelerated {
 				fakeSleep(t)
 			}
@@ -320,7 +320,7 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *time
 	case "start_scaledown_process":
 		log.Info.Println("Identify the node to remove from the cluster and store the node_ip")
 		if monitorWithLogs {
-			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.RecommendationPollingInterval) * time.Second)
 			if simFlag && isAccelerated {
 				fakeSleep(t)
 			}
@@ -348,12 +348,12 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *time
 		removeNodeName = state.NodeName
 		if monitorWithLogs {
 			log.Info.Println("Configure ES to remove the node ip from cluster")
-			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.RecommendationPollingInterval) * time.Second)
 			if simFlag && isAccelerated {
 				fakeSleep(t)
 			}
 			log.Info.Println("Shutdown the node by ssh")
-			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.RecommendationPollingInterval) * time.Second)
 			if simFlag && isAccelerated {
 				fakeSleep(t)
 			}
@@ -459,7 +459,7 @@ func CheckClusterHealth(usrCfg config.UserConfig, t *time.Time) {
 			break
 		} else {
 			log.Info.Println("Waiting for cluster to rebalance.......")
-			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
+			time.Sleep(time.Duration(usrCfg.RecommendationPollingInterval) * time.Second)
 			if simFlag && isAccelerated {
 				fakeSleep(t)
 			}

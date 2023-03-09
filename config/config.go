@@ -63,11 +63,12 @@ type ClusterDetails struct {
 
 // Config for application behaviour from user
 type UserConfig struct {
-	MonitorWithLogs      bool `yaml:"monitor_with_logs"`
-	MonitorWithSimulator bool `yaml:"monitor_with_simulator"`
-	PurgeAfter           int  `yaml:"purge_old_docs_after_hours" validate:"required"`
-	PollingInterval      int  `yaml:"polling_interval_in_secs" validate:"required"`
-	IsAccelerated        bool `yaml:"is_accelerated"`
+	MonitorWithLogs               bool `yaml:"monitor_with_logs"`
+	MonitorWithSimulator          bool `yaml:"monitor_with_simulator"`
+	PurgeAfter                    int  `yaml:"purge_old_docs_after_hours" validate:"required"`
+	RecommendationPollingInterval int  `yaml:"recommendation_polling_interval_in_secs" validate:"required"`
+	FetchPollingInterval          int  `yaml:"fetchmetrics_polling_interval_in_secs" validate:"required"`
+	IsAccelerated                 bool `yaml:"is_accelerated"`
 }
 
 // This struct contains the data structure to parse the configuration file.
@@ -86,33 +87,34 @@ type Task struct {
 	// Operator indicates the logical operation needs to be performed while executing the rules
 	Operator string `yaml:"operator" validate:"required,oneof=AND OR EVENT"`
 }
+
 // This struct contains the rule.
 type Rule struct {
-// Metic indicates the name of the metric. These can be:
+	// Metic indicates the name of the metric. These can be:
 	//      Cpu
 	//      Mem
 	//      Shard
-	Metric string `yaml:"metric"`
+	Metric string `yaml:"metric,omitempty"`
 	// Limit indicates the threshold value for a metric.
 	// If this threshold is achieved for a given metric for the decision periond then the rule will be activated.
-	Limit float32 `yaml:"limit"`
+	Limit float32 `yaml:"limit,omitempty"`
 	// Stat indicates the statistics on which the evaluation of the rule will happen.
 	// For Cpu and Mem the values can be:
 	//              Avg: The average CPU or MEM value will be calculated for a given decision period.
 	//              Count: The number of occurences where CPU or MEM value crossed the threshold limit.
 	//              Term:
 	// For rule: Shard, the stat will not be applicable as the shard will be calculated across the cluster and is not a statistical value.
-	Stat string `yaml:"stat"`
+	Stat string `yaml:"stat,omitempty"`
 	// DecisionPeriod indicates the time in minutes for which a rule is evalated.
-	DecisionPeriod int `yaml:"decision_period"`
+	DecisionPeriod int `yaml:"decision_period,omitempty"`
 	// Occurrences indicate the number of time a rule reached the threshold limit for a give decision period.
 	// It will be applicable only when the Stat is set to Count.
-	Occurrences string `yaml:"occurrences"` 
+	Occurrences int `yaml:"occurrences_percent,omitempty" validate:"required_if=Stat COUNT,max=100"`
 	// Scheduling time indicates cron time expression to schedule scaling operations
 	// Example:
 	// SchedulingTime = "30 5 * * 1-5"
 	// In the above example the cron job will run at 5:30 AM from Mon-Fri of every month
-	SchedulingTime string `yaml:"scheduling_time"`
+	SchedulingTime string `yaml:"scheduling_time,omitempty"`
 	// NumNodesRequired specifies the integer value of number of nodes to be present in cluster for event based scaling operations
 	// To be implemented.
 	// NumNodesRequired int `yaml:"num_nodes_required"`
@@ -136,7 +138,6 @@ type TaskDetails struct {
 // Description:
 //
 //	This function will be parsing the provided configuration file and populate the ConfigStruct.
-//
 func GetConfig() (ConfigStruct, error) {
 	yamlConfig, err := os.Open(ConfigFileName)
 	if err != nil {
@@ -156,13 +157,16 @@ func GetConfig() (ConfigStruct, error) {
 }
 
 // Inputs:
-//      config (ConfigStruct): config structure populated with unmarshalled data.
+//
+//	config (ConfigStruct): config structure populated with unmarshalled data.
 //
 // Description:
-//      This function will be validating the configuration structure.
+//
+//	This function will be validating the configuration structure.
 //
 // Return:
-//      (error): Return the error if there is a validation error.
+//
+//	(error): Return the error if there is a validation error.
 func validation(config ConfigStruct) error {
 	validate := validator.New()
 	validate.RegisterValidation("isValidName", isValidName)
@@ -224,7 +228,7 @@ func RuleStructLevelValidation(sl validator.StructLevel) {
 	rule := sl.Current().Interface().(Rule)
 
 	if tasks.Operator == "AND" || tasks.Operator == "OR" {
-		if rule.Stat != "COUNT" && rule.Occurrences != "" {
+		if rule.Stat != "COUNT" && rule.Occurrences > 0 {
 			sl.ReportError(rule.Stat, "occurrences", "Occurrences", "excluded_unless", "")
 		}
 		if rule.Metric != "CpuUtil" && rule.Metric != "RamUtil" && rule.Metric != "DiskUtil" &&
@@ -245,7 +249,7 @@ func RuleStructLevelValidation(sl validator.StructLevel) {
 			sl.ReportError(rule.SchedulingTime, "SchedulingTime", "scheduling_time", "required", "")
 		}
 		// if rule.NumNodesRequired <= 0 {
-		// 	sl.ReportError(rule.NumNodesRequired, "NumNodesRequired", "number_of_node", "required", "")
+		//      sl.ReportError(rule.NumNodesRequired, "NumNodesRequired", "number_of_node", "required", "")
 		// }
 	}
 }

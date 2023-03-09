@@ -46,11 +46,10 @@ type State struct {
 	_documentType string
 	// Timestamp
 	Timestamp int64
-        // Node Ip storage
-        NodeIp   string
-        // Node Name
-        NodeName string
-
+	// Node Ip storage
+	NodeIp string
+	// Node Name
+	NodeName string
 }
 
 var state = new(State)
