@@ -116,10 +116,10 @@ func Run() {
 			clusterCfg := configStruct.ClusterDetails
 			metricTasks, eventTasks := recommendation.ParseTasks(task)
 			if len(eventTasks.Tasks) > 0 {
-				recommendation.CreateCronJob(state, eventTasks, clusterCfg, userCfg, t)
+				recommendation.CreateCronJob(eventTasks, clusterCfg, userCfg, t)
 			}
 			recommendationList := recommendation.EvaluateTask(userCfg.PollingInterval, userCfg.MonitorWithSimulator, userCfg.IsAccelerated, metricTasks)
-			provision.GetRecommendation(state, recommendationList, clusterCfg, userCfg, t)
+			provision.GetRecommendation(recommendationList, clusterCfg, userCfg, t)
 			if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
 				*t = t.Add(time.Minute * 5)
 			}
@@ -153,26 +153,26 @@ func periodicProvisionCheck(pollingInterval int, t *time.Time) {
 				}
 				if strings.Contains(state.CurrentState, "scaleup") {
 					log.Debug.Println("Calling scaleOut")
-					isScaledUp, err := provision.ScaleOut(configStruct.ClusterDetails, configStruct.UserConfig, state, t)
+					isScaledUp, err := provision.ScaleOut(configStruct.ClusterDetails, configStruct.UserConfig, t)
 					if isScaledUp {
 						log.Info.Println("Scaleup completed successfully")
-						provision.PushToOs(state, "Success", err)
+						provision.PushToOs("Success", err)
 					} else {
 						log.Warn.Println("Scaleup failed", err)
-						provision.PushToOs(state, "Failed", err)
+						provision.PushToOs("Failed", err)
 					}
-					provision.SetBackToNormal(state)
+					provision.SetStateBackToNormal()
 				} else if strings.Contains(state.CurrentState, "scaledown") {
 					log.Debug.Println("Calling scaleIn")
-					isScaledDown, err := provision.ScaleIn(configStruct.ClusterDetails, configStruct.UserConfig, state, t)
+					isScaledDown, err := provision.ScaleIn(configStruct.ClusterDetails, configStruct.UserConfig, t)
 					if isScaledDown {
 						log.Info.Println("Scaledown completed successfully")
-						provision.PushToOs(state, "Success", err)
+						provision.PushToOs("Success", err)
 					} else {
 						log.Warn.Println("Scaledown failed", err)
-						provision.PushToOs(state, "Failed", err)
+						provision.PushToOs("Failed", err)
 					}
-					provision.SetBackToNormal(state)
+					provision.SetStateBackToNormal()
 				}
 				if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
 					*t = t.Add(time.Minute * 5)

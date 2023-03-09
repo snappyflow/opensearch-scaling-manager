@@ -347,7 +347,7 @@ func ParseTasks(taskDetails config.TaskDetails) (*config.TaskDetails, *config.Ta
 //		schedule and create cron job.
 //
 // Return:
-func CreateCronJob(state *provision.State, eventTasks *config.TaskDetails, clusterCfg config.ClusterDetails, userCfg config.UserConfig, t *time.Time) {
+func CreateCronJob(eventTasks *config.TaskDetails, clusterCfg config.ClusterDetails, userCfg config.UserConfig, t *time.Time) {
 	for _, cronJob := range cronJobList {
 		for _, jobs := range cronJob.Entries() {
 			cronJob.Remove(jobs.ID)
@@ -362,7 +362,7 @@ func CreateCronJob(state *provision.State, eventTasks *config.TaskDetails, clust
 		for _, rules := range cronTask.Rules {
 			rules := rules
 			cronJob.AddFunc(rules.SchedulingTime, func() {
-				provision.TriggerCron(rules.NumNodesRequired, t, state, clusterCfg, userCfg, rules.SchedulingTime, cronTask.TaskName)
+				provision.TriggerCron(rules.NumNodesRequired, t, clusterCfg, userCfg, rules.SchedulingTime, cronTask.TaskName)
 			})
 			cronJobList = append(cronJobList, cronJob)
 		}
