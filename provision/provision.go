@@ -166,6 +166,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *tim
 			}
 		}
 		log.Info.Println("Spinned a new node: ", newNodeIp)
+		state.NodeIp = newNodeIp
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "scaleup_triggered_spin_vm"
 		state.UpdateState()
@@ -173,6 +174,8 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *tim
 	// Add the newly added VM to the list of VMs
 	// Configure OS on newly created VM
 	case "scaleup_triggered_spin_vm":
+		state.GetCurrentState()
+		newNodeIp = state.NodeIp
 		if monitorWithLogs {
 			log.Info.Println("Adding the spinned nodes into the list of vms")
 			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
@@ -227,6 +230,8 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *tim
 		state.UpdateState()
 		fallthrough
 	case "provisioning_scaleup_configured":
+		state.GetCurrentState()
+		newNodeIp = state.NodeIp
 		// Check if node has joined the cluster
 		log.Info.Println("Waiting for new node to join the cluster...")
 		time.Sleep(40 * time.Second)
@@ -329,6 +334,8 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *time
 				}
 			}
 		}
+		state.NodeIp = removeNodeIp
+		state.NodeName = removeNodeName
 		log.Info.Println("Node identified for removal: ", removeNodeName, removeNodeIp)
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "scaledown_node_identified"
@@ -336,6 +343,9 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *time
 		fallthrough
 	// Configure OS to tell master node that the present node is going to be removed
 	case "scaledown_node_identified":
+		state.GetCurrentState()
+		removeNodeIp = state.NodeIp
+		removeNodeName = state.NodeName
 		if monitorWithLogs {
 			log.Info.Println("Configure ES to remove the node ip from cluster")
 			time.Sleep(time.Duration(usrCfg.PollingInterval) * time.Second)
@@ -381,6 +391,8 @@ func ScaleIn(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *time
 		state.UpdateState()
 		fallthrough
 	case "provisioned_scaledown_on_cluster":
+		state.GetCurrentState()
+		removeNodeIp = state.NodeIp
 		log.Info.Println("Terminating the instance")
 		terminateErr := TerminateInstance(removeNodeIp, clusterCfg.CloudCredentials)
 		if terminateErr != nil {
