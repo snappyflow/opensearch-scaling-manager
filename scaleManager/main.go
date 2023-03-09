@@ -55,7 +55,7 @@ func Initialize() {
 	userCfg := configStruct.UserConfig
 
 	if !userCfg.MonitorWithSimulator {
-		go fetch.FetchMetrics(userCfg.PollingInterval, userCfg.PurgeAfter)
+		go fetch.FetchMetrics(userCfg.FetchPollingInterval, userCfg.PurgeAfter)
 	}
 
 }
@@ -84,8 +84,8 @@ func Run() {
 	go fileWatch(configStruct)
 
 	// A periodic check if there is a change in master node to pick up incomplete provisioning
-	go periodicProvisionCheck(configStruct.UserConfig.PollingInterval, t)
-	ticker := time.NewTicker(time.Duration(configStruct.UserConfig.PollingInterval) * time.Second)
+	go periodicProvisionCheck(configStruct.UserConfig.RecommendationPollingInterval, t)
+	ticker := time.NewTicker(time.Duration(configStruct.UserConfig.RecommendationPollingInterval) * time.Second)
 	for ; true; <-ticker.C {
 		var isMaster bool
 		if configStruct.UserConfig.MonitorWithSimulator {
@@ -114,7 +114,11 @@ func Run() {
 			task.Tasks = configStruct.TaskDetails
 			userCfg := configStruct.UserConfig
 			clusterCfg := configStruct.ClusterDetails
-			recommendationList := recommendation.EvaluateTask(userCfg.PollingInterval, userCfg.MonitorWithSimulator, userCfg.IsAccelerated, task)
+			metricTasks, eventTasks := recommendation.ParseTasks(task)
+			if len(eventTasks.Tasks) > 0 {
+				recommendation.CreateCronJob(eventTasks, clusterCfg, userCfg, t)
+			}
+			recommendationList := recommendation.EvaluateTask(userCfg.RecommendationPollingInterval, userCfg.MonitorWithSimulator, userCfg.IsAccelerated, metricTasks)
 			provision.GetRecommendation(recommendationList, clusterCfg, userCfg, t)
 			if configStruct.UserConfig.MonitorWithSimulator && configStruct.UserConfig.IsAccelerated {
 				*t = t.Add(time.Minute * 5)

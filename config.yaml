@@ -1,86 +1,95 @@
 ---
 user_config:
-  monitor_with_logs: true
-  monitor_with_simulator: false
-  # Purge fetchMetrics documents after this time
-  purge_old_docs_after_hours: 72
-  polling_interval_in_secs: 300
-  is_accelerated: false
+    monitor_with_logs: true
+    monitor_with_simulator: false
+    # Purge fetchMetrics documents after this time
+    purge_old_docs_after_hours: 72
+    recommendation_polling_interval_in_secs: 300
+    fetchmetrics_polling_interval_in_secs: 300
+    is_accelerated: false
 cluster_details:
-  # AWS launch template ID
-  launch_template_id: abc
-  launch_template_version: '1'
-  # opensearch cluster name
-  cluster_name: cluster.1
-  # opensearch credentials
-  os_credentials:
-    os_admin_username: admin
-    os_admin_password: admin
-  # ssh login username & group
-  os_user: ubuntu
-  os_group: ubuntu
-  # opensearch version
-  os_version: 2.3.0
-  # Default opensearch config path.
-  os_home: /usr/share/opensearch
-  # Domain name for opensearch nodes. It is required to configure SSL. 
-  domain_name: snappyflow.com
-  cloud_type: AWS
-  cloud_credentials:
+    # opensearch cluster name
+    cluster_name: cluster.1
+    cloud_type: AWS
+    # Maximum number of nodes at any point in the cluster
+    max_nodes_allowed: 10
+    # Minimum number of nodes at any point in the cluster
+    min_nodes_allowed: 3
+    # AWS launch template ID
+    launch_template_id: lt-000123f47e5c68904
+    launch_template_version: "1"
+    # ssh login username & group
+    os_user: ubuntu
+    os_group: ubuntu
+    # opensearch version
+    os_version: 2.3.0
+    # Default opensearch config path.
+    os_home: /usr/share/opensearch
+    # Domain name for opensearch nodes. It is required to configure SSL.
+    domain_name: snappyflow.com
+    # opensearch credentials
+    os_credentials:
+        os_admin_username: admin
+        os_admin_password: admin
     # Either give secret_key & access_key or role_arn
-    secret_key: secret_key
-    access_key: access_key
-    pem_file_path: /usr/share/pemfile.pem
-    region: us-west-2
-    role_arn: arn:aws:iam::123456789000:role/ADMIN-ROLE
-  # Maximum number of nodes at any point in the cluster
-  max_nodes_allowed: 10
-  # Minimum number of nodes at any point in the cluster
-  min_nodes_allowed: 3
-  # Specify the percent of RAM to be allocated to HEAP. Ex: 0.5 = 50% of RAM to be allocated as Heap memory
-  # Please note that this factory multiplied by your RAM should not exceed 32GB
-  # Also, this value can't be greater than 50% as that is the max RAM that can be allocated to heap
-  jvm_factor: 0.5
+    cloud_credentials:
+        pem_file_path: /usr/share/pemfile.pem
+        secret_key: secret_key
+        access_key: access_key
+        region: us-west-2
+        role_arn: arn:aws:iam::123456789000:role/ADMIN-ROLE
+    # Specify the percent of RAM to be allocated to HEAP. Ex: 0.5 = 50% of RAM to be allocated as Heap memory
+    # Please note that this factory multiplied by your RAM should not exceed 32GB
+    # Also, this value can't be greater than 50% as that is the max RAM that can be allocated to heap
+    jvm_factor: 0.5
 task_details:
-  - task_name: scale_up_by_1
-    operator: OR
-    rules:
-      - metric: CpuUtil
-        limit: 80
-        stat: AVG
-        decision_period: 180
-      - metric: CpuUtil
-        limit: 80
-        stat: COUNT
-        occurrences: 90%
-        decision_period: 180
-      - metric: RamUtil
-        limit: 90
-        stat: COUNT
-        occurrences: 30
-        decision_period: 180
-      - metric: ShardsPerGB
-        limit: 30
-        stat: TERM
-        decision_period: 180
-      - metric: DiskUtil
-        limit: 80
-        stat: COUNT
-        occurrences: 30
-        decision_period: 180
-  - task_name: scale_down_by_1
-    operator: AND
-    rules:
-      - metric: CpuUtil
-        limit: 30
-        stat: AVG
-        decision_period: 720
-      - metric: RamUtil
-        limit: 45
-        stat: AVG
-        decision_period: 720
-      - metric: DiskUtil
-        limit: 50
-        stat: COUNT
-        occurrences: 30
-        decision_period: 720
+    - task_name: scale_up_by_1
+      operator: OR
+      rules:
+        - metric: CpuUtil
+          limit: 80
+          stat: AVG
+          decision_period: 180
+        - metric: CpuUtil
+          limit: 80
+          stat: COUNT
+          decision_period: 180
+          occurrences_percent: 90
+        - metric: RamUtil
+          limit: 90
+          stat: COUNT
+          decision_period: 180
+          occurrences_percent: 30
+        - metric: ShardsPerGB
+          limit: 30
+          stat: TERM
+          decision_period: 180
+        - metric: DiskUtil
+          limit: 80
+          stat: COUNT
+          decision_period: 180
+          occurrences_percent: 30
+    - task_name: scale_up_by_1
+      operator: EVENT
+      rules:
+        - scheduling_time: 0 0 * * 1
+    - task_name: scale_down_by_1
+      operator: EVENT
+      rules:
+        - scheduling_time: 0 0 * * 5
+    - task_name: scale_down_by_1
+      operator: AND
+      rules:
+        - metric: CpuUtil
+          limit: 30
+          stat: AVG
+          decision_period: 720
+        - metric: RamUtil
+          limit: 45
+          stat: AVG
+          decision_period: 720
+        - metric: DiskUtil
+          limit: 50
+          stat: COUNT
+          decision_period: 720
+          occurrences_percent: 30
