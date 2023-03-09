@@ -107,7 +107,7 @@ type Rule struct {
 	DecisionPeriod int `yaml:"decision_period"`
 	// Occurrences indicate the number of time a rule reached the threshold limit for a give decision period.
 	// It will be applicable only when the Stat is set to Count.
-	Occurrences string `yaml:"occurrences" validate:"required_if=Stat COUNT,omitempty,isValidOccurrences"`
+	Occurrences string `yaml:"occurrences"` 
 	// Scheduling time indicates cron time expression to schedule scaling operations
 	// Example:
 	// SchedulingTime = "30 5 * * 1-5"
@@ -167,7 +167,6 @@ func validation(config ConfigStruct) error {
 	validate := validator.New()
 	validate.RegisterValidation("isValidName", isValidName)
 	validate.RegisterValidation("isValidTaskName", isValidTaskName)
-	validate.RegisterValidation("isValidOccurrences", isValidOccurrences)
 	validate.RegisterStructValidation(RuleStructLevelValidation, Rule{})
 	err := validate.Struct(config)
 	return err
@@ -189,28 +188,6 @@ func isValidName(fl validator.FieldLevel) bool {
 	nameRegex := regexp.MustCompile(nameRegexString)
 
 	return nameRegex.MatchString(fl.Field().String())
-}
-
-// Inputs:
-//
-//	fl (validator.FieldLevel): The field which needs to be validated.
-//
-// Description:
-//
-//	This function will be validating the occurrences field.
-//
-// Return:
-//
-//	(bool): Return true if there is a valid occurrences field value else false.
-func isValidOccurrences(f1 validator.FieldLevel) bool {
-	occurrencesRegexString := `^\s*[1-9][0-9]{0,2}\s*$|^\s*[1-9][0-9]{0,2}%\s*$`
-	occurrencesRegex := regexp.MustCompile(occurrencesRegexString)
-
-	if f1.Parent().Interface().(Rule).Stat != "COUNT" && f1.Field().String() != "" {
-		return false
-	}
-
-	return occurrencesRegex.MatchString(f1.Field().String())
 }
 
 // Inputs:
@@ -247,6 +224,9 @@ func RuleStructLevelValidation(sl validator.StructLevel) {
 	rule := sl.Current().Interface().(Rule)
 
 	if tasks.Operator == "AND" || tasks.Operator == "OR" {
+		if rule.Stat != "COUNT" && rule.Occurrences != "" {
+			sl.ReportError(rule.Stat, "occurrences", "Occurrences", "excluded_unless", "")
+		}
 		if rule.Metric != "CpuUtil" && rule.Metric != "RamUtil" && rule.Metric != "DiskUtil" &&
 			rule.Metric != "HeapUtil" && rule.Metric != "NumShards" && rule.Metric != "ShardsPerGB" {
 			sl.ReportError(rule.Metric, "metric", "Metric", "OneOf", "")
@@ -264,9 +244,9 @@ func RuleStructLevelValidation(sl validator.StructLevel) {
 		if rule.SchedulingTime == "" {
 			sl.ReportError(rule.SchedulingTime, "SchedulingTime", "scheduling_time", "required", "")
 		}
-		if rule.NumNodesRequired <= 0 {
-			sl.ReportError(rule.NumNodesRequired, "NumNodesRequired", "number_of_node", "required", "")
-		}
+		// if rule.NumNodesRequired <= 0 {
+		// 	sl.ReportError(rule.NumNodesRequired, "NumNodesRequired", "number_of_node", "required", "")
+		// }
 	}
 }
 
