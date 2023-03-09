@@ -57,7 +57,7 @@ func init() {
 // Return:
 //              ([]map[string]string): Returns an array of the recommendations.
 
-func EvaluateTask(pollingInterval int, simFlag, isAccelerated bool, t config.TaskDetails) []map[string]string {
+func EvaluateTask(pollingInterval int, simFlag, isAccelerated bool, t *config.TaskDetails) []map[string]string {
 	var recommendationArray []map[string]string
 	var isRecommendedTask bool
 	for _, v := range t.Tasks {

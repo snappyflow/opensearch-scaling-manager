@@ -84,30 +84,30 @@ type Task struct {
 	// Rules indicates list of rules to evaluate the criteria for the recomm+endation engine.
 	Rules []Rule `yaml:"rules" validate:"gt=0,dive"`
 	// Operator indicates the logical operation needs to be performed while executing the rules
-	Operator string `yaml:"operator" validate:"required,oneof=AND OR"`
+	Operator string `yaml:"operator" validate:"required,oneof=AND OR EVENT"`
 }
 // This struct contains the rule.
 type Rule struct {
-	// Metic indicates the name of the metric. These can be:
+// Metic indicates the name of the metric. These can be:
 	//      Cpu
 	//      Mem
 	//      Shard
-	Metric string `yaml:"metric" validate:"required,oneof=CpuUtil RamUtil HeapUtil DiskUtil ShardsPerGB"`
+	Metric string `yaml:"metric"`
 	// Limit indicates the threshold value for a metric.
 	// If this threshold is achieved for a given metric for the decision periond then the rule will be activated.
-	Limit float32 `yaml:"limit" validate:"required"`
+	Limit float32 `yaml:"limit"`
 	// Stat indicates the statistics on which the evaluation of the rule will happen.
 	// For Cpu and Mem the values can be:
 	//              Avg: The average CPU or MEM value will be calculated for a given decision period.
 	//              Count: The number of occurences where CPU or MEM value crossed the threshold limit.
 	//              Term:
 	// For rule: Shard, the stat will not be applicable as the shard will be calculated across the cluster and is not a statistical value.
-	Stat string `yaml:"stat" validate:"required,oneof=AVG COUNT TERM"`
+	Stat string `yaml:"stat"`
 	// DecisionPeriod indicates the time in minutes for which a rule is evalated.
-	DecisionPeriod int `yaml:"decision_period" validate:"required,min=1"`
+	DecisionPeriod int `yaml:"decision_period"`
 	// Occurrences indicate the number of time a rule reached the threshold limit for a give decision period.
 	// It will be applicable only when the Stat is set to Count.
-	Occurrences string `yaml:"occurrences" validate:"required_if=Stat COUNT"`
+	Occurrences string `yaml:"occurrences" validate:"required_if=Stat COUNT,omitempty,isValidOccurrences"`
 	// Scheduling time indicates cron time expression to schedule scaling operations
 	// Example:
 	// SchedulingTime = "30 5 * * 1-5"
@@ -162,11 +162,11 @@ func GetConfig() (ConfigStruct, error) {
 //
 // Return:
 //      (error): Return the error if there is a validation error.
-
 func validation(config ConfigStruct) error {
 	validate := validator.New()
 	validate.RegisterValidation("isValidName", isValidName)
 	validate.RegisterValidation("isValidTaskName", isValidTaskName)
+	validate.RegisterValidation("isValidOccurrences", isValidOccurrences)
 	validate.RegisterStructValidation(RuleStructLevelValidation, Rule{})
 	err := validate.Struct(config)
 	return err
@@ -188,6 +188,28 @@ func isValidName(fl validator.FieldLevel) bool {
 	nameRegex := regexp.MustCompile(nameRegexString)
 
 	return nameRegex.MatchString(fl.Field().String())
+}
+
+// Inputs:
+//
+//	fl (validator.FieldLevel): The field which needs to be validated.
+//
+// Description:
+//
+//	This function will be validating the occurrences field.
+//
+// Return:
+//
+//	(bool): Return true if there is a valid occurrences field value else false.
+func isValidOccurrences(f1 validator.FieldLevel) bool {
+	occurrencesRegexString := `^\s*[1-9][0-9]{0,2}\s*$|^\s*[1-9][0-9]{0,2}%\s*$`
+	occurrencesRegex := regexp.MustCompile(occurrencesRegexString)
+
+	if f1.Parent().Interface().(Rule).Stat != "COUNT" && f1.Field().String() != "" {
+		return false
+	}
+
+	return occurrencesRegex.MatchString(f1.Field().String())
 }
 
 // Inputs:
@@ -225,7 +247,7 @@ func RuleStructLevelValidation(sl validator.StructLevel) {
 
 	if tasks.Operator == "AND" || tasks.Operator == "OR" {
 		if rule.Metric != "CpuUtil" && rule.Metric != "RamUtil" && rule.Metric != "DiskUtil" &&
-			rule.Metric != "HeapUtil" && rule.Metric != "NumShards" {
+			rule.Metric != "HeapUtil" && rule.Metric != "NumShards" && rule.Metric != "ShardsPerGB" {
 			sl.ReportError(rule.Metric, "metric", "Metric", "OneOf", "")
 		}
 		if rule.Limit <= 0 {
@@ -236,9 +258,6 @@ func RuleStructLevelValidation(sl validator.StructLevel) {
 		}
 		if rule.DecisionPeriod <= 0 {
 			sl.ReportError(rule.DecisionPeriod, "DecisionPeriod", "DecisionPeriod", "required,min", "")
-		}
-		if rule.Stat == "COUNT" && rule.Occurrences <= 0 {
-			sl.ReportError(rule.Occurrences, "Occurrences", "Occurrences", "required_if", "")
 		}
 	} else if tasks.Operator == "EVENT" {
 		if rule.SchedulingTime == "" {

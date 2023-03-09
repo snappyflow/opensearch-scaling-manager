@@ -114,8 +114,7 @@ func Run() {
 			task.Tasks = configStruct.TaskDetails
 			userCfg := configStruct.UserConfig
 			clusterCfg := configStruct.ClusterDetails
-			TaskDetails := (config.TaskDetails)(*task)
-			metricTasks, eventTasks := recommendation.ParseTasks(TaskDetails)
+			metricTasks, eventTasks := recommendation.ParseTasks(task)
 			if len(eventTasks.Tasks) > 0 {
 				recommendation.CreateCronJob(state, eventTasks, clusterCfg, userCfg, t)
 			}
