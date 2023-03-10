@@ -1,24 +1,5 @@
 ---
 # tasks file for scale_down
-    - name: Scale Down | Update and install the packages in Ubuntu
-      become: true
-      become_user: root
-      shell: |
-        sudo apt-get -y update
-        sudo apt-get install -y python3-pip
-        pip3 install requests
-      delegate_to: localhost  
-      when: ansible_os_family == "Debian"
-      
-    - name: Scale Down | Update and install the packages in Centos
-      become: true
-      become_user: root
-      shell: |
-        yum install -y python3-pip
-        pip3 install requests
-      delegate_to: localhost   
-      when: ansible_os_family == "RedHat"
-   
     - name: Scale down | Stop opensearch
       become: true
       service:
