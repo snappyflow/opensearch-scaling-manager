@@ -241,7 +241,7 @@ func RuleStructLevelValidation(sl validator.StructLevel) {
 		if rule.Stat != "AVG" && rule.Stat != "COUNT" && rule.Stat != "TERM" {
 			sl.ReportError(rule.Stat, "Stat", "Stat", "OneOf", "")
 		}
-		if rule.DecisionPeriod <= 60 {
+		if rule.DecisionPeriod < 60 {
 			sl.ReportError(rule.DecisionPeriod, "DecisionPeriod", "DecisionPeriod", "required,min", "")
 		}
 		if rule.Stat == "COUNT" && rule.Occurrences > 100 {
