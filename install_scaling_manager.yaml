@@ -72,7 +72,7 @@
     become: yes
     copy:
         src: "{{ secret_path | default('/usr/local/scaling_manager_lib/.secret.txt') }}"
-        dest: /usr/local/scaling_manager_lib
+        dest: /usr/local/scaling_manager_lib/
         owner: '{{ user | default("ubuntu") }}'
         group: '{{ group | default("ubuntu") }}'
   tags: update_secret
@@ -83,7 +83,7 @@
     become: yes
     copy:
         src: "{{ config_path | default('/usr/local/scaling_manager_lib/config.yaml') }}"
-        dest: /usr/local/scaling_manager_lib
+        dest: /usr/local/scaling_manager_lib/
         owner: '{{ user | default("ubuntu") }}'
         group: '{{ group | default("ubuntu") }}'
   tags: update_config
