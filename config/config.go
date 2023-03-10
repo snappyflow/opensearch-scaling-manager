@@ -106,10 +106,10 @@ type Rule struct {
 	// For rule: Shard, the stat will not be applicable as the shard will be calculated across the cluster and is not a statistical value.
 	Stat string `yaml:"stat,omitempty"`
 	// DecisionPeriod indicates the time in minutes for which a rule is evalated.
-	DecisionPeriod int `yaml:"decision_period,omitempty" validate:"min=60"`
+	DecisionPeriod int `yaml:"decision_period,omitempty"`
 	// Occurrences indicate the number of time a rule reached the threshold limit for a give decision period.
 	// It will be applicable only when the Stat is set to Count.
-	Occurrences int `yaml:"occurrences_percent,omitempty" validate:"required_if=Stat COUNT,max=100"`
+	Occurrences int `yaml:"occurrences_percent,omitempty"`
 	// Scheduling time indicates cron time expression to schedule scaling operations
 	// Example:
 	// SchedulingTime = "30 5 * * 1-5"
@@ -241,8 +241,11 @@ func RuleStructLevelValidation(sl validator.StructLevel) {
 		if rule.Stat != "AVG" && rule.Stat != "COUNT" && rule.Stat != "TERM" {
 			sl.ReportError(rule.Stat, "Stat", "Stat", "OneOf", "")
 		}
-		if rule.DecisionPeriod <= 0 {
+		if rule.DecisionPeriod <= 60 {
 			sl.ReportError(rule.DecisionPeriod, "DecisionPeriod", "DecisionPeriod", "required,min", "")
+		}
+		if rule.Stat == "COUNT" && rule.Occurrences > 100 {
+			sl.ReportError(rule.Occurrences, "Occurrences", "Occurrences", "required,max", "")
 		}
 	} else if tasks.Operator == "EVENT" {
 		if rule.SchedulingTime == "" {
