@@ -50,6 +50,8 @@ type State struct {
 	NodeIp string
 	// Node Name
 	NodeName string
+	// Instance ID
+	InstanceId string
 }
 
 var state = new(State)
