@@ -117,7 +117,7 @@ func GetNextTask(pollingInterval int, simFlag, isAccelerated bool, t config.Task
 			if v.Stat == "AVG" {
 				rules = append(rules, fmt.Sprintf("%s-%s-%f-%d", v.Metric, v.Stat, v.Limit, v.DecisionPeriod))
 			} else {
-				rules = append(rules, fmt.Sprintf("%s-%s-%f-%s-%d", v.Metric, v.Stat, v.Limit, v.Occurrences, v.DecisionPeriod))
+				rules = append(rules, fmt.Sprintf("%s-%s-%f-%d-%d", v.Metric, v.Stat, v.Limit, v.Occurrences, v.DecisionPeriod))
 			}
 
 		}
