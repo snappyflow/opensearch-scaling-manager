@@ -20,7 +20,7 @@ import (
 // Return:
 //
 //	(string, error): Returns the private ip address of the spinned node and error if any
-func SpinNewVm(launchTemplateId string, launchTemplateVersion string, cred config.CloudCredentials) (string, error) {
+func SpinNewVm(launchTemplateId string, launchTemplateVersion string, cred config.CloudCredentials) (string, string, error) {
 	sess := session.Must(session.NewSession())
 	var creds *credentials.Credentials
 	if cred.RoleArn != "" {
@@ -47,25 +47,51 @@ func SpinNewVm(launchTemplateId string, launchTemplateVersion string, cred confi
 
 	if err != nil {
 		log.Info.Println("Could not create instance", err)
-		return "", err
+		return "", "", err
 	}
 
 	log.Info.Println("Created instance, Instance ID: ", *runResult.Instances[0].InstanceId)
+	instance_id := *runResult.Instances[0].InstanceId
 	private_ip := *runResult.Instances[0].PrivateIpAddress
 	log.Info.Println("Created instance, Private IP: ", *runResult.Instances[0].PrivateIpAddress)
+
+	return private_ip, instance_id, nil
+
+}
+
+// Input:
+//
+//	instanceId (string): Instance ID of the ec2 instance to wait until it's status to be Okay
+//
+// Description:
+//
+//	Uses the instance ID provided to wait until the instance status to be Okay before proceeding with using the instance
+//
+// Return:
+//
+//	(error): Returns error if any while checking for the status
+func InstanceStatusCheck(instanceId string, cred config.CloudCredentials) error {
+	sess := session.Must(session.NewSession())
+	var creds *credentials.Credentials
+	if cred.RoleArn != "" {
+		creds = stscreds.NewCredentials(sess, cred.RoleArn)
+	} else {
+		creds = credentials.NewStaticCredentials(cred.AccessKey, cred.SecretKey, "")
+	}
+	svc := ec2.New(sess, &aws.Config{Region: aws.String(cred.Region), Credentials: creds})
 
 	allInstances := true
 
 	log.Info.Println("Waiting until instanceStatus to be Ok.......")
-	errRunning := svc.WaitUntilInstanceStatusOk(&ec2.DescribeInstanceStatusInput{
-		InstanceIds:         []*string{runResult.Instances[0].InstanceId},
+	err := svc.WaitUntilInstanceStatusOk(&ec2.DescribeInstanceStatusInput{
+		InstanceIds:         []*string{&instanceId},
 		IncludeAllInstances: &allInstances,
 	})
-	if errRunning != nil {
-		log.Error.Println("Instance state is nt okay even after maximum wait window")
-		return "", errRunning
+	if err != nil {
+		log.Error.Println("Instance state is not okay even after maximum wait window")
+		return err
 	}
-	return private_ip, nil
+	return nil
 
 }
 

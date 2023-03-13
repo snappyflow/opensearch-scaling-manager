@@ -129,7 +129,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *tim
 	state.GetCurrentState()
 	crypto.GetDecryptedCloudCreds(&clusterCfg.CloudCredentials)
 	crypto.GetDecryptedOsCreds(&clusterCfg.OsCredentials)
-	var newNodeIp string
+	var newNodeIp, newInstanceId string
 	simFlag := usrCfg.MonitorWithSimulator
 	monitorWithLogs := usrCfg.MonitorWithLogs
 	isAccelerated := usrCfg.IsAccelerated
@@ -160,13 +160,14 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *tim
 			}
 		} else {
 			var err error
-			newNodeIp, err = SpinNewVm(clusterCfg.LaunchTemplateId, clusterCfg.LaunchTemplateVersion, clusterCfg.CloudCredentials)
+			newNodeIp, newInstanceId, err = SpinNewVm(clusterCfg.LaunchTemplateId, clusterCfg.LaunchTemplateVersion, clusterCfg.CloudCredentials)
 			if err != nil {
 				return false, err
 			}
 		}
 		log.Info.Println("Spinned a new node: ", newNodeIp)
 		state.NodeIp = newNodeIp
+		state.InstanceId = newInstanceId
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "scaleup_triggered_spin_vm"
 		state.UpdateState()
@@ -176,6 +177,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *tim
 	case "scaleup_triggered_spin_vm":
 		state.GetCurrentState()
 		newNodeIp = state.NodeIp
+		newInstanceId = state.InstanceId
 		if monitorWithLogs {
 			log.Info.Println("Adding the spinned nodes into the list of vms")
 			time.Sleep(time.Duration(usrCfg.RecommendationPollingInterval) * time.Second)
@@ -192,6 +194,15 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *tim
 				fakeSleep(t)
 			}
 		} else {
+			statusErr := InstanceStatusCheck(newInstanceId, clusterCfg.CloudCredentials)
+			if statusErr != nil {
+				log.Error.Println("Instance status is still not okay.. Terminating the instance")
+				terminateErr := TerminateInstance(newNodeIp, clusterCfg.CloudCredentials)
+				if terminateErr != nil {
+					log.Fatal.Println(terminateErr)
+				}
+				return false, statusErr
+			}
 			log.Info.Println("Configuring Opensearch on new node...")
 			hostsFileName := "ansible_scripts/hosts"
 			username := clusterCfg.SshUser
@@ -546,6 +557,9 @@ func SetStateBackToNormal() {
 	state.CurrentState = "normal"
 	state.RuleTriggered = ""
 	state.RemainingNodes = 0
+	state.NodeIp = ""
+	state.InstanceId = ""
+	state.NodeName = ""
 	state.UpdateState()
 	log.Info.Println("State set back to normal")
 }
