@@ -11,6 +11,9 @@ import (
 )
 
 // Input:
+//	launchTemplateId (string): Launch Template ID using which a new ec2 instance will be spinned up
+//	launchTemplateVersion (string): Template version of the launch template specified
+//	cred (config.CloudCredentials): Cloud credentials to connect to AWS
 //
 // Description:
 //
@@ -19,7 +22,7 @@ import (
 //
 // Return:
 //
-//	(string, error): Returns the private ip address of the spinned node and error if any
+//	(string, string, error): Returns the private ip address, instance ID of the spinned node and error if any
 func SpinNewVm(launchTemplateId string, launchTemplateVersion string, cred config.CloudCredentials) (string, string, error) {
 	sess := session.Must(session.NewSession())
 	var creds *credentials.Credentials
@@ -62,6 +65,7 @@ func SpinNewVm(launchTemplateId string, launchTemplateVersion string, cred confi
 // Input:
 //
 //	instanceId (string): Instance ID of the ec2 instance to wait until it's status to be Okay
+// 	cred (config.CloudCredentials): Cloud credentials required to connect to AWS account
 //
 // Description:
 //
@@ -98,6 +102,7 @@ func InstanceStatusCheck(instanceId string, cred config.CloudCredentials) error 
 // Input:
 //
 //	privateIp (string): private ip address of the instance that needs to be terminated
+//      cred (config.CloudCredentials): Cloud credentials required to connect to AWS account
 //
 // Description:
 //
