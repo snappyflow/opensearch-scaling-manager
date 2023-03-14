@@ -1,0 +1,43 @@
+---
+- name: Update the packages in CentOS or RHEL
+  become: true
+  become_user: root
+  yum: update_cache=yes
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: Install pre-requisites on CentOS or RHEL(curl,wget and logrotate)
+  become: yes
+  yum:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+    - curl
+    - wget
+    - logrotate
+    - net-tools
+    - lsof
+    - sysstat
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: Update the packages in Ubuntu
+  become: true
+  become_user: root
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian" or ansible_distribution == 'Ubuntu'
+    
+- name: Install pre-requsites on Debian or Ubuntu(curl,wget and logrotate)
+  become: yes
+  apt:
+    pkg:
+    - curl
+    - wget
+    - logrotate
+    - net-tools
+    - lsof
+    - sysstat
+  retries: 5
+  delay: 300  
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'

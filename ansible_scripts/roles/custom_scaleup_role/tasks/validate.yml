@@ -1,0 +1,15 @@
+---
+- name: sfagent state
+  service:
+    name: sfagent
+  register: service_output
+
+- name: Report status of sfagent not running
+  fail:
+    msg: Service sfagent is not running. check service sfagent status or systemctl status sfagent.
+  when: service_output.status.ActiveState != "active"
+
+- name: Report status of sfagent
+  debug:
+    msg: Service sfagent is running.
+  when: service_output.status.ActiveState == "active"
