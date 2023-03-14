@@ -9,8 +9,8 @@
     - name: Scale Down | Check for cluster health
       uri:
         url: http://localhost:9200/_cluster/health
-        user: {{ os_credentials.os_admin_username }}
-        password: {{ os_credentials.os_admin_password }}
+        user: "{{ os_credentials.os_admin_username }}"
+        password: "{{ os_credentials.os_admin_password }}"
         method: GET
         return_content: yes
         status_code: 200
