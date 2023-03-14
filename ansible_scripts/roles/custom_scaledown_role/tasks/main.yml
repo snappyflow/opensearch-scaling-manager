@@ -6,4 +6,4 @@
         - config_nginx
   tags:
     - config_nginx
-    when: is_sf_cloud | default(False)
+    when: is_sf_cloud
