@@ -1,0 +1,32 @@
+---
+# tasks file for scale_down
+    - name: Scale down | Stop opensearch
+      become: true
+      service:
+        name: 'opensearch'
+        state: stopped
+
+    - name: Scale Down | Check for cluster health
+      uri:
+        url: http://localhost:9200/_cluster/health
+        user: "{{ os_credentials.os_admin_username }}"
+        password: "{{ os_credentials.os_admin_password }}"
+        method: GET
+        return_content: yes
+        status_code: 200
+        force_basic_auth: true
+        body_format: json
+      register: cluster_health
+      delegate_to: localhost
+
+    - name: Scale down | Restart opensearch if cluster state is red
+      become: true
+      service:
+        name: 'opensearch'
+        state: started
+      when: "cluster_health.json.status == 'red'"
+
+    - name: Scale Down | Fail if the status was red
+      fail:
+        msg: Restarted opensearch as cluster state was red. Scaledown failed!
+      when: "cluster_health.json.status == 'red'"

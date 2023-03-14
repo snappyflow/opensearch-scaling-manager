@@ -1,0 +1,78 @@
+---
+- hosts: current_nodes
+
+  tasks:
+
+  - name: Add new host | Add new node into hosts file
+    become_user: root
+    become: yes
+    lineinfile:
+      path: /etc/hosts
+      line: "{{ hostvars[item]['ansible_private_host'] }} {{ item }}.{{ domain_name }} {{ item }}"
+      state: present
+      create: yes
+    with_items: "{{ groups['new_node'] }}"
+
+# Needs a restart of opensearch after this is included. Otherwise, needs to be added as a pre-requisite
+#  - name: Certificate inclusion | Certificates to match regex
+#    replace:
+#      path: "{{os_conf_dir}}/opensearch.yml"
+#      regexp: 'CN={{ item }}'
+#      replace: "CN=*"
+#    become: yes
+#    with_items: "{{ groups['current_nodes'] }}"
+
+- hosts: new_node
+  pre_tasks:
+  - name: Get Machine's RAM Info
+    become: yes
+    command: "grep MemTotal /proc/meminfo"
+    register: RAM_Output
+  - name: Extracting RAM size
+    set_fact:
+      RAMKB: "{{ RAM_Output.stdout.split() }}"
+
+  - name: Conversion from KB to GB of RAM Size
+    set_fact:
+      RAM: "{{ RAMKB[1] | int /  1000000 }}"
+
+  - name: Rounding off the RAM size
+    set_fact:
+      RAMGB: "{{ RAM | float | round(0,'common') * (jvm_factor|float) }}"
+
+  - name: Check for Heap allocation not more than 32 GB
+    fail:
+      msg: Will change Heap allocation from "{{ RAMGB }}"GB to 32 GB for optimized usage of RAM
+    when: RAMGB | int > 32
+    ignore_errors: True
+
+  - name: Change HEAP if > 32 GB
+    set_fact:
+      RAMGB: "{{ RAMGB if (RAMGB|int < 32) else 32 }}"
+
+  gather_facts: no
+  name: Scale-up role-based playbook
+  become: yes
+
+  roles:
+    - scale_up
+
+- hosts: all
+
+  tasks:
+
+  - name: Update Hosts | Add the new node into all unicast files
+    lineinfile:
+      path: "{{os_conf_dir}}/unicast_hosts.txt"
+      line: "{{ hostvars[item]['ansible_private_host'] }}"
+      state: present
+      backup: yes
+    with_items: "{{ groups['new_node'] }}"
+    become: yes
+
+- hosts: new_node
+  name: Custom role-based tasks for scale up
+  become: yes
+
+  roles:
+    - custom_scaleup_role
