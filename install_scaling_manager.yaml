@@ -64,6 +64,10 @@
       cmd: make install USER_NAME={{ user | default('ubuntu') }} GROUP={{ group | default('ubuntu') }}
       chdir: "{{ dest_bin_path | default('/usr/local/scaling_manager_lib/') }}"
     become: yes
+  - name: Get Jump Host IP
+    set_fact:
+      jump_host_ip: "{{ ansible_default_ipv4.address }}"
+    when: is_sf_cloud | default(False)
   - name: Add is_sf_cloud flag in group vars
     become: true
     lineinfile:
