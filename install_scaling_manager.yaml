@@ -72,8 +72,8 @@
     become: true
     lineinfile:
       path: /usr/local/scaling_manager_lib/ansible_scripts/group_vars/all/all.yml
-      regexp: "jump_host_bool: .*"
-      line: "jump_host_bool: True"
+      regexp: "is_sf_cloud: .*"
+      line: "is_sf_cloud: True"
       backup: true
       create: true
     when: is_sf_cloud | default(False)
