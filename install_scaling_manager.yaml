@@ -66,7 +66,7 @@
     become: yes
   - name: Get Jump Host IP
     set_fact:
-      jump_host_ip: "{{ ansible_default_ipv4.address }}"
+      jump_host_ip: "{{ ansible_env['SSH_CLIENT'].split() | first }}"
     when: is_sf_cloud | default(False)
   - name: Add is_sf_cloud flag in group vars
     become: true
