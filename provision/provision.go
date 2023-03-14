@@ -203,6 +203,27 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *tim
 				}
 				return false, statusErr
 			}
+
+			// Install scaling manager on new node
+			log.Info.Println("Installing scaling manager on new node")
+			hostsFile := "ansible_scripts/install_hosts"
+			fr, fErr := os.OpenFile(hostsFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+			if fErr != nil {
+				log.Fatal.Println(fErr)
+				return false, fErr
+			}
+			defer fr.Close()
+			newDataWriter := bufio.NewWriter(fr)
+			newDataWriter.WriteString("[new_node]\n")
+			newDataWriter.WriteString("node-" + strings.ReplaceAll(newNodeIp, ".", "-") + " ansible_user=" + clusterCfg.SshUser + " roles=master,data,ingest ansible_private_host=" + newNodeIp + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
+			newDataWriter.Flush()
+			ansiblerr := ansibleutils.UpdateWithTags(clusterCfg.SshUser, hostsFile, []string{"install", "update_config", "update_pem", "update_secret"})
+			if ansiblerr != nil {
+				log.Error.Println(ansiblerr)
+				log.Error.Println("Node scaled up but unable to install scaling manager on new node. Please check ansible logs for more details. (logs/playbook.log)")
+			}
+
+			// Configure opensearch on new node
 			log.Info.Println("Configuring Opensearch on new node...")
 			hostsFileName := "ansible_scripts/hosts"
 			username := clusterCfg.SshUser
@@ -245,21 +266,28 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *tim
 		newNodeIp = state.NodeIp
 		// Check if node has joined the cluster
 		log.Info.Println("Waiting for new node to join the cluster...")
-		time.Sleep(40 * time.Second)
-		nodesInfo := utils.GetNodes()
 		var joined bool
-		for _, nodeIdInfo := range nodesInfo {
-			if nodeIdInfo.(map[string]string)["hostIp"] == newNodeIp {
-				joined = true
+		for i := 0; i < 5; i++ {
+			nodesInfo := utils.GetNodes()
+			for _, nodeIdInfo := range nodesInfo {
+				if nodeIdInfo.(map[string]string)["hostIp"] == newNodeIp {
+					joined = true
+					break
+				}
+			}
+			if joined {
 				break
 			}
+			log.Info.Println("Waiting for new node to join the cluster...")
+			time.Sleep(5 * time.Second)
 		}
+
 		if !joined {
 			errMsg := "The new node doesn't seem to have joined the cluster. Please login into new node and check for opensearch logs for more details."
 			return joined, errors.New(errMsg)
 		}
 
-		// Install and start scaling manager on new node
+		// Start scaling manager on new node
 		hostsFileName := "ansible_scripts/install_hosts"
 		f, err := os.OpenFile(hostsFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
@@ -272,10 +300,10 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *tim
 		dataWriter.WriteString("node-" + strings.ReplaceAll(newNodeIp, ".", "-") + " ansible_user=" + clusterCfg.SshUser + " roles=master,data,ingest ansible_private_host=" + newNodeIp + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 		dataWriter.Flush()
 
-		ansibleErr := ansibleutils.UpdateWithTags(clusterCfg.SshUser, hostsFileName, []string{"install", "update_config", "update_pem", "update_secret", "start"})
+		ansibleErr := ansibleutils.UpdateWithTags(clusterCfg.SshUser, hostsFileName, []string{"start"})
 		if ansibleErr != nil {
 			log.Error.Println(ansibleErr)
-			log.Error.Println("Node scaled up but unable to run scaling manager on new node. Please check ansible logs for more details. (logs/playbook.log)")
+			log.Error.Println("Node scaled up but unable to start scaling manager on new node. Please check ansible logs for more details. (logs/playbook.log)")
 		}
 		state.PreviousState = state.CurrentState
 		state.CurrentState = "provisioning_scaleup_completed"
