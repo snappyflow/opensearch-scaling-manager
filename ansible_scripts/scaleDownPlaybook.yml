@@ -30,9 +30,10 @@
       backup: yes
     with_items: "{{ groups['remove_node'] }}"
 
-- hosts: new_node
-  name: Custom role-based tasks for scale down
+- hosts: jump_host
+  name: configure nginx Custom role-based tasks for scale up
   become: yes
 
   roles:
-    - custom_scaledown_role
+    - role: custom_scaledown_role
+      is_sf_cloud: is_sf_cloud

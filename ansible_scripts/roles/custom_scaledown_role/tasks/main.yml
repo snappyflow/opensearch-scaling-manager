@@ -1,2 +1,9 @@
 ---
-# tasks file for custom_role
+- include_tasks:
+    file: config_nginx.yml
+    apply:
+      tags:
+        - config_nginx
+  tags:
+    - config_nginx
+    when: is_sf_cloud | default(False)

@@ -71,8 +71,21 @@
     become: yes
 
 - hosts: new_node
-  name: Custom role-based tasks for scale up
+  name: Install sfagent using custom role-based tasks for scale up
   become: yes
 
   roles:
-    - custom_scaleup_role
+    - role: custom_scaleup_role
+      install_sfagent: True
+      is_sf_cloud: is_sf_cloud
+      jump_host_ip: jump_host_ip
+      jump_host_user: jump_host_user
+
+- hosts: jump_host
+  name: configure nginx Custom role-based tasks for scale up
+  become: yes
+
+  roles:
+    - role: custom_scaleup_role
+      configure_nginx: True
+

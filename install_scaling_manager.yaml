@@ -64,6 +64,51 @@
       cmd: make install USER_NAME={{ user | default('ubuntu') }} GROUP={{ group | default('ubuntu') }}
       chdir: "{{ dest_bin_path | default('/usr/local/scaling_manager_lib/') }}"
     become: yes
+  - name: populate Jump Host
+      set_fact:
+        jump_host_ip: "{{ ansible_default_ipv4.address }}"
+      when: is_sf_cloud | default(False)
+  - name: Check if jump_host tag is present
+    become: true
+    shell: sed -ne '/^\[jump_host\]/,/*.pem$/p' /etc/ansible/hosts
+    register: jump_host_out
+    ignore_errors: yes
+    changed_when: no
+    when: is_sf_cloud | default(False)
+  - name: Add jump host details
+    become: true
+    lineinfile:
+      path: /etc/ansible/hosts
+      line: "[jump_host]\n{{ jump_host_ip }} ansible_user={{ jump_host_user | default('ubuntu')}} ansible_private_host={{ jump_host_ip }} ansible_ssh_private_key_file=/usr/local/scaling_manager_lib/user.pem"
+      backup: true
+      create: true
+    when: is_sf_cloud | default(False) and jump_host_out.stdout == ""
+  - name: Update jump host details
+    become: true
+    replace:
+      path: /etc/ansible/hosts
+      regexp: ^\[jump_host\]\n.*user.pem$
+      replace: "[jump_host]\n{{ jump_host_ip }} ansible_user={{ jump_host_user | default('ubuntu')}} ansible_private_host={{ jump_host_ip }} ansible_ssh_private_key_file=/usr/local/scaling_manager_lib/user.pem"
+      backup: true
+    when: is_sf_cloud | default(False) and jump_host_out.stdout != ""
+  - name: Add is_sf_cloud flag in group vars
+      become: true
+      lineinfile:
+        path: /usr/local/scaling_manager_lib/ansible_scripts/group_vars/all/all.yml
+        regexp: "jump_host_bool: .*"
+        line: "jump_host_bool: True"
+        backup: true
+        create: true
+      when: is_sf_cloud | default(False)
+  - name: Add jump_host_user in group vars
+    become: true
+    lineinfile:
+      path: /usr/local/scaling_manager_lib/ansible_scripts/group_vars/all/all.yml
+      regexp: "jump_host_ip: .*"
+      line: "jump_host_user: {{ jump_host_user | default('ubuntu') }}"
+      backup: true
+      create: true
+    when: is_sf_cloud | default(False)
   tags: install
 - name: Update secret
   hosts: all
