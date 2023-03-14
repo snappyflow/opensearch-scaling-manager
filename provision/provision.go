@@ -217,7 +217,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *tim
 			newDataWriter.WriteString("[new_node]\n")
 			newDataWriter.WriteString("node-" + strings.ReplaceAll(newNodeIp, ".", "-") + " ansible_user=" + clusterCfg.SshUser + " roles=master,data,ingest ansible_private_host=" + newNodeIp + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 			newDataWriter.Flush()
-			ansiblerr := ansibleutils.UpdateWithTags(clusterCfg.SshUser, hostsFile, []string{"install", "update_config", "update_pem", "update_secret"})
+			ansiblerr := ansibleutils.UpdateWithTags(clusterCfg.SshUser, hostsFile, []string{"install"})
 			if ansiblerr != nil {
 				log.Error.Println(ansiblerr)
 				log.Error.Println("Node scaled up but unable to install scaling manager on new node. Please check ansible logs for more details. (logs/playbook.log)")
@@ -300,7 +300,7 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *tim
 		dataWriter.WriteString("node-" + strings.ReplaceAll(newNodeIp, ".", "-") + " ansible_user=" + clusterCfg.SshUser + " roles=master,data,ingest ansible_private_host=" + newNodeIp + " ansible_ssh_private_key_file=" + clusterCfg.CloudCredentials.PemFilePath + "\n")
 		dataWriter.Flush()
 
-		ansibleErr := ansibleutils.UpdateWithTags(clusterCfg.SshUser, hostsFileName, []string{"start"})
+		ansibleErr := ansibleutils.UpdateWithTags(clusterCfg.SshUser, hostsFileName, []string{"update_config", "update_pem", "update_secret", "start"})
 		if ansibleErr != nil {
 			log.Error.Println(ansibleErr)
 			log.Error.Println("Node scaled up but unable to start scaling manager on new node. Please check ansible logs for more details. (logs/playbook.log)")
