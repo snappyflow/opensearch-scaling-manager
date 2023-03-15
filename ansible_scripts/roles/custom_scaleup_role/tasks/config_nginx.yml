@@ -1,5 +1,6 @@
 ---
 - name: Get the present configmap
+  become: true
   shell: kubectl get cm esnginx-sfnginxv1 -o yaml > /tmp/esnginx-sfnginxv1_cm.yaml
 - name: Check if the new node ip is already present
   become: true
@@ -9,7 +10,7 @@
   become: true
   lineinfile:
     path: /tmp/esnginx-sfnginxv1_cm.yaml
-    regexp: (server .*:9200.*)
+    regexp: (server {{ new_node_ip }}:9200;)
     state: present
     line: |-2
               \1
@@ -18,5 +19,6 @@
     backrefs: true
   when: check_node_ip.stdout == ""
 - name: Apply the update config map
+  become: true
   shell: kubectl apply -f /tmp/esnginx-sfnginxv1_cm.yaml
   when: check_node_ip.stdout == ""
