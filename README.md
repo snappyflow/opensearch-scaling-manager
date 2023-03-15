@@ -32,8 +32,8 @@ OpenSearch scaling manager is used to elastically scale a cluster to ensure opti
 
 - Now scaling manager will check the resource utilization and if the utilization is more than the rules which user specifies in config.yaml it scales up a new node to the cluster in order to accommodate the high  resource utilization.
 
-  ​	For Example if the average cpu usage is more than 80% across the decision_period mentioned in the cluster, you have to scale_up a node in order to bring the cpu usage less, this applies for other metrics(Mem, Heap, Disk) as well. 
-  ​	When it comes to scale_down if the average cpu usage is less than 30% across you have to scale_down a node and similar to other metrics as well.
+  	For Example if the average cpu usage is more than 80% across the decision_period mentioned in the cluster, you have to scale_up a node in order to bring the cpu usage less, this applies for other metrics(Mem, Heap, Disk) as well. 
+  	When it comes to scale_down if the average cpu usage is less than 30% across you have to scale_down a node and similar to other metrics as well.
 
   1. If cpu_util > 80, scale_up a node
      If mem_util > 90, scale_up a node
@@ -78,9 +78,9 @@ Scaling manager has following modules
 
   3. Stat - Stat indicates the statistics on which the evaluation of the rule will happen. For CPU and Mem the values can be:
 
-     ​         Avg: The average CPU or MEM value will be calculated for a given decision period.
-
-     ​         Count: The number of occurences where CPU or MEM value crossed the threshold limit.
+         Avg: The average CPU or MEM value will be calculated for a given decision period.
+         
+         Count: The number of occurences where CPU or MEM value crossed the threshold limit.
 
   4. Decision Period - Decision Period indicates the time in minutes for which a rule is evaluated.
 
@@ -201,69 +201,80 @@ Scaling manager has following modules
 
 The user can specify some key features of an OpenSearch Cluster for simulator through the config file provided. The functionalities supported are:
 
+1. User Configuration - user_config.
+2. Cluster Details - cluster_details (Details of the cluster).
+3. Task Details - task_details (Scale up / Scale down details).
+
 **user_config:**
 
-​	**monitor_with_logs:** Field that contains bool value which specifies whether to monitor with logs or not.
+**monitor_with_logs:** Field that contains bool value which specifies whether to monitor with logs or not.
 
-​	**monitor_with_simulator:** Field that contains bool value which specifies whether to monitor with simulator or not.
+**monitor_with_simulator:** Field that contains bool value which specifies whether to monitor with simulator or not.
 
-​	**purge_old_docs_after_hours:** Duration which indicates to delete the documents once it exceed the specified hours.
+**purge_old_docs_after_hours:** Duration which indicates to delete the documents once it exceed the specified hours.
 
-​	**polling_interval_in_secs:**  polling_interval_in_secs indicates the time in seconds for which polling will be repeated.
+**recommendation_polling_interval_in_secs:**  recommendation_polling_interval_in_secs indicates the time in seconds for which polling will be repeated.
 
-​	**is_accelerated:** Field that contains bool value which accelerates the time.
+**fetchmetrics_polling_interval_in_secs:** fetchmetrics_polling_interval_in_secs indicates the time in seconds for which the metrics will be fetched from the cluster and repeated in the interval.
+
+**is_accelerated:** Field that contains bool value which accelerates the time.
+
+
 
 **cluster_details:**
 
-​	**ip_address:** IP address of the cluster.
+**cluster_name:** Name of the cluster. 
 
-​	**launch_template_id:** ID by which launch template can be identified and deployed.
+**cloud_type:** Name of the cloud infrastructure.
 
-​	**launch_template_version:** Version of the launch template used.
+**max_nodes_allowed:** Maximum number of nodes allowed for the cluster.
 
-​	**cluster_name:** Name of the cluster. 
+**min_nodes_allowed:** Minimum number of nodes allowed for the cluster.
 
-​	**os_credentials:** 
+**launch_template_id:** ID by which launch template can be identified and deployed.
+
+**launch_template_version:** Version of the launch template used.
+
+**os_user:** Used in ansible for copy files with user.
+
+**os_group:** Used in ansible for copy files with group.
+
+**os_version:** OpenSearch version which needs to be used.
+
+**os_home:** Default OpenSearch user info.
+
+**domain_name:** Configure hostnames for OpenSearch nodes which is required to configure SSL.
+
+**os_credentials:** 
 
 ​		**os_admin_username:** Username for the OpenSearch for connecting. This can be set to empty if the security is disable in OpenSearch.
 
 ​		**os_admin_password:** Password for the OpenSearch for connecting. This can be set to empty if the security is disable in OpenSearch.
 
-​	**os_user:** Used in ansible for copy files with user.
+ **cloud_credentials:**
 
-​	**os_group:** Used in ansible for copy files with group.
-
-​	**os_version:** OpenSearch version which needs to be used.
-
-​	**os_home:** Default OpenSearch user info.
-
-​	**domain_name:** Configure hostnames for OpenSearch nodes which is required to configure SSL.
-
-​	**cloud_type:** Name of the cloud infrastructure.
-
-​	 **cloud_credentials:**
+​		**pem_file_path:** Path where the pem file is located. 
 
 ​		**secret_key:** Secret key for cluster.
 
 ​		**access_key:** Access key for cluster.
 
-​		**pem_file_path:** Path where the pem file is located. 
-
 ​		**region:** Region at which AWS is used.
 
-​	 **base_node_type:** t2x.large.
+​		**role_arn:** AWS IAM role of user which has permissions to spin a node.
 
-​	 **number_cpus_per_node:** Total number of CPU present per node.
+**jvm_factor:** Specify the percent of RAM to be allocated to HEAP.
 
-​	 **ram_per_node_in_gb:** Size of RAM used per node (GB).
 
-​	**disk_per_node_in_gb:** Size of DISK used per node (GB).
 
-​	**max_nodes_allowed:** Maximum number of nodes allowed for the cluster.
+**task_details:** 
 
-​	**min_nodes_allowed:** Minimum number of nodes allowed for the cluster.
+Tasks supports two types of scaling 
 
-**task_details:** Field that contains details on what task should be performed i.e scale_up_by_1 or scale_down_by_1.
+1. Metric based scaling 
+2. Event based scaling 
+
+(Metric based scaling)
 
 - **task_name:** Task name indicates the name of the task to recommend by the recommendation engine.
   **operator:** Operator indicates the logical operation needs to be performed while executing the rules.
@@ -276,6 +287,18 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
     **stat:** Stat indicates the statistics on which the evaluation of the rule will happen. These can be AVG, COUNT.
 
     **decision_period:** Decision Period indicates the time in minutes for which a rule is evaluated.
+
+    **occurrences_percent:** Percent at which metrics crossed the limit for the specified decision_period. 
+
+(Event based scaling)
+
+- **task_name:** Task name indicates the name of the task to recommend by the recommendation engine.
+
+  **operator:** EVENT
+
+  **rules:**
+
+  ​    **scheduling_time:** Specifies the cron job time at which the task happens
 
   
 
@@ -327,6 +350,18 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 **Populate inventory.yaml**
 
+User can should mention the master node IP address in populate inventory.yaml command. When you mention the master node IP it will collect the details about all the nodes present in the cluster. 
+
+For example lets say there is a cluster with 5 nodes. Following are the IP address of nodes,
+
+- Node1 IP - 10.10.10.1 (Master node)
+- Node2 IP - 10.10.10.2 (Non-Master node)
+- Node3 IP - 10.10.10.3 (Non-Master node)
+- Node4 IP - 10.10.10.4 (Non-Master node)
+- Node5 IP - 10.10.10.5 (Non-Master node)
+
+Initially inventory.yaml will be empty. Now, when you run the populate inventory command with master node IP all the IP address of the cluster will be populated inside inventory.yaml.
+
 ```master_node_ip
 sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "populate_inventory_yaml" -e master_node_ip=0.0.0.0 -e os_user=USERNAME -e os_pass=PASSWORD
 ```
@@ -337,6 +372,8 @@ os_pass = Appropriate password
 
 **Build, Pack**
 
+In case to use password based authentication, Use the following command
+
 ```
 sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "build_and_pack" -kK
 ```
@@ -346,10 +383,17 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "bui
 In case to use key based authentication, Use the following command
 
 ```
-udo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_pem" --key-file user-dev-aws-ssh.pem -e pem_path="user-dev-aws-ssh.pem"
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_pem" --key-file user-dev-aws-ssh.pem -e pem_path="user-dev-aws-ssh.pem"
 ```
 
+Key based and password based commands does the same work but the way you do is different. You can use either of the commands to execute.
+
+1. In password based authentication you should mention the credentials through which the command executes.
+2. In key based authentication you can specify the pem file path which has all the credentials so that you need not mention the credentials in command.
+
 **Installation**
+
+Password based authentication command 
 
 ```
 sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "install" -kK
@@ -363,43 +407,112 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "ins
   sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "stop,install,start" -kK
   ```
 
+Key based authentication command
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "install" --key-file user-dev-aws-ssh.pem -e src_bin_path="."
+```
+
 **Update Config**
+
+Password based authentication command 
 
 ```
 sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" -kK
 ```
 
-**Start** 
+Key based authentication command 
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" --key-file user-dev-aws-ssh.pem -e config_path="config.yaml"
+```
+
+**Update pem**
+
+Password based authentication command 
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_pem" -kK
+```
+
+Key based authentication command 
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_pem" --key-file user-dev-aws-ssh.pem -e pem_path="user-dev-aws-ssh.pem"
+```
+
+**Start**
+
+Password based authentication command 
 
 ```
 sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "start" -kK
 ```
 
+Key based authentication command 
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "start" --key-file user-dev-aws-ssh.pem -e src_bin_path="."
+```
+
 **Stop**
+
+Password based authentication command 
 
 ```
 sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "stop" -kK
 ```
 
-**Status**
+Key based authentication command 
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "status" -kK
-```
-
-**Uninstall**
-
-```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "uninstall" -kK
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "stop" --key-file user-dev-aws-ssh.pem -e src_bin_path="."
 ```
 
 - Stop command works quick when there is no provisioning happening/provisioning is completed.
 - When provisioning is in process and the stop command is executed it waits till provisioning is completed. To know the status user can do Ctrl+C and check the status of the cluster. 
 
+**Status**
+
+Password based authentication command 
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "status" -kK
+```
+
+Key based authentication command 
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "status" --key-file user-dev-aws-ssh.pem -e src_bin_path="."
+```
+
+**Uninstall**
+
+Password based authentication command 
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "uninstall" -kK
+```
+
+Key based authentication command 
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "uninstall" --key-file user-dev-aws-ssh.pem -e src_bin_path="."
+```
 
 
-#### Simulator 
+
+#### Simulator
 
 ------
 
-Find more about Simulator here [opensearch-scaling-manager/readme_simulator.md at release_v0.1_dev · maplelabs/opensearch-scaling-manager (github.com)](https://github.com/maplelabs/opensearch-scaling-manager/blob/release_v0.1_dev/docs/readme_simulator.md)
+Find more about Simulator here [opensearch-scaling-manager/readme_simulator.md at master · maplelabs/opensearch-scaling-manager (github.com)](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/docs/readme_simulator.md)
+
+
+
+#### Trouble Shooting
+
+------
+
+ Find more about Trouble Shooting here 
+<!-- To do - Add link to trouble shoot once code is merged. -->
