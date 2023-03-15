@@ -107,6 +107,9 @@
       is_sf_cloud: "{{ is_sf_cloud | default(False) }}"
   - set_fact:
       jump_host_ip: "{{ jump_host_ip | default('') }}"
+  - set_fact:
+      new_node_ip: "{{ hostvars[item]['ansible_private_host'] }}"
+    with_items: "{{ groups['new_node'] }}"
 
   roles:
     - role: custom_scaleup_role

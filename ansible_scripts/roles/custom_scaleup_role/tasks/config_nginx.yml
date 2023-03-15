@@ -1,3 +1,22 @@
 ---
-- name: Run kubectl command to remove node from Nginx Config
-  shell: echo "running kubectl command on {{ ansible_default_ipv4.address }}"  
+- name: Get the present configmap
+  shell: kubectl get cm esnginx-sfnginxv1 -o yaml > /tmp/esnginx-sfnginxv1_cm.yaml
+- name: Check if the new node ip is already present
+  become: true
+  shell: sed -n "/server {{ new_node_ip }}:9200;/p" /tmp/esnginx-sfnginxv1_cm.yaml
+  register: check_node_ip
+- name: Add the node ip from configmap for nginx configuration
+  become: true
+  lineinfile:
+    path: /tmp/esnginx-sfnginxv1_cm.yaml
+    regexp: (server .*:9200.*)
+    state: present
+    line: |-2
+              \1
+              server {{ new_node_ip }}:9200;
+    backup: true
+    backrefs: true
+  when: check_node_ip.stdout == ""
+- name: Apply the update config map
+  shell: kubectl apply -f /tmp/esnginx-sfnginxv1_cm.yaml
+  when: check_node_ip.stdout == ""
