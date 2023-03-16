@@ -7,6 +7,34 @@
   roles:
     - scale_down
 
+- name: Create jump_host group and add jump host to it
+  hosts: localhost
+  tasks:
+    - name: Add a jump host group dynamically
+      add_host:
+        name: '{{ jump_host_ip }}'
+        groups: jump_host
+        ansible_user: '{{ jump_host_user | default("ubuntu") }}'
+        ansible_private_host: '{{ jump_host_ip }}'
+        ansible_ssh_private_key_file: "/usr/local/scaling_manager_lib/user.pem"
+      when: is_sf_cloud | default(False)
+
+- name: configure nginx Custom role-based tasks for scale up
+  hosts: jump_host
+  become: yes
+
+  pre_tasks:
+  - set_fact:
+      is_sf_cloud: "{{ is_sf_cloud | default(False) }}"
+  - set_fact:
+      jump_host_ip: "{{ jump_host_ip | default('') }}"
+  - set_fact:
+      exclude_node_ip: "{{ hostvars[item]['ansible_private_host'] }}"
+    with_items: "{{ groups['remove_node'] }}"
+
+  roles:
+    - custom_scaledown_role
+
 - hosts: all
 
   tasks:
@@ -29,10 +57,3 @@
       state: absent
       backup: yes
     with_items: "{{ groups['remove_node'] }}"
-
-- hosts: new_node
-  name: Custom role-based tasks for scale down
-  become: yes
-
-  roles:
-    - custom_scaledown_role

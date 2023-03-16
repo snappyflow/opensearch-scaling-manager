@@ -1,0 +1,30 @@
+---
+- name: Get the present configmap
+  become: true
+  shell: kubectl get cm esnginx-sfnginxv1 -o yaml > /tmp/esnginx-sfnginxv1_cm.yaml
+  ignore_errors: True
+  register: kubectl_cmd
+- debug: msg="Kubectl command execution failed. Please add the node ip {{ new_node_ip }} manaully in nginx configmap. For more details please check troubleshooting guide."
+  when: kubectl_cmd.stderr != ""
+- name: Check if the new node ip is already present
+  become: true
+  shell: sed -n "/server {{ new_node_ip }}:9200;/p" /tmp/esnginx-sfnginxv1_cm.yaml
+  register: check_node_ip
+  when: kubectl_cmd.stderr == ""
+- name: Add the node ip from configmap for nginx configuration
+  become: true
+  lineinfile:
+    path: /tmp/esnginx-sfnginxv1_cm.yaml
+    regexp: (server .*:9200;)
+    state: present
+    line: |-2
+              \1
+              server {{ new_node_ip }}:9200;
+    backup: true
+    backrefs: true
+    firstmatch: yes
+  when: kubectl_cmd.stderr == "" and check_node_ip.stdout == ""
+- name: Apply the update config map
+  become: true
+  shell: kubectl apply -f /tmp/esnginx-sfnginxv1_cm.yaml
+  when: kubectl_cmd.stderr == "" and check_node_ip.stdout == ""

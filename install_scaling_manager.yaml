@@ -77,6 +77,43 @@
       cmd: make install USER_NAME={{ user | default('ubuntu') }} GROUP={{ group | default('ubuntu') }}
       chdir: "{{ dest_bin_path | default('/usr/local/scaling_manager_lib/') }}"
     become: yes
+  - name: Get local IP Address
+    shell: ip add | grep 'inet' | grep -v 127.0.0.1 | grep -v inet6 | awk -F"/" '{print $1}' | grep -E0 "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" |  awk -F" " '{print $2}' | head -1
+    register: ip_add
+    when: is_sf_cloud | default(False)
+    delegate_to: localhost
+  - name: Get Jump Host IP
+    set_fact:
+      jump_host_ip: "{{ jump_host_ip | default(ip_add.stdout) }}"
+    when: is_sf_cloud | default(False)
+    delegate_to: localhost
+  - name: Add is_sf_cloud flag in group vars
+    become: true
+    lineinfile:
+      path: /usr/local/scaling_manager_lib/ansible_scripts/group_vars/all/all.yml
+      regexp: "is_sf_cloud: .*"
+      line: "is_sf_cloud: True"
+      backup: true
+      create: true
+    when: is_sf_cloud | default(False)
+  - name: Add jump_host_ip in group vars
+    become: true
+    lineinfile:
+      path: /usr/local/scaling_manager_lib/ansible_scripts/group_vars/all/all.yml
+      regexp: "jump_host_ip: .*"
+      line: "jump_host_ip: {{ jump_host_ip }}"
+      backup: true
+      create: true
+    when: is_sf_cloud | default(False)
+  - name: Add jump_host_user in group vars
+    become: true
+    lineinfile:
+      path: /usr/local/scaling_manager_lib/ansible_scripts/group_vars/all/all.yml
+      regexp: "jump_host_user: .*"
+      line: "jump_host_user: {{ jump_host_user | default('ubuntu') }}"
+      backup: true
+      create: true
+    when: is_sf_cloud | default(False)
   tags: install
 - name: Update secret
   hosts: all
