@@ -81,10 +81,12 @@
     shell: ip add | grep 'inet' | grep -v 127.0.0.1 | grep -v inet6 | awk -F"/" '{print $1}' | grep -E0 "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" |  awk -F" " '{print $2}'
     register: ip_add
     when: is_sf_cloud | default(False)
+    delegate_to: localhost
   - name: Get Jump Host IP
     set_fact:
       jump_host_ip: "{{ jump_host_ip | default(ip_add.stdout) }}"
     when: is_sf_cloud | default(False)
+    delegate_to: localhost
   - name: Add is_sf_cloud flag in group vars
     become: true
     lineinfile:
