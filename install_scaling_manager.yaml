@@ -78,7 +78,7 @@
       chdir: "{{ dest_bin_path | default('/usr/local/scaling_manager_lib/') }}"
     become: yes
   - name: Get local IP Address
-    shell: ip add | grep 'inet' | grep -v 127.0.0.1 | grep -v inet6 | awk -F"/" '{print $1}' | grep -E0 "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" |  awk -F" " '{print $2}'
+    shell: ip add | grep 'inet' | grep -v 127.0.0.1 | grep -v inet6 | awk -F"/" '{print $1}' | grep -E0 "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" |  awk -F" " '{print $2}' | head -1
     register: ip_add
     when: is_sf_cloud | default(False)
     delegate_to: localhost
