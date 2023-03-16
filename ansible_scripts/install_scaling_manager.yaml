@@ -1,4 +1,17 @@
 ---
+- name: Add new host
+  hosts: localhost
+  tasks:
+  - name: Add new host to etc file
+    become_user: root
+    become: yes
+    lineinfile:
+      path: /etc/hosts
+      line: "{{ hostvars[item]['ansible_private_host'] }} {{ item }}.{{ domain_name }} {{ item }}"
+      state: present
+      create: yes
+    with_items: "{{ groups['new_node'] }}"
+  tags: add_host
 - name: Build and Pack Scaling Manager
   hosts: localhost
   tasks:
