@@ -267,7 +267,8 @@ func ScaleOut(clusterCfg config.ClusterDetails, usrCfg config.UserConfig, t *tim
 		// Check if node has joined the cluster
 		log.Info.Println("Waiting for new node to join the cluster...")
 		var joined bool
-		for i := 0; i < 5; i++ {
+		// Wait for 10 minutes in the interval of 5 seconds for the node to join the cluster
+		for i := 0; i < 120; i++ {
 			nodesInfo := utils.GetNodes()
 			for _, nodeIdInfo := range nodesInfo {
 				if nodeIdInfo.(map[string]string)["hostIp"] == newNodeIp {
