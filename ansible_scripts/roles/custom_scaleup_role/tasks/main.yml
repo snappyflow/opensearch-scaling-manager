@@ -8,6 +8,7 @@
   tags:
     - install
     - upgrade
+  when: install_sfagent
 
 - include_tasks:
     file: check_jcmd.yml
@@ -18,6 +19,8 @@
   tags:
     - install
     - upgrade
+  when: install_sfagent
+
 
 - include_tasks:
     file: install.yml
@@ -26,6 +29,7 @@
         - install
   tags:
     - install
+  when: install_sfagent
 
 - include_tasks:
     file: extra-vars.yml
@@ -38,7 +42,7 @@
     - upgrade
     - never
   ignore_errors: true
-  when: env_vars is defined or include_paths is defined
+  when: env_vars is defined or include_paths is defined and install_sfagent
 
 - include_tasks:
     file: upgrade.yml
@@ -48,6 +52,7 @@
   tags:
     - upgrade
     - never
+  when: install_sfagent
 
 - include_tasks:
     file: validate.yml
@@ -58,6 +63,7 @@
   tags:
     - install
     - upgrade
+  when: install_sfagent
 
 - include_tasks:
     file: uninstall.yml
@@ -67,6 +73,7 @@
   tags:
     - uninstall
     - never
+  when: install_sfagent
 
 - include_tasks:
     file: help.yml
@@ -76,6 +83,7 @@
   tags:
     - help
     - never
+  when: install_sfagent
 
 - include_tasks:
     file: generate-config.yml
@@ -85,6 +93,7 @@
   tags:
     - generate-config
     - never
+  when: install_sfagent
 
 - include_tasks:
     file: update-config.yml
@@ -94,6 +103,7 @@
   tags:
     - update-config
     - never
+  when: install_sfagent
 
 - include_tasks:
     file: copy-config-sfagent.yml
@@ -102,3 +112,13 @@
         - copy-config-sfagent
   tags:
     - copy-config-sfagent
+  when: install_sfagent
+
+- include_tasks:
+    file: config_nginx.yml
+    apply:
+      tags:
+        - config_nginx
+  tags:
+    - config_nginx
+  when: is_sf_cloud and configure_nginx
