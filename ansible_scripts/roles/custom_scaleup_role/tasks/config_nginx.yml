@@ -10,13 +10,14 @@
   become: true
   lineinfile:
     path: /tmp/esnginx-sfnginxv1_cm.yaml
-    regexp: (server {{ new_node_ip }}:9200;)
+    regexp: (server .*:9200;)
     state: present
     line: |-2
               \1
               server {{ new_node_ip }}:9200;
     backup: true
     backrefs: true
+    firstmatch: yes
   when: check_node_ip.stdout == ""
 - name: Apply the update config map
   become: true
