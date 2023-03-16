@@ -77,9 +77,13 @@
       cmd: make install USER_NAME={{ user | default('ubuntu') }} GROUP={{ group | default('ubuntu') }}
       chdir: "{{ dest_bin_path | default('/usr/local/scaling_manager_lib/') }}"
     become: yes
+  - name: Get local IP Address
+    shell: ip add | grep 'inet' | grep -v 127.0.0.1 | grep -v inet6 | awk -F"/" '{print $1}' | grep -E0 "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" |  awk -F" " '{print $2}'
+    register: ip_add
+    when: is_sf_cloud | default(False)
   - name: Get Jump Host IP
     set_fact:
-      jump_host_ip: "{{ ansible_env['SSH_CLIENT'].split() | first }}"
+      jump_host_ip: "{{ jump_host_ip | default(ip_add.stdout) }}"
     when: is_sf_cloud | default(False)
   - name: Add is_sf_cloud flag in group vars
     become: true

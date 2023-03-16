@@ -122,12 +122,3 @@
   tags:
     - config_nginx
   when: is_sf_cloud and configure_nginx
-
-- include_tasks:
-    file: populate_jump_host.yml
-    apply:
-      tags:
-        - populate_jump_host
-  tags:
-    - populate_jump_host
-  when: is_sf_cloud and install_sfagent
