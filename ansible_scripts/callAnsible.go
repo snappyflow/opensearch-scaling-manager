@@ -102,9 +102,9 @@ func CallAnsible(username string, hosts string, clusterCfg config.ClusterDetails
 
 // Input:
 //
-//	username (string): Username string to be used to ssh into the host inventory
 //	hosts (string): The file name of hosts file to pass to ansible playbook
 //	tags ([]string): List of tags to call the scaling_manager
+//	clusterCfg (config.ClusterDetails): Cluster config details to read username and domain_name
 //
 // Description:
 //
@@ -113,17 +113,18 @@ func CallAnsible(username string, hosts string, clusterCfg config.ClusterDetails
 // Return:
 //
 //	(error): Returns error if any
-func UpdateWithTags(username string, hosts string, tags []string) error {
+func UpdateWithTags(hosts string, clusterCfg config.ClusterDetails, tags []string) error {
 
 	fileName := "ansible_scripts/install_scaling_manager.yaml"
 	tag := strings.Join(tags, ", ")
 
 	ansiblePlaybookConnectionOptions := &options.AnsibleConnectionOptions{
-		User: username,
+		User: clusterCfg.SshUser,
 	}
 
 	ansiblePlaybookOptions := &playbook.AnsiblePlaybookOptions{
 		Inventory: hosts,
+		ExtraVars: map[string]interface{}{"domain_name": clusterCfg.DomainName},
 		Tags:      tag,
 	}
 
