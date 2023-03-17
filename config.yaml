@@ -86,7 +86,7 @@ task_details:
           stat: COUNT
           decision_period: 720
           occurrences_percent: 95
-       - metric: HeapUtil
+        - metric: HeapUtil
           limit: 30
           stat: COUNT
           decision_period: 720
