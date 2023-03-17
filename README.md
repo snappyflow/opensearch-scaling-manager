@@ -1,8 +1,10 @@
-### Open-search Scaling Manager
+# Open-search Scaling Manager
 
-------
 
-#### Overview
+
+[TOC]
+
+### Overview
 
 ------
 
@@ -22,7 +24,7 @@ OpenSearch scaling manager is used to elastically scale a cluster to ensure opti
 
 - Event based Scaling 
 
-#### Brief explanation, Architecture of Scaling Manager
+### Brief explanation, Architecture of Scaling Manager
 
 ------
 
@@ -45,7 +47,7 @@ OpenSearch scaling manager is used to elastically scale a cluster to ensure opti
 
      
 
-#### Working Principle of Scaling Manager
+### Working Principle of Scaling Manager
 
 ------
 
@@ -142,7 +144,7 @@ Scaling manager has following modules
 
   
 
-#### Scaling Manager Flow Diagram 
+### Scaling Manager Flow Diagram 
 
 ------
 
@@ -150,7 +152,7 @@ Scaling manager has following modules
 
 
 
-#### Scaling Manager Architecture
+### Scaling Manager Architecture
 
 ------
 
@@ -161,7 +163,7 @@ Scaling manager has following modules
 
 
 
-#### Crypto
+### Crypto
 
 ------
 
@@ -175,17 +177,17 @@ Scaling manager has following modules
 
 
 
-#### Scale Up and Scale Down
+### Scale Up and Scale Down
 
 ------
 
-##### **Scale Up** 
+**Scale Up** 
 
 - New node that is added to the cluster will be configured with all the requirements such as OpenSearch, Security groups, sudo aspects, ssh aspects etc... in order to communicate with the other nodes in the cluster.
 - When the process of scale_up is completed by provision and when scale_up is recommended again in specified decision time, it will discard the scale_up since there was already successful provision done. So it discards provision until next polling interval.
 - When provision(scale_up) is recommended and the cluster has reached maximum number of nodes(specified in config.yaml), scaling manager will not scale up until max_nodes_allowed is increased manually by user in config.yaml and it will log the message to notify the user to increase the size.
 
-##### **Scale Down** 
+**Scale Down** 
 
 - Identifies node which is other than master node to remove from the cluster and stores the node IP. Configuring (Reallocating the shards to other nodes) to remove the node from cluster. Remove the node and terminate the instance.
 - When task == scale_down && Cluster_Status != green, recommendation(task) can not be provisioned as open search cluster is unhealthy for a scale_down.
@@ -195,7 +197,7 @@ Scaling manager has following modules
 
 
 
-#### Scaling Manager Configuration
+### Scaling Manager Configuration
 
 ------
 
@@ -302,7 +304,7 @@ Tasks supports two types of scaling
 
   
 
-#### Sample config.yaml
+### Sample config.yaml
 
 ------
 
@@ -310,7 +312,7 @@ Tasks supports two types of scaling
 
 
 
-#### Scaling Manager Pre-Requisites
+### Scaling Manager Pre-Requisites
 
 ------
 
@@ -330,19 +332,24 @@ Tasks supports two types of scaling
 
 
 
-#### Jump Host login details
+### Jump Host login details
 
 ------
 
 - Download any remote computing toolbox like MobaXterm. 
 - Click Session -> SSH -> Remote host.
 - Enter Remote host details, mention the username.
-- Click Advanced SSH Settings, choose the PEM file that is present in your local and click OK.
+- Click Advanced SSH Settings, choose the PEM file that you have for credentials and click OK.
 - Login using the Cluster and Jump host details.
+- Once you login, download the latest build and update the following files 
+  1. GNUmakefile 
+  2. install_scaling_manager
+  3. scaling_manager.tar.gz
+- Now you are ready with your latest build to see the actual working of Scaling Manager.
 
 
 
-#### Build and Installation of Scaling Manager
+### Commands
 
 ------
 
@@ -502,7 +509,7 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "uni
 
 
 
-#### Simulator
+### Simulator
 
 ------
 
@@ -510,9 +517,17 @@ Find more about Simulator here [opensearch-scaling-manager/readme_simulator.md a
 
 
 
-#### Trouble Shooting
+### Trouble Shooting
 
 ------
 
- Find more about Trouble Shooting here 
-<!-- To do - Add link to trouble shoot once code is merged. -->
+ Find more about [Trouble Shooting]().
+
+
+
+### Contribution to OpenSearch Scaling Manager
+
+------
+
+ Find the guidelines for [contributing OpenSearch Scaling Manager]()
+ 
