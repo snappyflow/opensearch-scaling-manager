@@ -5,4 +5,3 @@ Welcome to the MapleLabs OpenSource initiative! Thanks for considering contribut
 All contributors must comply with [the code of conduct]().
 
 To get started developing, see our [guidelines.md]().
-

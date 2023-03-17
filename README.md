@@ -18,8 +18,6 @@
     - [Contribution to OpenSearch Scaling Manager](#contribution-to-opensearch-scaling-manager)
 
 
-
-
 ### Overview
 
 ------
