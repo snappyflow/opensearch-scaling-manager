@@ -537,7 +537,7 @@ Find more about Simulator here [opensearch-scaling-manager/readme_simulator.md a
 
 ------
 
- Find more about [Trouble Shooting](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/docs/Scaling%20Manager%20Trouble%20Shooting.md).
+ Find more about [Trouble Shooting]().
 
 
 
@@ -545,4 +545,4 @@ Find more about Simulator here [opensearch-scaling-manager/readme_simulator.md a
 
 ------
 
- Find the guidelines for [contributing OpenSearch Scaling Manager](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/docs/Contribution.md)
+ Find the guidelines for [contributing OpenSearch Scaling Manager]()
