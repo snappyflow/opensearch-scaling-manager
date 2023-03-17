@@ -234,7 +234,7 @@ func UpdateSecretAndEncryptCreds(initial_run bool, config_struct config.ConfigSt
 }
 
 func OsCredsMismatch(currOsCred config.OsCredentials, prevOsCred config.OsCredentials) bool {
-	if (currOsCred.OsAdminUsername != prevOsCred.OsAdminUsername) || (currOsCred.OsAdminPassword != currOsCred.OsAdminPassword) {
+	if (currOsCred.OsAdminUsername != prevOsCred.OsAdminUsername) || (currOsCred.OsAdminPassword != prevOsCred.OsAdminPassword) {
 		return true
 	}
 	return false

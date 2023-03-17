@@ -52,7 +52,12 @@ task_details:
           decision_period: 60
           occurrences_percent: 85
         - metric: RamUtil
-          limit: 90
+          limit: 80
+          stat: COUNT
+          decision_period: 60
+          occurrences_percent: 85
+        - metric: HeapUtil
+          limit: 80
           stat: COUNT
           decision_period: 60
           occurrences_percent: 85
@@ -77,6 +82,11 @@ task_details:
       operator: AND
       rules:
         - metric: CpuUtil
+          limit: 30
+          stat: COUNT
+          decision_period: 720
+          occurrences_percent: 95
+       - metric: HeapUtil
           limit: 30
           stat: COUNT
           decision_period: 720
