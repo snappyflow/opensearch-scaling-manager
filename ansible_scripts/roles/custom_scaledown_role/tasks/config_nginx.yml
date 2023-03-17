@@ -18,8 +18,8 @@
     regexp: server {{ exclude_node_ip }}:9200;
     state: absent
     backup: true
-  when: kubectl_cmd.stderr == "" and check_node_ip.stdout == ""
+  when: kubectl_cmd.stderr == "" and check_node_ip.stdout != ""
 - name: Apply the update config map
   become: true
   shell: kubectl apply -f /tmp/esnginx-sfnginxv1_cm.yaml
-  when: kubectl_cmd.stderr == "" and check_node_ip.stdout == ""
+  when: kubectl_cmd.stderr == "" and check_node_ip.stdout != ""
