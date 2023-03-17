@@ -1,8 +1,24 @@
 # Open-search Scaling Manager
 
+- [Open-search Scaling Manager](#open-search-scaling-manager)
+    - [Overview](#overview)
+    - [Brief explanation, Architecture of Scaling Manager](#brief-explanation-architecture-of-scaling-manager)
+    - [Working Principle of Scaling Manager](#working-principle-of-scaling-manager)
+    - [Scaling Manager Flow Diagram](#scaling-manager-flow-diagram)
+    - [Scaling Manager Architecture](#scaling-manager-architecture)
+    - [Crypto](#crypto)
+    - [Scale Up and Scale Down](#scale-up-and-scale-down)
+    - [Scaling Manager Configuration](#scaling-manager-configuration)
+    - [Sample config.yaml](#sample-configyaml)
+    - [Scaling Manager Pre-Requisites](#scaling-manager-pre-requisites)
+    - [Jump Host login details](#jump-host-login-details)
+    - [Commands](#commands)
+    - [Simulator](#simulator)
+    - [Trouble Shooting](#trouble-shooting)
+    - [Contribution to OpenSearch Scaling Manager](#contribution-to-opensearch-scaling-manager)
 
 
-[TOC]
+
 
 ### Overview
 
@@ -43,7 +59,7 @@ OpenSearch scaling manager is used to elastically scale a cluster to ensure opti
   2. If cpu_util < 80, scale_down a node
      If mem_util < 90, scale_down a node
 
-     <img src="https://github.com/maplelabs/opensearch-scaling-manager/blob/release_v0.1_dev/images/ScalingManager_Architecture.png?raw=true" alt="Scaling_Manager_Architecture">
+     <img src="" alt="Scaling_Manager_Architecture">
 
      
 
@@ -249,21 +265,21 @@ The user can specify some key features of an OpenSearch Cluster for simulator th
 
 **os_credentials:** 
 
-​		**os_admin_username:** Username for the OpenSearch for connecting. This can be set to empty if the security is disable in OpenSearch.
-
-​		**os_admin_password:** Password for the OpenSearch for connecting. This can be set to empty if the security is disable in OpenSearch.
+		**os_admin_username:** Username for the OpenSearch for connecting. This can be set to empty if the security is disable in OpenSearch.
+	
+		**os_admin_password:** Password for the OpenSearch for connecting. This can be set to empty if the security is disable in OpenSearch.
 
  **cloud_credentials:**
 
-​		**pem_file_path:** Path where the pem file is located. 
-
-​		**secret_key:** Secret key for cluster.
-
-​		**access_key:** Access key for cluster.
-
-​		**region:** Region at which AWS is used.
-
-​		**role_arn:** AWS IAM role of user which has permissions to spin a node.
+		**pem_file_path:** Path where the pem file is located. 
+	
+		**secret_key:** Secret key for cluster.
+	
+		**access_key:** Access key for cluster.
+	
+		**region:** Region at which AWS is used.
+	
+		**role_arn:** AWS IAM role of user which has permissions to spin a node.
 
 **jvm_factor:** Specify the percent of RAM to be allocated to HEAP.
 
@@ -300,7 +316,7 @@ Tasks supports two types of scaling
 
   **rules:**
 
-  ​    **scheduling_time:** Specifies the cron job time at which the task happens
+      **scheduling_time:** Specifies the cron job time at which the task happens
 
   
 
@@ -521,7 +537,7 @@ Find more about Simulator here [opensearch-scaling-manager/readme_simulator.md a
 
 ------
 
- Find more about [Trouble Shooting]().
+ Find more about [Trouble Shooting](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/docs/Scaling%20Manager%20Trouble%20Shooting.md).
 
 
 
@@ -529,5 +545,4 @@ Find more about Simulator here [opensearch-scaling-manager/readme_simulator.md a
 
 ------
 
- Find the guidelines for [contributing OpenSearch Scaling Manager]()
- 
+ Find the guidelines for [contributing OpenSearch Scaling Manager](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/docs/Contribution.md)

@@ -1,8 +1,15 @@
 ## Guidelines
 
+- [Guidelines](#guidelines)
+  - [Getting Stated](#getting-stated)
+  - [Git guidelines](#git-guidelines)
+    - [**GitHub Repository**](#github-repository)
+    - [**Cloning vs forking**](#cloning-vs-forking)
+    - [**Open Issue**](#open-issue)
+    - [**Checks before submitting an issue**](#checks-before-submitting-an-issue)
+  - [Pre-requisites to contribute](#pre-requisites-to-contribute)
+  - [Getting Help](#getting-help)
 
-
-[TOC]
 
 ### Getting Stated
 
