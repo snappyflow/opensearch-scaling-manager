@@ -66,7 +66,7 @@ task_details:
           stat: TERM
           decision_period: 180
         - metric: DiskUtil
-          limit: 70
+          limit: 75
           stat: COUNT
           decision_period: 60
           occurrences_percent: 85
