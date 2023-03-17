@@ -50,12 +50,12 @@ task_details:
           limit: 80
           stat: COUNT
           decision_period: 60
-          occurrences_percent: 80
+          occurrences_percent: 85
         - metric: RamUtil
           limit: 90
           stat: COUNT
           decision_period: 60
-          occurrences_percent: 80
+          occurrences_percent: 85
         - metric: ShardsPerGB
           limit: 25
           stat: TERM
