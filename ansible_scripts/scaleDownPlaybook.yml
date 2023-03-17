@@ -19,9 +19,8 @@
         ansible_ssh_private_key_file: "/usr/local/scaling_manager_lib/user.pem"
       when: is_sf_cloud | default(False)
 
-- name: configure nginx Custom role-based tasks for scale up
+- name: configure nginx Custom role-based tasks for scale down
   hosts: jump_host
-  become: yes
 
   pre_tasks:
   - set_fact:
