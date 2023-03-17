@@ -1,12 +1,8 @@
-## Scaling Manager Trouble Shooting Guide
-
-
-
-[TOC]
-
-### Scenario 1
+### Scaling Manager Trouble Shooting Guide
 
 ------
+
+**Scenario 1**
 
 Installation of Scaling Manager not completed successfully on a new node which is added into the existing cluster.
 
@@ -73,9 +69,7 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "ins
 
 
 
-### Scenario 2
-
-------
+**Scenario 2**
 
 If scaling manager fail to start on a node with following issue:
 
@@ -87,84 +81,16 @@ This may happen when .secret.txt file is not present or deleted. In this case we
 
 **Solution to resolve**
 
-**Step 1** - Run populate inventory.yaml command 
+Update Config file and retry
 
-```master_node_ip
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "populate_inventory_yaml" -e master_node_ip=0.0.0.0 -e os_user=USERNAME -e os_pass=PASSWORD
+Password based authentication command 
+
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" -kK
 ```
 
-master_node_ip = IP address of master node,
-os_user = Appropriate username,
-os_pass = Appropriate password
+Key based authentication command 
 
-**Step 2-** Update Config file and retry
-
-- Password based authentication command 
-
-  ```
-  sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" -kK
-  ```
-
-- Key based authentication command 
-
-  ```
-  sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" --key-file user-dev-aws-ssh.pem -e config_path="config.yaml"
-  ```
-
-
-
-### Scenario 3
-
-------
-
-Config update failed due to node unreachable
-
-**Explanation**
-
-This may happen due to the case where the entry for that host is deleted or not added in case of addition of node.
-
-**Solution to resolve**
-
-Step 1 - Add the nodes manually 
-
-Step 2 - Update Config file
-
-- Password based authentication command 
-
-  ```
-  sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" -kK
-  ```
-
-- Key based authentication command 
-
-  ```
-  sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" --key-file user-dev-aws-ssh.pem -e config_path="config.yaml"
-  ```
-
-
-
-### Scenario 4
-
-------
-
-Failed to connect to the host via ssh. Node is unreachable while updating the config and secret or spinning up a new node from master node. 
-
-**Explanation**
-
-This may happen due to the ssh is not allowed because the underlying security group does not support ssh.
-
-**Solution to resolve**
-
-Add the correct source in the security group which allow ssh.
-
-
-
-### Scenario 5
-
-------
-
-Node will not be added due to the security configuration.
-
-**Explanation and Solution to resolve**
-
-Please go back and check if the wild card is enabled on configuration of CN on all the node.
+```
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" --key-file user-dev-aws-ssh.pem -e config_path="config.yaml"
+```
