@@ -514,6 +514,7 @@ func getClusterCountQuery(metricName string, decisionPeriod int, limit float32, 
 //              pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index
 //              limit (float32): The limit for the metric for which the count is calculated.
 //              ctx (context.Context): Request-scoped data that transits processes and APIs.
+//              taskOperation (string); Recommended operation 
 //
 // Description:
 //              GetClusterCount will return the number of times the specified metric has reached the limit.

@@ -164,7 +164,7 @@ func GetNextRule(taskOperation string, pollingInterval int, simFlag, isAccelerat
 // Input:
 //              simFlag (bool): A flag to check if the task needs to collect stats from Opensearch data or simulated data.
 //              pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index.
-// 				taskOperation (string); Recommended operation
+//              taskOperation (string); Recommended operation
 //
 // Caller:
 //              Object of Rule
