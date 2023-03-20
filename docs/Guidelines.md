@@ -80,3 +80,4 @@ To contribute without write access, you can [fork](https://help.github.com/en/gi
 If you have any questions or need help with contributing to Scaling Manager, please reach out to us through [opensource@maplelabs.com](mailto:opensource@maplelabs.com). We have also have a discord channel which you can use for any of your discussions. Link for the discord channel - https://discord.com/channels/1020294105802219530/1021734585098326066
 
 We appreciate your interest in contributing to Scaling Manager.
+

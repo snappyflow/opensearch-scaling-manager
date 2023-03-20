@@ -562,3 +562,4 @@ Find more about Simulator here [opensearch-scaling-manager/readme_simulator.md a
 ------
 
  Find the guidelines for [contributing OpenSearch Scaling Manager](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/docs/Contribution.md)
+ 
