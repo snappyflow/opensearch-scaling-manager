@@ -59,7 +59,7 @@ OpenSearch scaling manager is used to elastically scale a cluster to ensure opti
   2. If cpu_util < 80, scale_down a node
      If mem_util < 90, scale_down a node
 
-     <img src="" alt="Scaling_Manager_Architecture">
+     <img src="https://github.com/maplelabs/opensearch-scaling-manager/blob/release_v0.1_dev/images/ScalingManager_Architecture.png?raw=true" alt="Scaling_Manager_Architecture">
 
      
 
@@ -406,8 +406,10 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "bui
 In case to use key based authentication, Use the following command
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_pem" --key-file user-dev-aws-ssh.pem -e pem_path="user-dev-aws-ssh.pem"
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_pem" --key-file USERPEMFILEPATH.pem -e pem_path="user-dev-aws-ssh.pem"
 ```
+
+USERPEMFILEPATH = Please provide appropriate pem file path here.
 
 Key based and password based commands does the same work but the way you do is different. You can use either of the commands to execute.
 
@@ -433,8 +435,10 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "ins
 Key based authentication command
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "install" --key-file user-dev-aws-ssh.pem -e src_bin_path="."
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "install" --key-file USERPEMFILEPATH.pem -e src_bin_path="."
 ```
+
+USERPEMFILEPATH = Please provide appropriate pem file path here.
 
 **Update Config**
 
@@ -447,8 +451,10 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "upd
 Key based authentication command 
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" --key-file user-dev-aws-ssh.pem -e config_path="config.yaml"
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" --key-file USERPEMFILEPATH.pem -e config_path="config.yaml"
 ```
+
+USERPEMFILEPATH = Please provide appropriate pem file path here.
 
 **Update pem**
 
@@ -461,8 +467,10 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "upd
 Key based authentication command 
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_pem" --key-file user-dev-aws-ssh.pem -e pem_path="user-dev-aws-ssh.pem"
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_pem" --key-file USERPEMFILEPATH.pem -e pem_path="user-dev-aws-ssh.pem"
 ```
+
+USERPEMFILEPATH = Please provide appropriate pem file path here.
 
 **Start**
 
@@ -475,8 +483,10 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "sta
 Key based authentication command 
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "start" --key-file user-dev-aws-ssh.pem -e src_bin_path="."
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "start" --key-file USERPEMFILEPATH.pem -e src_bin_path="."
 ```
+
+USERPEMFILEPATH = Please provide appropriate pem file path here.
 
 **Stop**
 
@@ -489,8 +499,10 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "sto
 Key based authentication command 
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "stop" --key-file user-dev-aws-ssh.pem -e src_bin_path="."
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "stop" --key-file USERPEMFILEPATH.pem -e src_bin_path="."
 ```
+
+USERPEMFILEPATH = Please provide appropriate pem file path here.
 
 - Stop command works quick when there is no provisioning happening/provisioning is completed.
 - When provisioning is in process and the stop command is executed it waits till provisioning is completed. To know the status user can do Ctrl+C and check the status of the cluster. 
@@ -506,8 +518,10 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "sta
 Key based authentication command 
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "status" --key-file user-dev-aws-ssh.pem -e src_bin_path="."
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "status" --key-file USERPEMFILEPATH.pem -e src_bin_path="."
 ```
+
+USERPEMFILEPATH = Please provide appropriate pem file path here.
 
 **Uninstall**
 
@@ -520,8 +534,10 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "uni
 Key based authentication command 
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "uninstall" --key-file user-dev-aws-ssh.pem -e src_bin_path="."
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "uninstall" --key-file USERPEMFILEPATH.pem -e src_bin_path="."
 ```
+
+USERPEMFILEPATH = Please provide appropriate pem file path here.
 
 
 

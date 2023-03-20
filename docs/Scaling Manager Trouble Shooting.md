@@ -50,8 +50,10 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "uni
 Key based authentication command 
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "uninstall" --key-file user-dev-aws-ssh.pem -e src_bin_path="."
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "uninstall" --key-file USERPEMFILEPATH.pem -e src_bin_path="."
 ```
+
+USERPEMFILEPATH = Please provide appropriate pem file path here.
 
 **Install**
 
@@ -72,8 +74,10 @@ sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "ins
 Key based authentication command
 
 ```
-sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "install" --key-file user-dev-aws-ssh.pem -e src_bin_path="."
+sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "install" --key-file USERPEMFILEPATH.pem -e src_bin_path="."
 ```
+
+USERPEMFILEPATH = Please provide appropriate pem file path here.
 
 
 
@@ -112,8 +116,10 @@ os_pass = Appropriate password
 - Key based authentication command 
 
   ```
-  sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" --key-file user-dev-aws-ssh.pem -e config_path="config.yaml"
+  sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" --key-file USERPEMFILEPATH.pem -e config_path="config.yaml"
   ```
+
+USERPEMFILEPATH = Please provide appropriate pem file path here.
 
 
 
@@ -129,7 +135,7 @@ This may happen due to the case where the entry for that host is deleted or not 
 
 **Solution to resolve**
 
-Step 1 - Add the nodes manually 
+Step 1 - Add the nodes in "etc hosts" manually 
 
 Step 2 - Update Config file
 
@@ -142,8 +148,10 @@ Step 2 - Update Config file
 - Key based authentication command 
 
   ```
-  sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" --key-file user-dev-aws-ssh.pem -e config_path="config.yaml"
+  sudo ansible-playbook -i inventory.yaml install_scaling_manager.yaml --tags "update_config" --key-file USERPEMFILEPATH.pem -e config_path="config.yaml"
   ```
+
+USERPEMFILEPATH = Please provide appropriate pem file path here.
 
 
 

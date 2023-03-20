@@ -71,12 +71,12 @@ To contribute without write access, you can [fork](https://help.github.com/en/gi
 ------
 
 - AWS credentials to test scaling manager with minimum two nodes in cluster.
-- If AWS credentials are not present, You can make use of our module called simulator to test things. Here is the **[simulator_documentation](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/docs/readme_simulator.md)** on what and how to use.
+- If AWS credentials are not present, contibutors can make use of our module called simulator for testing scaling manger. For more details: **[simulator_documentation](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/docs/readme_simulator.md)**.
 
 
 
 ### Getting Help
 
-If you have any questions or need help with contributing to FOSS-HUB-website, please reach out to us through [opensource@maplelabs.com](mailto:opensource@maplelabs.com). We have also have a discord channel which you can use for any of your discussions. Link for the discord channel - https://discord.com/channels/1020294105802219530/1021734585098326066
+If you have any questions or need help with contributing to Scaling Manager, please reach out to us through [opensource@maplelabs.com](mailto:opensource@maplelabs.com). We have also have a discord channel which you can use for any of your discussions. Link for the discord channel - https://discord.com/channels/1020294105802219530/1021734585098326066
 
-We appreciate your interest in contributing to FOSS-HUB-website and look forward to collaborating with you!
+We appreciate your interest in contributing to Scaling Manager.
