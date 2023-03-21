@@ -14,7 +14,7 @@ To get started find the guidelines for [contributing OpenSearch Scaling Manager]
 
 To learn more about Scaling Manager, take a look at the following resources:
 
-- [Modules](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/docs/Modules.md) - Features and Modules of Scaling Manager
+- [Design_document](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/docs/Design_document.md) - Features and Modules of Scaling Manager
 
 - [Run scaling manager](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/docs/Run%20Scaling%20Manager.md) 
 
