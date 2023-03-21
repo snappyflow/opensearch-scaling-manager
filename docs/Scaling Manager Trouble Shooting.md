@@ -1,4 +1,4 @@
-## Scaling Manager Trouble Shooting Guide
+# Scaling Manager Trouble Shooting Guide
 
 - [Scaling Manager Trouble Shooting Guide](#scaling-manager-trouble-shooting-guide)
   - [Scenario 1](#scenario-1)
@@ -8,9 +8,7 @@
   - [Scenario 5](#scenario-5)
 
 
-### Scenario 1
-
-------
+## Scenario 1
 
 Installation of Scaling Manager not completed successfully on a new node which is added into the existing cluster.
 
@@ -81,9 +79,7 @@ USERPEMFILEPATH = Please provide appropriate pem file path here.
 
 
 
-### Scenario 2
-
-------
+## Scenario 2
 
 If scaling manager fail to start on a node with following issue:
 
@@ -123,9 +119,7 @@ USERPEMFILEPATH = Please provide appropriate pem file path here.
 
 
 
-### Scenario 3
-
-------
+## Scenario 3
 
 Config update failed due to node unreachable
 
@@ -155,9 +149,7 @@ USERPEMFILEPATH = Please provide appropriate pem file path here.
 
 
 
-### Scenario 4
-
-------
+## Scenario 4
 
 Failed to connect to the host via ssh. Node is unreachable while updating the config and secret or spinning up a new node from master node. 
 
@@ -171,9 +163,7 @@ Add the correct source in the security group which allow ssh.
 
 
 
-### Scenario 5
-
-------
+## Scenario 5
 
 Node will not be added due to the security configuration.
 

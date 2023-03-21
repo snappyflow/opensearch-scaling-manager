@@ -1,19 +1,17 @@
 ## Guidelines
 
 - [Guidelines](#guidelines)
-  - [Getting Stated](#getting-stated)
-  - [Git guidelines](#git-guidelines)
-    - [**GitHub Repository**](#github-repository)
-    - [**Cloning vs forking**](#cloning-vs-forking)
-    - [**Open Issue**](#open-issue)
-    - [**Checks before submitting an issue**](#checks-before-submitting-an-issue)
+- [Getting Stated](#getting-stated)
+- [Git guidelines](#git-guidelines)
+  - [**GitHub Repository**](#github-repository)
+  - [**Cloning vs forking**](#cloning-vs-forking)
+  - [**Open Issue**](#open-issue)
+  - [**Checks before submitting an issue**](#checks-before-submitting-an-issue)
   - [Pre-requisites to contribute](#pre-requisites-to-contribute)
   - [Getting Help](#getting-help)
 
 
-### Getting Stated
-
-------
+## Getting Stated
 
 The OpenSource Team and Development Team at MapleLabs welcome contributions to this repository.
 
@@ -21,21 +19,15 @@ If you'd like to make code contributions or content contributions locally, follo
 
 
 
-### Git guidelines
+## Git guidelines
 
-------
-
-#### **GitHub Repository**
-
-------
+### **GitHub Repository**
 
 You can check the code through the following link [maplelabs/opensearch-scaling-manager (github.com)](https://github.com/maplelabs/opensearch-scaling-manager)
 
 
 
-#### **Cloning vs forking**
-
-------
+### **Cloning vs forking**
 
 Complete code is present in `master` branch. You can clone or fork from the following branch. To be able to [clone](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) this repository and contribute, you will need to be given write access to the repository. Contact the MapleLabs Development team if you need write access. Permission for write access is reserved with MapleLabs.
 
@@ -43,9 +35,7 @@ To contribute without write access, you can [fork](https://help.github.com/en/gi
 
 
 
-#### **Open Issue**
-
-------
+### **Open Issue**
 
 - You can find an open issue here if you are intersted in solving [maplelabs/opensearch-scaling-manager (github.com)](https://github.com/maplelabs/opensearch-scaling-manager/issues)
 
@@ -54,9 +44,7 @@ To contribute without write access, you can [fork](https://help.github.com/en/gi
 
 
 
-#### **Checks before submitting an issue**
-
-------
+### **Checks before submitting an issue**
 
 - Check whether you have the latest code by refreshing the `master`branch.
 
@@ -68,10 +56,8 @@ To contribute without write access, you can [fork](https://help.github.com/en/gi
 
 ### Pre-requisites to contribute
 
-------
-
 - AWS credentials to test scaling manager with minimum two nodes in cluster.
-- If AWS credentials are not present, contibutors can make use of our module called simulator for testing scaling manger. For more details: **[simulator_documentation](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/docs/readme_simulator.md)**.
+- If AWS credentials are not present, contibutors can make use of our module called simulator for testing scaling manger. For more details: **[simulator_documentation](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/simulator/readme.md)**.
 
 
 
@@ -80,4 +66,3 @@ To contribute without write access, you can [fork](https://help.github.com/en/gi
 If you have any questions or need help with contributing to Scaling Manager, please reach out to us through [opensource@maplelabs.com](mailto:opensource@maplelabs.com). We have also have a discord channel which you can use for any of your discussions. Link for the discord channel - https://discord.com/channels/1020294105802219530/1021734585098326066
 
 We appreciate your interest in contributing to Scaling Manager.
-
