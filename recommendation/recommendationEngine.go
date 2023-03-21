@@ -270,9 +270,7 @@ func EvaluateRule(clusterMetric []byte, taskOperation string, pollingInterval in
 		if r.Stat == "COUNT" {
 			counts := (r.DecisionPeriod * 60) / pollingInterval
 			if counts != 0 {
-				if taskOperation == "scale_up" && (clusterStats.ViolatedCount*100)/(counts) >= r.Occurrences {
-					return true
-				} else if taskOperation == "scale_down" && (clusterStats.ViolatedCount*100)/(counts) <= r.Occurrences {
+				if (clusterStats.ViolatedCount*100)/(counts) >= r.Occurrences {
 					return true
 				}
 			} else {
