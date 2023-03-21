@@ -96,9 +96,9 @@ Scaling manager has following modules
 
   3. Stat - Stat indicates the statistics on which the evaluation of the rule will happen. For CPU and Mem the values can be:
 
-         Avg: The average CPU or MEM value will be calculated for a given decision period.
-         
-         Count: The number of occurences where CPU or MEM value crossed the threshold limit.
+     Avg: The average CPU or MEM value will be calculated for a given decision period.
+
+     Count: The number of occurences where CPU or MEM value crossed the threshold limit.
 
   4. Decision Period - Decision Period indicates the time in minutes for which a rule is evaluated.
 
@@ -562,4 +562,3 @@ Find more about Simulator here [opensearch-scaling-manager/readme_simulator.md a
 ------
 
  Find the guidelines for [contributing OpenSearch Scaling Manager](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/docs/Contribution.md)
- 
