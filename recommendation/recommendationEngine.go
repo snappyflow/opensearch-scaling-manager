@@ -151,7 +151,7 @@ func GetNextTask(pollingInterval int, simFlag, isAccelerated bool, t config.Task
 //              (bool, error): Return if a rule is meeting the criteria or not(bool) and error if any
 
 func GetNextRule(taskOperation string, pollingInterval int, simFlag, isAccelerated bool, r config.Rule) (bool, error) {
-	cluster, err := GetMetrics(pollingInterval, simFlag, isAccelerated, r)
+	cluster, err := GetMetrics(pollingInterval, simFlag, isAccelerated, r, taskOperation)
 	if err != nil {
 		return false, err
 	}
@@ -164,6 +164,7 @@ func GetNextRule(taskOperation string, pollingInterval int, simFlag, isAccelerat
 // Input:
 //              simFlag (bool): A flag to check if the task needs to collect stats from Opensearch data or simulated data.
 //              pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index.
+//              taskOperation (string); Recommended operation
 //
 // Caller:
 //              Object of Rule
@@ -177,7 +178,7 @@ func GetNextRule(taskOperation string, pollingInterval int, simFlag, isAccelerat
 // Return:
 //              ([]byte, error): Return marshal form of either MetricStatsCluster or MetricViolatedCountCluster struct([]byte) and error if any
 
-func GetMetrics(pollingInterval int, simFlag, isAccelerated bool, r config.Rule) ([]byte, error) {
+func GetMetrics(pollingInterval int, simFlag, isAccelerated bool, r config.Rule, taskOperation string) ([]byte, error) {
 	var clusterStats cluster.MetricStats
 	var clusterCount cluster.MetricViolatedCount
 	var clusterMetric []byte
@@ -208,7 +209,7 @@ func GetMetrics(pollingInterval int, simFlag, isAccelerated bool, r config.Rule)
 		if simFlag {
 			clusterCount, err = cluster_sim.GetClusterCount(r.Metric, r.DecisionPeriod, r.Limit, isAccelerated)
 		} else if r.Stat == "COUNT" {
-			clusterCount, invalidDatapoints, err = cluster.GetClusterCount(ctx, r.Metric, r.DecisionPeriod, pollingInterval, r.Limit)
+			clusterCount, invalidDatapoints, err = cluster.GetClusterCount(ctx, r.Metric, r.DecisionPeriod, pollingInterval, r.Limit, taskOperation)
 		} else if r.Stat == "TERM" && r.Metric == "ShardsPerGB" {
 			clusterCount, invalidDatapoints, err = cluster.GetShardsPerGBLimit(ctx, r.Metric, r.DecisionPeriod, r.Limit, pollingInterval)
 		}
@@ -269,9 +270,7 @@ func EvaluateRule(clusterMetric []byte, taskOperation string, pollingInterval in
 		if r.Stat == "COUNT" {
 			counts := (r.DecisionPeriod * 60) / pollingInterval
 			if counts != 0 {
-				if taskOperation == "scale_up" && (clusterStats.ViolatedCount*100)/(counts) >= r.Occurrences {
-					return true
-				} else if taskOperation == "scale_down" && (clusterStats.ViolatedCount*100)/(counts) <= r.Occurrences {
+				if (clusterStats.ViolatedCount*100)/(counts) >= r.Occurrences {
 					return true
 				}
 			} else {

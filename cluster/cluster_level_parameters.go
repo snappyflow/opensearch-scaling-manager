@@ -13,6 +13,7 @@ package cluster
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/maplelabs/opensearch-scaling-manager/logger"
 	osutils "github.com/maplelabs/opensearch-scaling-manager/opensearchUtils"
 	"strconv"
@@ -280,7 +281,7 @@ func getCountQuery(metricName string, decisionPeriod int, limit float32) string 
                 "field": "` + metricName + `",
                 "ranges": [
                   {
-                    "from": ` + strconv.FormatFloat(float64(limit), 'E', -1, 32) + `,
+                    "from": ` + fmt.Sprintf("%f", limit) + `,
                     "to": null
                   }
                 ]
@@ -451,7 +452,13 @@ func GetClusterAvg(ctx context.Context, metricName string, decisionPeriod int, p
 // Return:
 //              (string): Returns the query string that can be given as an OS query api parameter.
 
-func getClusterCountQuery(metricName string, decisionPeriod int, limit float32, pollingInterval int) string {
+func getClusterCountQuery(metricName string, decisionPeriod int, limit float32, pollingInterval int, taskOperation string) string {
+	var operator string
+	if taskOperation == "scale_up" {
+		operator = ">="
+	} else {
+		operator = "<"
+	}
 	clusterCountQueryString := `{
                 "query": {
                   "bool":{
@@ -478,7 +485,7 @@ func getClusterCountQuery(metricName string, decisionPeriod int, limit float32, 
                   "interval": {
                         "date_histogram": {
                           "field": "Timestamp",
-                          "interval": "` + strconv.Itoa(pollingInterval) + `m"
+                          "interval": "` + strconv.Itoa(pollingInterval) + `s"
                         },
                         "aggs": {
                           "avg_metric_utilization": {
@@ -491,7 +498,7 @@ func getClusterCountQuery(metricName string, decisionPeriod int, limit float32, 
                                   "buckets_path": {
                                         "MetricUtilization": "avg_metric_utilization"
                                   },
-                                  "script": "params.MetricUtilization > ` + strconv.FormatFloat(float64(limit), 'E', -1, 32) + `"
+                                  "script": "params.MetricUtilization ` + operator + fmt.Sprintf("%f", limit) + `"
                                 }
                           }
                         }
@@ -508,6 +515,7 @@ func getClusterCountQuery(metricName string, decisionPeriod int, limit float32, 
 //              pollingInterval (int): Time in seconds which is the interval between each metric is pushed into the index
 //              limit (float32): The limit for the metric for which the count is calculated.
 //              ctx (context.Context): Request-scoped data that transits processes and APIs.
+//              taskOperation (string); Recommended operation
 //
 // Description:
 //              GetClusterCount will return the number of times the specified metric has reached the limit.
@@ -515,7 +523,7 @@ func getClusterCountQuery(metricName string, decisionPeriod int, limit float32, 
 // Return:
 //              (MetricViolatedCount, bool, error): Return populated MetricViolatedCount struct, bool which says if there were enough datapoints to calculate the count and error if any.
 
-func GetClusterCount(ctx context.Context, metricName string, decisionPeriod int, pollingInterval int, limit float32) (MetricViolatedCount, bool, error) {
+func GetClusterCount(ctx context.Context, metricName string, decisionPeriod int, pollingInterval int, limit float32, taskOperation string) (MetricViolatedCount, bool, error) {
 	var metricViolatedCount MetricViolatedCount
 	var invalidDatapoints bool
 
@@ -541,7 +549,7 @@ func GetClusterCount(ctx context.Context, metricName string, decisionPeriod int,
 	}
 
 	//Get the query and convert to json
-	var jsonQuery = []byte(getClusterCountQuery(metricName, decisionPeriod, limit, pollingInterval))
+	var jsonQuery = []byte(getClusterCountQuery(metricName, decisionPeriod, limit, pollingInterval, taskOperation))
 
 	//create a search request and pass the query
 	searchResp, err := osutils.SearchQuery(ctx, jsonQuery)
