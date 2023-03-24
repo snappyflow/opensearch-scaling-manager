@@ -14,11 +14,11 @@ To get started find the guidelines for [contributing OpenSearch Scaling Manager]
 
 To learn more about Scaling Manager, take a look at the following resources:
 
+- [Product Requirements Document](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/docs/PRD.md)
+
 - [Design Architecture](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/docs/DesignArchitecture.md) - Design Architecture of Scaling Manager
 
-- [Run scaling manager](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/docs/RunScalingManager.md) 
-
-  
+- [Run scaling manager](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/docs/RunScalingManager.md)
 
 ## Open Search Cluster Simulator
 
