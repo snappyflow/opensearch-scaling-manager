@@ -1,7 +1,7 @@
 # Design Architecture
 
 - [Design Architecture](#design-architecture)
-  - [**List of features:**](#list-of-features)
+  - [List of features:](#list-of-features)
   - [Working Principle of Scaling Manager](#working-principle-of-scaling-manager)
   - [Scaling Manager Flow Diagram](#scaling-manager-flow-diagram)
   - [Scaling Manager Architecture](#scaling-manager-architecture)
