@@ -12,7 +12,8 @@
 
 
 
-- **List of features:**
+
+**List of features:**
 
   - Automatic Scaling 
 
