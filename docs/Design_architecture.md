@@ -10,7 +10,7 @@
 - [Scale Up and Scale Down](#scale-up-and-scale-down)
 - [Scaling Manager Configuration](#scaling-manager-configuration)
 
-<img src="https://github.com/maplelabs/opensearch-scaling-manager/blob/master/images/ScalingManagerArchitecture.png?raw=true" alt="ScalingManagerArchitecture">
+<img src="https://github.com/maplelabs/opensearch-scaling-manager/blob/master/images/Scaling_Manager_Architecture.png?raw=true" alt="Scaling_Manager_Architecture">
 
 
 
