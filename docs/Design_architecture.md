@@ -38,7 +38,7 @@
   2. If cpu_util < 80, scale_down a node
      If mem_util < 90, scale_down a node
 
-<img src="https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/images/ScalingManagerArchitecture.png" alt"ScalingManagerArchitecture">
+<img src="https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/images/ScalingManagerArchitecture.png" alt="ScalingManagerArchitecture">
 
 
 ## Working Principle of Scaling Manager
