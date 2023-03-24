@@ -10,6 +10,9 @@
 - [Scale Up and Scale Down](#scale-up-and-scale-down)
 - [Scaling Manager Configuration](#scaling-manager-configuration)
 
+<img src="https://github.com/maplelabs/opensearch-scaling-manager/blob/master/images/Scaling_Manager_Architecture.png?raw=true" alt="Scaling_Manager_Architecture">
+
+
 
 ## Working Principle of Scaling Manager
 
@@ -108,9 +111,8 @@ Scaling manager has following modules
 
 ## Scaling Manager Flow Diagram 
 
-<!-- [![Detailed_flow_Scaling_Manager](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/images/Detailed_flow_Scaling_Manager.png?raw=true)](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/images/Detailed_flow_Scaling_Manager.png?raw=true) -->
-
 <img src="https://github.com/maplelabs/opensearch-scaling-manager/blob/master/images/Detailed_flow_Scaling_Manager.png?raw=true" alt="Detailed_flow_Scaling_Manager">
+
 
 
 ## Scaling Manager Architecture
@@ -118,10 +120,7 @@ Scaling manager has following modules
 1. Scaling Manager is deployed in all the nodes in cluster. Lets say cluster has 3 nodes. Now resource utilization went high and there is a need of new node in cluster.
 2. When a new node is added to the cluster ansible scripts will run in new node and it will install Scaling Manger, OpenSearch, All the necessary details which is needed and the new node details will be added to the available nodes list in order to monitor it
 
-<!-- [![Basic_flow_Scaling_Manager](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/images/Basic_flow_Scaling_Manager.png?raw=true)](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/images/Basic_flow_Scaling_Manager.png?raw=true) -->
-
 <img src="https://github.com/maplelabs/opensearch-scaling-manager/blob/master/images/Basic_flow_Scaling_Manager.png?raw=true" alt="Basic_flow_Scaling_Manager">
-
 
 
 
@@ -152,8 +151,6 @@ Scaling manager has following modules
 - When provision(scale_down) is recommended and the cluster has reached minimum number of nodes(specified in config.yaml), scaling manager will not scale down until min_nodes_allowed is decreased manually by user in config.yaml and it will log the message to notify the user to decrease the size.
 
 <img src="https://github.com/maplelabs/opensearch-scaling-manager/blob/master/images/Scale_up_Scale_down.png?raw=true" alt="Scale_up,Scale_down">
-
-<!-- [![Scale_up,Scale_down](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/images/Scale_up_Scale_down.png?raw=true)](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/images/Scale_up_Scale_down.png?raw=true) -->
 
 ## Scaling Manager Configuration
 
