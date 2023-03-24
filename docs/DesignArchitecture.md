@@ -1,16 +1,15 @@
+# Design Architecture
 
+- [Design Architecture](#design-architecture)
+  - [**List of features:**](#list-of-features)
+  - [Working Principle of Scaling Manager](#working-principle-of-scaling-manager)
+  - [Scaling Manager Flow Diagram](#scaling-manager-flow-diagram)
+  - [Scaling Manager Architecture](#scaling-manager-architecture)
+  - [Crypto](#crypto)
+  - [Scale Up and Scale Down](#scale-up-and-scale-down)
+  - [Scaling Manager Configuration](#scaling-manager-configuration)
 
-## Brief explanation, Modules, Architecture of Scaling Manager
-
-- [Brief explanation, Modules, Architecture of Scaling Manager](#brief-explanation-modules-architecture-of-scaling-manager)
-- [Working Principle of Scaling Manager](#working-principle-of-scaling-manager)
-- [Scaling Manager Flow Diagram](#scaling-manager-flow-diagram)
-- [Scaling Manager Architecture](#scaling-manager-architecture)
-- [Crypto](#crypto)
-- [Scale Up and Scale Down](#scale-up-and-scale-down)
-- [Scaling Manager Configuration](#scaling-manager-configuration)
-
-**List of features:**
+## **List of features:**
 
   - Automatic Scaling 
 
@@ -39,7 +38,6 @@
      If mem_util < 90, scale_down a node
 
 <img src="https://github.com/maplelabs/opensearch-scaling-manager/blob/master/images/ScalingManagerArchitecture.png" alt="ScalingManagerArchitecture">
-
 
 ## Working Principle of Scaling Manager
 
