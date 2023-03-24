@@ -14,6 +14,8 @@ The user can specify some key features of an OpenSearch Cluster through the conf
 ## Simulator Behavior 
 As simulator starts, it generates and stores the data points corresponding to the entire day and stores them in a internal database. Based on the user inputs (through APIs), the data points are fetched or re-generated.
 
+Currently, the equation of cluster stats is purely experiment driven.
+
 <img src="https://github.com/maplelabs/opensearch-scaling-manager/blob/master/images/Simulator.png?raw=true" alt="Simulator_Architecture">
 
 
@@ -24,11 +26,17 @@ Simulator provide the following APIs to interact with it:
 
 | Path                                                 | Description                                                                               | Method | Path Parameters                                                              | Request Body         | Response                                     |
 |------------------------------------------------------|-------------------------------------------------------------------------------------------|--------|------------------------------------------------------------------------------|----------------------|----------------------------------------------|
-| `/stats/avg/{stat_name}/{duration}`                  | Returns the average value of a stat for the last specified duration.                      | GET    | __stat_name__: string <br/> __duration__: integer                            | None                 | `{"avg": float, "min": float, "max": float}` |
-| `/stats/violated/{stat_name}/{duration}/{threshold}` | Returns the number of time, a stat crossed the threshold duration the specified duration. | GET    | __stat_name__: string <br/> __duration__: integer <br/> __threshold__: float | None                 | `{"ViolatedCount": int}`                     |
-| `/stats/current/{stat_name}`                         | Returns the most recent value of a stat.                                                  | GET    | __stat_name__: string                                                        | None                 | `{"current": float}`                         |
+| `/stats/avg?metric=<stat_name>&duration=<duration>`                  | Returns the average value of a stat for the last specified duration.                      | GET    | __stat_name__: string <br/> __duration__: integer                            | None                 | `{"avg": float, "min": float, "max": float}` |
+| `/stats/violated?metric=<stat_name>&duration=<duration>&threshold=<threshold>` | Returns the number of time, a stat crossed the threshold duration the specified duration. | GET    | __stat_name__: string <br/> __duration__: integer <br/> __threshold__: float | None                 | `{"ViolatedCount": int}`                     |
+| `/stats/current/metric=<stat_name>`                         | Returns the most recent value of a stat.                                                  | GET    | __stat_name__: string                                                        | None                 | `{"current": float}`                         |
 | `/provision/addnode`                                 | Ask the simulator to perform a node addition.                                             | POST   | None                                                                         | `{"nodes": integer}` | `{'expiry': ISO Date time}`                  |
 | `/provision/remnode`                                 | Ask the simulator to perform a node removal.                                              | POST   | None                                                                         | `{"nodes": integer}` | `{'expiry': ISO Date time}`                  |
+
+
+## Future Scope
+There are currently a lot of missing features that are expected from the simulator.
+Ability to specify the type of machine is one such. This would require profiling of 
+instance types based on their specifications.
 
 
 ## Getting Started

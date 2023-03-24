@@ -396,21 +396,27 @@ def violated_count():
     """
     args = request.args
     args.to_dict()
-    metric = args.get("metric", type=str)
-    duration = args.get("duration", type=int)
-    threshold = args.get("threshold", type=float)
-    time_now_arg = args.get("time_now", type=str)
 
-    if (
-        metric == None
-        or duration == None
-        or threshold == None
-        or len(args) > constants.QUERY_ARG_LENGTH_FOUR
-    ):
-        return Response(json.dumps("Invalid query parameters"), status=400)
+    metric = args.get(constants.METRIC_PARAMETER, type=str)
+    duration = args.get(constants.DURATION_PARAMETER, type=int)
+    threshold = args.get(constants.THRESHOLD_PARAMETER, type=float)
+    time_now_arg = args.get(constants.TIME_NOW_PARAMETER, type=str)
 
+    err_string = ''
+
+    if not metric:
+        err_string += f'Expected Query Parameter - "{constants.METRIC_PARAMETER}" '
+    if not duration:
+        err_string += f'Expected Query Parameter - "{constants.DURATION_PARAMETER}" '
+    if not threshold:
+        err_string += f'Expected Query Parameter - "{constants.THRESHOLD_PARAMETER}" '
+    if len(args) > constants.QUERY_ARG_LENGTH_FOUR:
+        err_string += f'Expected Query Parameter Count: {constants.QUERY_ARG_LENGTH_FOUR}, passed: {len(args)} '
     if len(args) == constants.QUERY_ARG_LENGTH_FOUR and time_now_arg == None:
-        return Response(json.dumps("Invalid query parameters"), status=400)
+        err_string += f'Expected "{constants.TIME_NOW_PARAMETER}" query parameter '
+
+    if err_string:
+        return Response(json.dumps(err_string), status=400)
 
     if time_now_arg:
         try:
@@ -456,7 +462,7 @@ def violated_count():
         return Response(e, status=404)
 
 
-@app.route("/stats/avg/", methods=["GET"])
+@app.route("/stats/avg", methods=["GET"])
 def average():
     """
     The endpoint evaluates average of requested stat for a duration
@@ -468,26 +474,29 @@ def average():
     """
     args = request.args
     args.to_dict()
-    metric = args.get("metric", type=str)
-    duration = args.get("duration", type=int)
-    time_now_arg = args.get("time_now", type=str)
+    metric = args.get(constants.METRIC_PARAMETER, type=str)
+    duration = args.get(constants.DURATION_PARAMETER, type=int)
+    time_now_arg = args.get(constants.TIME_NOW_PARAMETER, type=str)
 
-    if (
-        metric == None
-        or duration == None
-        or len(args) > constants.QUERY_ARG_LENGTH_THREE
-    ):
-        return Response(json.dumps("Invalid query parameters"), status=400)
+    err_string = ''
 
-    if len(args) > constants.QUERY_ARG_LENGTH_TWO and time_now_arg == None:
-        return Response(json.dumps("Invalid query parameters"), status=400)
+    if not metric:
+        err_string += f'Expected Query Parameter - "{constants.METRIC_PARAMETER}" '
+    if not duration:
+        err_string += f'Expected Query Parameter - "{constants.DURATION_PARAMETER}" '
+    if len(args) > constants.QUERY_ARG_LENGTH_TWO and not time_now_arg:
+        err_string += f'Expected "{constants.TIME_NOW_PARAMETER}" query parameter '
+    if len(args) > constants.QUERY_ARG_LENGTH_THREE:
+        err_string += f'Expected Query Parameter Count: {constants.QUERY_ARG_LENGTH_THREE}, passed: {len(args)} '
+    if err_string:
+        return Response(json.dumps(err_string), status=400)
 
     # calculate time to query for data
     if time_now_arg:
         try:
             time_now = datetime.strptime(time_now_arg, constants.TIME_FORMAT)
         except:
-            return Response(json.dumps("Invalid query parameters"), status=400)
+            return Response(json.dumps('Invalid value passed in query parameter "time_now"'), status=400)
     else:
         time_now = datetime.now()
 
@@ -538,20 +547,23 @@ def current_all():
     """
     args = request.args
     args.to_dict()
-    metric = args.get("metric", type=str)
-    time_now_arg = args.get("time_now", type=str)
+    metric = args.get(constants.METRIC_PARAMETER, type=str)
+    time_now_arg = args.get(constants.TIME_NOW_PARAMETER, type=str)
+
+    err_string = ''
 
     if len(args) > constants.QUERY_ARG_LENGTH_TWO:
-        return Response(json.dumps("Invalid query parameters"), status=400)
+        err_string += f'Expected Query Parameter Count: {constants.QUERY_ARG_LENGTH_TWO}, passed: {len(args)} '
 
     if len(args) == constants.QUERY_ARG_LENGTH_TWO and (
         time_now_arg == None or metric == None
-    ):
-        return Response(json.dumps("Invalid query parameters"), status=400)
+    ): 
+        err_string += f'Expected "{constants.METRIC_PARAMETER}" and/or {constants.TIME_NOW_PARAMETER} '
 
     if len(args) == constants.QUERY_ARG_LENGTH_ONE and (
         time_now_arg == None and metric == None
     ):
+        err_string += f'Expected "{constants.METRIC_PARAMETER}", passed "{constants.TIME_NOW_PARAMETER}"'
         return Response(json.dumps("Invalid query parameters"), status=400)
 
     if time_now_arg:
