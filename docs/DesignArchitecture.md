@@ -181,4 +181,4 @@ Scaling manager has following modules
 
 ## Scaling Manager Configuration
 
-Please check [config file](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/docs/Config.md) to know more about scaling manager configuration
+Please check [config file](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/docs/Config.md) to know more about scaling manager configuration
