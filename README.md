@@ -6,7 +6,7 @@ Scaling Manager can be used to automate manual scale up, scale down and reduce t
 
 We encourage you to explore the and contribute to Scaling Manager. 
 
-To get started find the guidelines for [contributing OpenSearch Scaling Manager](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/docs/Contribution.md)
+To get started find the guidelines for [contributing OpenSearch Scaling Manager](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/docs/Contribution.md)
 
 
 
@@ -14,9 +14,9 @@ To get started find the guidelines for [contributing OpenSearch Scaling Manager]
 
 To learn more about Scaling Manager, take a look at the following resources:
 
-- [Design Document](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/docs/Design_document.md) - Design Document of Scaling Manager
+- [Design Architecture](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/docs/DesignArchitecture.md) - Design Architecture of Scaling Manager
 
-- [Run scaling manager](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/docs/Run%20Scaling%20Manager.md) 
+- [Run scaling manager](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/docs/RunScalingManager.md) 
 
   
 
@@ -28,5 +28,5 @@ To learn more about Scaling Manager, take a look at the following resources:
 
 ## Trouble Shooting
 
- Find more about [Trouble Shooting](https://github.com/Manojkumar-Chandru-ML/opensearch-scaling-manager/blob/master/docs/Scaling%20Manager%20Trouble%20Shooting.md).
+ Find more about [Trouble Shooting](https://github.com/maplelabs/opensearch-scaling-manager/blob/master/docs/ScalingManagerTroubleShooting.md).
 
