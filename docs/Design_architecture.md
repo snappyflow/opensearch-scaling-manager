@@ -2,13 +2,43 @@
 
 ## Brief explanation, Modules, Architecture of Scaling Manager
 
-- [Brief explanation, Modules, Architecture of Scaling Manager](#brief-explanation-modules-architecture-of-scaling-manager)
+- [Brief explanation, Modules, Architecture of Scaling Manager](#brief-explanation--modules--architecture-of-scaling-manager)
 - [Working Principle of Scaling Manager](#working-principle-of-scaling-manager)
 - [Scaling Manager Flow Diagram](#scaling-manager-flow-diagram)
 - [Scaling Manager Architecture](#scaling-manager-architecture)
 - [Crypto](#crypto)
 - [Scale Up and Scale Down](#scale-up-and-scale-down)
 - [Scaling Manager Configuration](#scaling-manager-configuration)
+
+
+
+- **List of features:**
+
+  - Automatic Scaling 
+
+    Parameters supported are,
+
+    1. CPU usage
+    2. Mem usage
+    3. Heap usage
+    4. Disk usage
+    5. Shards
+
+  - Event based Scaling 
+
+- Lets consider the cluster has 3 nodes. OpenSearch scaling manager is now installed in each of the nodes present in cluster. Node metrics(CPU, Mem, Heap, Disk utilization) is monitored in each nodes present in the cluster and Cluster Metrics(Number of nodes, Shards) of the cluster is also monitored.
+
+- Rules are specified by the user in config.yaml file like what should be maximum usage of CPU, Mem, Heap, Disk, Maximum nodes allowed, Maximum nodes allowed etc. and those rules are verified across the resource utilized in cluster.
+
+- Now scaling manager will check the resource utilization and if the utilization is more than the rules which user specifies in config.yaml it scales up a new node to the cluster in order to accommodate the high  resource utilization.
+
+  For Example if the average cpu usage is more than 80% across the decision_period mentioned in the cluster, you have to scale_up a node in order to bring the cpu usage less, this applies for other metrics(Mem, Heap, Disk) as well. 
+  When it comes to scale_down if the average cpu usage is less than 30% across you have to scale_down a node and similar to other metrics as well.
+
+  1. If cpu_util > 80, scale_up a node
+     If mem_util > 90, scale_up a node
+  2. If cpu_util < 80, scale_down a node
+     If mem_util < 90, scale_down a node
 
 <img src="https://github.com/maplelabs/opensearch-scaling-manager/blob/master/images/Scaling_Manager_Architecture.png?raw=true" alt="Scaling_Manager_Architecture">
 
