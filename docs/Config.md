@@ -2,7 +2,7 @@
 
 ------
 
-The user can specify some key features of an OpenSearch Cluster for simulator through the config file provided. The functionalities supported are:
+The user can specify some key features of an OpenSearch Cluster for simulator through the config file provided. The functionalities supported are :
 
 1. User Configuration - user_config.
 2. Cluster Details - cluster_details (Details of the cluster).
