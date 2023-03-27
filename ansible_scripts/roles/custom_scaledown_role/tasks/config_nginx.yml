@@ -3,6 +3,7 @@
   shell: kubectl get cm esnginx-sfnginxv1 -o yaml > /tmp/esnginx-sfnginxv1_cm.yaml
   ignore_errors: True
   register: kubectl_cmd
+  become: false
 - debug: msg="Kubectl command execution failed. Please remove the node ip {{ exclude_node_ip }} manaully in nginx configmap. For more details please check troubleshooting guide."
   when: kubectl_cmd.stderr != ""
 - name: Check if the excluding node ip is already present
@@ -18,4 +19,5 @@
   when: kubectl_cmd.stderr == "" and check_node_ip.stdout != ""
 - name: Apply the update config map
   shell: kubectl apply -f /tmp/esnginx-sfnginxv1_cm.yaml
+  become: false
   when: kubectl_cmd.stderr == "" and check_node_ip.stdout != ""

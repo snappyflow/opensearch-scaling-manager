@@ -1,6 +1,7 @@
 ---
 - name: Get the present configmap
   shell: kubectl get cm esnginx-sfnginxv1 -o yaml > /tmp/esnginx-sfnginxv1_cm.yaml
+  become: false
 - name: Check if the new node ip is already present
   shell: sed -n "/server {{ new_node_ip }}:9200;/p" /tmp/esnginx-sfnginxv1_cm.yaml
   register: check_node_ip
@@ -18,4 +19,5 @@
   when: check_node_ip.stdout == ""
 - name: Apply the update config map
   shell: kubectl apply -f /tmp/esnginx-sfnginxv1_cm.yaml
+  become: false
   when: check_node_ip.stdout == ""
