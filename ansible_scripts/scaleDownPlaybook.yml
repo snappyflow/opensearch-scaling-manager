@@ -30,7 +30,7 @@
       backup: yes
     with_items: "{{ groups['remove_node'] }}"
 
-- hosts: new_node
+- hosts: localhost
   name: Custom role-based tasks for scale down
   become: yes
 

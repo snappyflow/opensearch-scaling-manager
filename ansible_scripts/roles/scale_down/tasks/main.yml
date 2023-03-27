@@ -2,7 +2,7 @@
 # tasks file for scale_down
     - name: Scale down | Stop opensearch
       become: true
-      service:
+      systemd:
         name: 'opensearch'
         state: stopped
 
@@ -21,9 +21,10 @@
 
     - name: Scale down | Restart opensearch if cluster state is red
       become: true
-      service:
+      systemd:
         name: 'opensearch'
         state: started
+        enabled: yes
       when: "cluster_health.json.status == 'red'"
 
     - name: Scale Down | Fail if the status was red
