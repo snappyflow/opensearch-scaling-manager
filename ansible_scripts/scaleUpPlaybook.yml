@@ -76,3 +76,16 @@
 
   roles:
     - custom_scaleup_role
+
+  post_tasks:
+    - name: Start opensearch after successful installation and custom role
+      systemd:
+        daemon_reload: true
+        name: 'opensearch'
+        state: started
+        enabled: yes
+      become: yes
+
+    - name: Wait for server to restart
+      wait_for: host={{ hostvars[inventory_hostname]['ansible_private_host'] }} port={{os_api_port}} delay=60 connect_timeout=1
+      become: yes
