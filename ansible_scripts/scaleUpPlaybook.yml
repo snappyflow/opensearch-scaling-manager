@@ -78,6 +78,7 @@
     - custom_scaleup_role
 
 - hosts: new_node
+  tasks:
   - name: Start opensearch after successful installation and custom role
     systemd:
       daemon_reload: true
