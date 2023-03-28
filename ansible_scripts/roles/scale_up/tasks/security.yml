@@ -165,17 +165,6 @@
     line: "#plugins.security.audit.type: internal_opensearch"
   become: yes
     
-- name: Security Plugin configuration | Restart opensearch with security configuration
-  systemd:
-    name: opensearch
-    state: restarted
-    enabled: yes   
-  become: yes
-
-- name: Wait for server to restart
-  wait_for: host={{ hostvars[inventory_hostname]['ansible_private_host'] }} port={{os_api_port}} delay=60 connect_timeout=1
-  become: yes
-
 - name: Security Plugin configuration | Cleanup local temporary directory
   local_action:
     module: file
