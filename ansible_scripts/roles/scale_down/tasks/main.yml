@@ -38,7 +38,7 @@
     - name: Execute the script to check the docs count
       become: yes
       become_user: root
-      command: "python3 {{ pth.stdout }}/docs.py {{ os_credentials.os_admin_username }} {{ os_credentials.os_admin_password }} {{ item }} {{ hostvars[item].ansible_private_host }}"
+      command: "python3 {{ pth.stdout }}/wait_for_shards_movement.py {{ os_credentials.os_admin_username }} {{ os_credentials.os_admin_password }} {{ item }} {{ hostvars[item].ansible_private_host }}"
       delegate_to: localhost
       with_items: "{{ groups['remove_node'] }}"
 
@@ -48,7 +48,7 @@
 
     - name: stop elasticsearch
       become: true
-      service:
+      systemd:
         name: 'opensearch'
         state: stopped
 
