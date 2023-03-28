@@ -46,7 +46,7 @@
       wait_for:
         timeout: 30
 
-    - name: stop elasticsearch
+    - name: stop Opensearch
       become: true
       systemd:
         name: 'opensearch'
