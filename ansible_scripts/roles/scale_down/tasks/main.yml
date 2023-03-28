@@ -1,33 +1,63 @@
 ---
 # tasks file for scale_down
-    - name: Scale down | Stop opensearch
+    - name: Change the directory
+      shell: |
+        pwd
+      register: pth
+      delegate_to: localhost
+
+    - name: Update and install the packages in Ubuntu
       become: true
-      systemd:
+      become_user: root
+      shell: |
+        sudo apt-get -y update
+        sudo apt-get install -y python3-pip
+        pip3 install requests
+      delegate_to: localhost
+      when: ansible_os_family == "Debian"
+
+    - name: Update and install the packages in Centos
+      become: true
+      become_user: root
+      shell: |
+        yum install -y python3-pip
+        pip3 install requests
+      delegate_to: localhost
+      when: ansible_os_family == "RedHat"
+
+    - name: Exclude the node from allocation
+      become: true
+      become_user: root
+      shell: "curl -XPUT {{ hostvars[item].ansible_private_host }}:9200/_cluster/settings -u {{ os_credentials.os_admin_username }}:{{ os_credentials.os_admin_password }} -H 'Content-Type: application/json' -d '{
+  \"transient\" :{
+      \"cluster.routing.allocation.exclude._ip\" : \"{{ hostvars[item].ansible_private_host }}\"
+   }
+}'"
+      with_items: "{{ groups['remove_node'] }}"
+
+    - name: Execute the script to check the docs count
+      become: yes
+      become_user: root
+      command: "python3 {{ pth.stdout }}/docs.py {{ os_credentials.os_admin_username }} {{ os_credentials.os_admin_password }} {{ item }} {{ hostvars[item].ansible_private_host }}"
+      delegate_to: localhost
+      with_items: "{{ groups['remove_node'] }}"
+
+    - name: Wait for 30 seconds to stabilise the cluster
+      wait_for:
+        timeout: 30
+
+    - name: stop elasticsearch
+      become: true
+      service:
         name: 'opensearch'
         state: stopped
 
-    - name: Scale Down | Check for cluster health
-      uri:
-        url: http://localhost:9200/_cluster/health
-        user: "{{ os_credentials.os_admin_username }}"
-        password: "{{ os_credentials.os_admin_password }}"
-        method: GET
-        return_content: yes
-        status_code: 200
-        force_basic_auth: true
-        body_format: json
-      register: cluster_health
-      delegate_to: localhost
-
-    - name: Scale down | Restart opensearch if cluster state is red
+    - name: Clear the exclusion of node after Stopping Opensearch
       become: true
-      systemd:
-        name: 'opensearch'
-        state: started
-        enabled: yes
-      when: "cluster_health.json.status == 'red'"
-
-    - name: Scale Down | Fail if the status was red
-      fail:
-        msg: Restarted opensearch as cluster state was red. Scaledown failed!
-      when: "cluster_health.json.status == 'red'"
+      become_user: root
+      shell: "curl -XPUT localhost:9200/_cluster/settings -u {{ os_credentials.os_admin_username }}:{{ os_credentials.os_admin_password }} -H 'Content-Type: application/json' -d '{
+  \"transient\" :{
+      \"cluster.routing.allocation.exclude._ip\" : \"\"
+   }
+}'"
+      delegate_to: localhost
