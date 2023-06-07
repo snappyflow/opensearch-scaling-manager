@@ -1,0 +1,46 @@
+---
+- name: Get all the installed ES plugins
+  command: "{{ os_plugin_bin_path }} list"
+  register: list_plugins
+  become: yes
+
+- name: Show all the installed ES plugins
+  debug:
+    msg: "{{ list_plugins.stdout }}"
+  become: yes
+
+- name: Install S3 plugin repository
+  become: yes
+  command: "{{ os_plugin_bin_path }} install repository-s3 --batch"
+  when: '"repository-s3" not in list_plugins.stdout'
+
+- name: Install Azure plugin repository
+  become: yes
+  command: "{{ os_plugin_bin_path }} install repository-azure --batch"
+  when: '"repository-azure" not in list_plugins.stdout'
+
+- name: Install GCS plugin repository
+  become: yes
+  command: "{{ os_plugin_bin_path }} install repository-gcs --batch"
+  when: '"repository-gcs" not in list_plugins.stdout'
+
+- name: check if the binary opensearch-keystore exist
+  stat:
+    path: /usr/share/opensearch/bin/opensearch-keystore
+  register: file_details
+
+- name: add azure.client.default.account
+  become: yes
+  become_user: opensearch
+  command: "/usr/share/opensearch/bin/opensearch-keystore add azure.client.default.account --stdin --force"
+  args:
+    stdin: "{{ azure_client_account }}"
+  when: (file_details.stat.exists and azure_client_account is defined)
+
+- name: add azure.client.default.key
+  become: yes
+  become_user: opensearch
+  command: "/usr/share/opensearch/bin/opensearch-keystore add azure.client.default.key --stdin --force"
+  args:
+    stdin: "{{ azure_client_key }}"
+  when: (file_details.stat.exists and azure_client_key is defined)
