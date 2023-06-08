@@ -122,3 +122,12 @@
   tags:
     - config_nginx
   when: is_sf_cloud and configure_nginx
+
+- include_tasks:
+    file: s3_backup.yml
+    apply:
+      tags:
+        - s3_backup
+  tags:
+    - s3_backup
+  when: install_sfagent
